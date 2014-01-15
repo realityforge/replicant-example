@@ -3,6 +3,7 @@
   <inherits name='com.google.gwt.user.User'/>
   <inherits name="org.realityforge.gwt.websockets.WebSockets"/>
   <inherits name="org.realityforge.replicant.Replicant"/>
+  <inherits name="org.realityforge.gwt.datatypes.Datatypes"/>
   <inherits name="com.google.gwt.inject.Inject"/>
   <add-linker name="xsiframe"/>
 
