@@ -1,4 +1,5 @@
 /artifacts
+/config/database.yml
 /generated
 /database/generated
 /target
