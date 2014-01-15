@@ -8,7 +8,7 @@ GWT_DEPS = [:gwt_datatypes,
             :gwt_gin,
             :javax_validation_sources]
 PROVIDED_DEPS = [:gwt_websockets, :javax_annotation, :javax_javaee] + GWT_DEPS
-COMPILE_DEPS = [:gwt_user, :replicant]
+COMPILE_DEPS = [:gwt_user, :replicant, :jackson_core, :jackson_mapper]
 PACKAGE_DEPS = [:gwt_cache_filter] + COMPILE_DEPS
 
 desc "A simple application demonstrating the use of the replicant library"

@@ -22,6 +22,12 @@ artifacts:
   # Library under demonstration
   replicant: org.realityforge.replicant:replicant:jar:0.5.1
 
+  #
+  # Used in mapping entities to json
+  # TODO: This hard dependency exists in the generated servlet code for gwt-rpc. It should be removed!
+  jackson_core: org.codehaus.jackson:jackson-core-asl:jar:1.9.4
+  jackson_mapper: org.codehaus.jackson:jackson-mapper-asl:jar:1.9.4
+
   # Supporting GWT libraries
   gwt_datatypes: org.realityforge.gwt.datatypes:gwt-datatypes:jar:0.1
   gwt_websockets: org.realityforge.gwt.websockets:gwt-websockets:jar:0.1
