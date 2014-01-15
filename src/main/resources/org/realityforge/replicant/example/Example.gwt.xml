@@ -10,4 +10,5 @@
   <entry-point class='org.realityforge.replicant.example.client.Example'/>
 
   <source path='client'/>
+  <source path='shared'/>
 </module>
