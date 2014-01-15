@@ -31,6 +31,8 @@ Domgen.repository(:Tyrell) do |repository|
       t.boolean(:Active)
     end
 
+    data_module.message(:BuildingDataLoaded)
+
     data_module.message(:IncrementalLoadComplete)
 
     data_module.message(:BulkLoadComplete)
