@@ -23,5 +23,6 @@ artifacts:
   replicant: org.realityforge.replicant:replicant:jar:0.5.1
 
   # Supporting GWT libraries
+  gwt_datatypes: org.realityforge.gwt.datatypes:gwt-datatypes:jar:0.1
   gwt_websockets: org.realityforge.gwt.websockets:gwt-websockets:jar:0.1
   gwt_cache_filter: org.realityforge.gwt.cache-filter:gwt-cache-filter:jar:0.3

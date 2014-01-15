@@ -1,7 +1,13 @@
 require 'buildr/git_auto_version'
 require 'buildr/top_level_generate_dir'
 
-PROVIDED_DEPS = [:gwt_websockets, :javax_annotation, :javax_javaee]
+GWT_DEPS = [:gwt_datatypes,
+            :google_guice,
+            :google_guice_assistedinject,
+            :aopalliance,
+            :gwt_gin,
+            :javax_validation_sources]
+PROVIDED_DEPS = [:gwt_websockets, :javax_annotation, :javax_javaee] + GWT_DEPS
 COMPILE_DEPS = [:gwt_user, :replicant]
 PACKAGE_DEPS = [:gwt_cache_filter] + COMPILE_DEPS
 
