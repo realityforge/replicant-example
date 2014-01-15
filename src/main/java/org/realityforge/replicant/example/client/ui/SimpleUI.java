@@ -7,11 +7,12 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.VerticalPanel;
 import javax.annotation.Nonnull;
 import org.realityforge.gwt.websockets.client.WebSocket;
 import org.realityforge.gwt.websockets.client.event.CloseEvent;
@@ -20,12 +21,14 @@ import org.realityforge.gwt.websockets.client.event.MessageEvent;
 import org.realityforge.gwt.websockets.client.event.OpenEvent;
 
 public final class SimpleUI
+  extends Composite
 {
   private HTML _messages;
   private ScrollPanel _scrollPanel;
   private Button _disconnect;
   private Button _connect;
   private Button _send;
+  private VerticalPanel _panel;
 
   public void SimpleUI()
   {
@@ -80,22 +83,25 @@ public final class SimpleUI
       _scrollPanel = new ScrollPanel();
       _scrollPanel.setHeight( "250px" );
       _scrollPanel.add( _messages );
-      RootPanel.get().add( _scrollPanel );
+
+      _panel = new VerticalPanel();
+      _panel.add( _scrollPanel );
 
       {
         final FlowPanel controls = new FlowPanel();
         controls.add( url );
         controls.add( _connect );
         controls.add( _disconnect );
-        RootPanel.get().add( controls );
+        _panel.add( controls );
       }
 
       {
         final FlowPanel controls = new FlowPanel();
         controls.add( input );
         controls.add( _send );
-        RootPanel.get().add( controls );
+        _panel.add( controls );
       }
+      initWidget( _panel );
     }
   }
 
