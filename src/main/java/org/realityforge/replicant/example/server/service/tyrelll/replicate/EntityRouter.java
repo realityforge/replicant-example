@@ -4,9 +4,9 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
-import tyrell.server.entity.tyrell.Building;
-import tyrell.server.entity.tyrell.Room;
-import tyrell.server.entity.tyrell.TyrellRouter;
+import org.realityforge.replicant.example.server.entity.tyrell.Building;
+import org.realityforge.replicant.example.server.entity.tyrell.Room;
+import org.realityforge.replicant.example.server.entity.tyrell.TyrellRouter;
 
 public class EntityRouter
   implements TyrellRouter

@@ -3,12 +3,12 @@ package org.realityforge.replicant.example.server.service.tyrelll;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import org.realityforge.replicant.example.server.entity.tyrell.Building;
+import org.realityforge.replicant.example.server.entity.tyrell.Room;
+import org.realityforge.replicant.example.server.entity.tyrell.dao.BuildingRepository;
+import org.realityforge.replicant.example.server.entity.tyrell.dao.RoomRepository;
+import org.realityforge.replicant.example.server.service.tyrell.BuildingService;
 import org.realityforge.replicant.example.server.service.tyrelll.replicate.Replicate;
-import tyrell.server.entity.tyrell.Building;
-import tyrell.server.entity.tyrell.Room;
-import tyrell.server.entity.tyrell.dao.BuildingRepository;
-import tyrell.server.entity.tyrell.dao.RoomRepository;
-import tyrell.server.service.tyrell.BuildingService;
 
 @Stateless
 @Replicate
