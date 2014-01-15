@@ -1,4 +1,5 @@
 require 'buildr/git_auto_version'
+require 'buildr/top_level_generate_dir'
 
 PROVIDED_DEPS = [:gwt_websockets, :javax_annotation, :javax_javaee]
 COMPILE_DEPS = [:gwt_user, :replicant]
@@ -11,6 +12,12 @@ define 'replicant-example' do
   compile.options.source = '1.7'
   compile.options.target = '1.7'
   compile.options.lint = 'all'
+
+  Domgen::GenerateTask.new(:Tyrell,
+                           "server",
+                           [:ee, :gwt, :gwt_rpc, :imit],
+                           _(:target, :generated, "domgen"))
+
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 

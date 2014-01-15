@@ -1,4 +1,6 @@
 /artifacts
+/generated
+/database/generated
 /target
 /reports
 /*.iws
