@@ -12,7 +12,7 @@ define 'replicant-example' do
   compile.options.target = '1.7'
   compile.options.lint = 'all'
 
-  compile.with :gwt_websockets, :javax_annotation, :javax_javaee, :gwt_user
+  compile.with COMPILE_DEPS, PROVIDED_DEPS
 
   gwt_dir = gwt(["org.realityforge.replicant.example.Example"],
                 :java_args => ["-Xms512M", "-Xmx1024M", "-XX:PermSize=128M", "-XX:MaxPermSize=256M"],
