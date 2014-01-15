@@ -10,10 +10,6 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntityRepositoryImpl;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
 import org.realityforge.replicant.example.client.services.TyrellEntityChangeBroker;
-import org.realityforge.replicant.example.server.service.tyrelll.replicate.EntityRouter;
-import org.realityforge.replicant.server.EntityMessageGenerator;
-import tyrell.server.entity.TyrellEntityMessageGenerator;
-import tyrell.server.entity.tyrell.TyrellRouter;
 
 public class BasicModule
   extends AbstractGinModule
@@ -24,8 +20,6 @@ public class BasicModule
     bindNamedService( "GLOBAL", AsyncCallback.class, GlobalAsyncCallback.class );
     bind( EntityRepository.class ).to( EntityRepositoryImpl.class ).asEagerSingleton();
     bind( EntityChangeBroker.class ).to( TyrellEntityChangeBroker.class ).asEagerSingleton();
-    bind( EntityMessageGenerator.class ).to( TyrellEntityMessageGenerator.class ).asEagerSingleton();
-    bind( TyrellRouter.class ).to( EntityRouter.class ).asEagerSingleton();
     bind( EventBus.class ).to( SimpleEventBus.class ).asEagerSingleton();
   }
 
