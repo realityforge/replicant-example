@@ -81,10 +81,20 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToBuilding) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.reference(:Building)
+        m.returns(:text)
       end
       s.method(:UnsubscribeFromBuilding) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.reference(:Building)
+      end
+      s.method(:Poll) do |m|
+        m.integer(:LastKnownChangeSetID)
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.returns(:text, :nullable => true) do |a|
+          a.description("A changeset represented as json or null if no changeset outstanding.")
+        end
       end
     end
   end
