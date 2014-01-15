@@ -37,6 +37,9 @@ Domgen.repository(:Tyrell) do |repository|
         m.text(:Name)
         m.returns(:reference, :referenced_entity => :Building)
       end
+      s.method(:RemoveBuilding) do |m|
+        m.reference(:Building)
+      end
       s.method(:SetBuildingName) do |m|
         m.reference(:Building)
         m.text(:Name)
@@ -48,6 +51,9 @@ Domgen.repository(:Tyrell) do |repository|
         m.text(:Name)
         m.boolean(:Active)
         m.returns(:reference, :referenced_entity => :Room)
+      end
+      s.method(:RemoveRoom) do |m|
+        m.reference(:Room)
       end
       s.method(:SetRoomName) do |m|
         m.reference(:Room)
