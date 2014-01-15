@@ -1,9 +1,9 @@
 package org.realityforge.replicant.example.client.services;
 
 import com.google.gwt.core.client.Scheduler;
-import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.rpc.InvocationException;
+import com.google.web.bindery.event.shared.EventBus;
 import java.util.HashSet;
 import java.util.logging.Level;
 import javax.inject.Inject;
