@@ -1,4 +1,11 @@
 {
+  "vendor/plugins/dbt": {
+    "url": "https://github.com/realityforge/dbt.git",
+    "remote": "master/braid/vendor/plugins/dbt",
+    "branch": "master",
+    "squashed": true,
+    "revision": "2d2a316a88b2a5109acee25d19cf6816ce92c664"
+  },
   "vendor/plugins/domgen": {
     "url": "https://github.com/realityforge/domgen.git",
     "remote": "master/braid/vendor/plugins/domgen",
