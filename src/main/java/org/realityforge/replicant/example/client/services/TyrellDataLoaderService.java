@@ -38,6 +38,24 @@ public class TyrellDataLoaderService
   private boolean _incrementalDataLoadInProgress;
   private HashSet<Integer> _subscriptions = new HashSet<>();
 
+  @Override
+  public void connect()
+  {
+    startPolling();
+  }
+
+  @Override
+  public void disconnect()
+  {
+    stopPolling();
+  }
+
+  @Override
+  public boolean isConnected()
+  {
+    return null != _timer;
+  }
+
   public void subscribeToBuilding( final int buildingID )
   {
     if ( !_subscriptions.contains( buildingID ) )
