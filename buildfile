@@ -51,11 +51,15 @@ define 'replicant-example' do
   assets.paths.each { |path| webroots[path.to_s] = "/" if path.to_s != gwt_dir.to_s }
   iml.add_web_facet(:webroots => webroots)
 
+  iml.add_jpa_facet
+  iml.add_ejb_facet
   iml.add_jruby_facet
 
   ipr.add_exploded_war_artifact(project,
                                 :build_on_make => true,
                                 :enable_gwt => true,
+                                :enable_jpa => true,
+                                :enable_ejb => true,
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 end
