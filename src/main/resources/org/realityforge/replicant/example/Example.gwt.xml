@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='example'>
+  <inherits name='com.google.gwt.user.User'/>
+  <inherits name="org.realityforge.gwt.websockets.WebSockets"/>
+  <inherits name="org.realityforge.replicant.Replicant"/>
+  <add-linker name="xsiframe"/>
+
+  <entry-point class='org.realityforge.replicant.example.client.Example'/>
+
+  <source path='client'/>
+</module>
