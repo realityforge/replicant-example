@@ -41,6 +41,14 @@ Domgen.repository(:Tyrell) do |repository|
         m.reference(:Building)
         m.text(:Name)
       end
+      s.method(:CreateRoom) do |m|
+        m.reference(:Building)
+        m.integer(:Floor)
+        m.integer(:LocalNumber)
+        m.text(:Name)
+        m.boolean(:Active)
+        m.returns(:reference, :referenced_entity => :Room)
+      end
       s.method(:SetRoomName) do |m|
         m.reference(:Room)
         m.text(:Name)
