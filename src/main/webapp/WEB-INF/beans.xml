@@ -1,0 +1,5 @@
+<beans xmlns="http://xmlns.jcp.org/xml/ns/javaee" bean-discovery-mode="annotated">
+  <scan>
+    <exclude name="footprints.client.**"/>
+  </scan>
+</beans>

@@ -1,0 +1,104 @@
+body{
+  font: 12px tahoma, arial, verdana, sans-serif;
+}
+
+.warningContainer{
+  width:350px;
+  margin-top: 80px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.loginContainer{
+  width: 250px;
+  margin: 20px auto;
+  position: relative;
+}
+
+.upperContainer{
+  padding: 20px 20px 5px 20px;
+  border: 1px solid #d3d3d3;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-style: dashed;
+  background-color: #F0F0F0;
+}
+
+.lowerContainer{
+  padding: 20px;
+  border: 1px solid #d3d3d3;
+  border-top: none;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  background-color: #FAFAFA;
+}
+
+.loginContainer .title{
+  font-size: 16pt;
+  margin-bottom: 15px;
+}
+
+.loginContainer .title .agency{
+  font-weight: bold;
+}
+
+.loginContainer .title .text{
+  font-size: 8pt;
+  text-align: right;
+}
+
+.loginContainer .description{
+  font-size: 14pt;
+  margin-bottom: 20px
+}
+
+.loginContainer .instruction{
+  font-style: italic;
+  font-size: 8pt;
+  margin-bottom: 5px;
+}
+
+.formContainer input[type="text"], .formContainer input[type="password"]{
+  width: 206px;
+  margin-bottom: 5px;
+}
+
+.formContainer .button{
+  margin-top: 10px;
+  text-align: right;
+}
+
+.footer img{
+  float:left;
+  margin-left: 5px;
+}
+
+.footer{
+  padding: 20px 10px 5px 10px;
+  font-size: 7pt;
+  text-align: center;
+}
+
+.error{
+  font-weight: bold;
+  color: #ff3b19;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.logout{
+  text-align: center;
+}
+
+.logout .message{
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.warning{
+  color: #ff3b19;
+}
+
+.warning div{
+  margin-top:10px;
+}
