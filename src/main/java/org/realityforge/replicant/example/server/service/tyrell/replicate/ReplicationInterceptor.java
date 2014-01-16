@@ -1,13 +1,11 @@
 package org.realityforge.replicant.example.server.service.tyrell.replicate;
 
-import java.util.Collection;
-import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.interceptor.Interceptor;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import org.realityforge.replicant.example.server.entity.TyrellPersistenceUnit;
-import org.realityforge.replicant.server.EntityMessage;
+import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.ee.AbstractReplicationInterceptor;
 
 @Interceptor
@@ -16,15 +14,15 @@ public class ReplicationInterceptor
   extends AbstractReplicationInterceptor
 {
   @EJB
-  private ChangeQueue _changeQueue;
+  private EntityMessageEndpoint _endpoint;
 
   @PersistenceContext( unitName = TyrellPersistenceUnit.NAME )
   private EntityManager _entityManager;
 
   @Override
-  protected void saveEntityMessages( @Nonnull final Collection<EntityMessage> messages )
+  protected EntityMessageEndpoint getEndpoint()
   {
-    _changeQueue.saveEntityMessages( messages );
+    return _endpoint;
   }
 
   @Override
