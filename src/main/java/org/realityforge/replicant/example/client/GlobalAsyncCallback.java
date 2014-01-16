@@ -21,6 +21,5 @@ public class GlobalAsyncCallback
   @Override
   public void onSuccess( final Object result )
   {
-    LOG.log( Level.INFO, "A request succeeded: " + result );
   }
 }
