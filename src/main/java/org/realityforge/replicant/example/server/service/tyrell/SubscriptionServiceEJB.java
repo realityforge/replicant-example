@@ -40,7 +40,6 @@ public class SubscriptionServiceEJB
   @PostConstruct
   public void postConstruct()
   {
-    //_encoder = new Encoder( new TyrellEntityMessageGenerator( _router ) );
     _encoder = new Encoder( _messageGenerator );
   }
 
