@@ -11,7 +11,7 @@ import org.realityforge.replicant.example.server.entity.tyrell.TyrellRouter;
 public class EntityRouter
   implements TyrellRouter
 {
-  static final String BUILDING_KEY = "Tyrell.BuildingID";
+  public static final String BUILDING_KEY = "Tyrell.BuildingID";
 
   @Nonnull
   @Override
