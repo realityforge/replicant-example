@@ -67,7 +67,7 @@ public class TyrellDataLoaderService
         @Override
         public void onSuccess( final String result )
         {
-          onLoadBuildingData( result );
+          onLoadBuildingData( buildingID, result );
         }
       } );
     }
@@ -104,13 +104,14 @@ public class TyrellDataLoaderService
     }
   }
 
-  private void onLoadBuildingData( final String rawJsonData )
+  private void onLoadBuildingData( final int buildingID, final String rawJsonData )
   {
     final Runnable runnable = new Runnable()
     {
       public void run()
       {
-        _eventBus.fireEvent( new BuildingDataLoadedEvent() );
+        final Building building = _repository.findByID( Building.class, buildingID );
+        _eventBus.fireEvent( new BuildingDataLoadedEvent( building ) );
       }
     };
     enqueueDataLoad( true, rawJsonData, runnable );
