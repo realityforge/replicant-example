@@ -13,10 +13,6 @@ public class EntityRouter
 {
   static final String BUILDING_KEY = "Tyrell.BuildingID";
 
-  public EntityRouter()
-  {
-  }
-
   @Nonnull
   @Override
   public Map<String, Serializable> routeBuilding( @Nonnull final Building entity )
