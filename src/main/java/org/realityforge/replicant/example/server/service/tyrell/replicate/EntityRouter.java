@@ -4,10 +4,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.enterprise.context.Dependent;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.entity.tyrell.Room;
 import org.realityforge.replicant.example.server.entity.tyrell.TyrellRouter;
 
+@Dependent
 public class EntityRouter
   implements TyrellRouter
 {
