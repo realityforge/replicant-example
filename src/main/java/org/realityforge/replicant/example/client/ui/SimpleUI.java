@@ -1,160 +1,226 @@
 package org.realityforge.replicant.example.client.ui;
 
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.DivElement;
-import com.google.gwt.dom.client.Document;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.user.client.Window;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.ScrollPanel;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.Tree;
+import com.google.gwt.user.client.ui.TreeItem;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import javax.annotation.Nonnull;
-import org.realityforge.gwt.websockets.client.WebSocket;
-import org.realityforge.gwt.websockets.client.event.CloseEvent;
-import org.realityforge.gwt.websockets.client.event.ErrorEvent;
-import org.realityforge.gwt.websockets.client.event.MessageEvent;
-import org.realityforge.gwt.websockets.client.event.OpenEvent;
+import com.google.web.bindery.event.shared.EventBus;
+import java.util.logging.Logger;
+import javax.inject.Inject;
+import org.realityforge.replicant.client.EntityChangeBroker;
+import org.realityforge.replicant.client.EntityChangeEvent;
+import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.entity.tyrell.Building;
+import org.realityforge.replicant.example.client.entity.tyrell.Room;
+import org.realityforge.replicant.example.client.event.tyrell.BuildingDataLoadedEvent;
+import org.realityforge.replicant.example.client.event.tyrell.BuildingDataLoadedEventHandler;
+import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
+import org.realityforge.replicant.example.client.service.tyrell.GwtRpcBuildingService;
+import org.realityforge.replicant.example.client.services.DataLoaderService;
 
-public final class SimpleUI
+public class SimpleUI
   extends Composite
+  implements EntityChangeListener
 {
-  private HTML _messages;
-  private ScrollPanel _scrollPanel;
-  private Button _disconnect;
-  private Button _connect;
-  private Button _send;
-  private VerticalPanel _panel;
+  private static final Logger LOG = Logger.getLogger( SimpleUI.class.getName() );
 
-  public void SimpleUI()
+  private final Tree _tree;
+  private final Button _create;
+  private final Button _update;
+  private final Button _connect;
+  private final Button _disconnect;
+  private final Button _createBuilding;
+  private Building _selectedBuilding;
+  private Room _selectedRoom;
+
+  @Inject
+  public SimpleUI( final EntityChangeBroker broker,
+                   final DataLoaderService dataLoaderService,
+                   final GwtRpcBuildingService buildingService,
+                   final EventBus eventBus )
   {
-    final WebSocket webSocket = WebSocket.newWebSocketIfSupported();
-    if ( null == webSocket )
-    {
-      Window.alert( "WebSocket not available!" );
-    }
-    else
-    {
-      registerListeners( webSocket );
-      final TextBox url = new TextBox();
-      final String moduleBaseURL = GWT.getModuleBaseURL();
-      final String moduleName = GWT.getModuleName();
-      final String webSocketURL =
-        moduleBaseURL.substring( 0, moduleBaseURL.length() - moduleName.length() - 1 ).
-          replaceFirst( "^http\\:", "ws:" ) + "chat";
-      url.setValue( webSocketURL );
-      final TextBox input = new TextBox();
-      input.setValue( "Greetings!" );
+    super();
 
-      _connect = new Button( "Connect", new ClickHandler()
-      {
-        @Override
-        public void onClick( final ClickEvent event )
-        {
-          _connect.setEnabled( false );
-          webSocket.connect( url.getValue() );
-        }
-      } );
-      _disconnect = new Button( "Disconnect", new ClickHandler()
-      {
-        @Override
-        public void onClick( ClickEvent event )
-        {
-          webSocket.close();
-          _disconnect.setEnabled( false );
-        }
-      } );
-      _disconnect.setEnabled( false );
-      _send = new Button( "Send", new ClickHandler()
-      {
-        @Override
-        public void onClick( ClickEvent event )
-        {
-          webSocket.send( input.getValue() );
-        }
-      } );
-      _send.setEnabled( false );
+    final TextBox input = new TextBox();
+    input.setValue( "Greetings!" );
 
-      _messages = new HTML();
-      _scrollPanel = new ScrollPanel();
-      _scrollPanel.setHeight( "250px" );
-      _scrollPanel.add( _messages );
-
-      _panel = new VerticalPanel();
-      _panel.add( _scrollPanel );
-
-      {
-        final FlowPanel controls = new FlowPanel();
-        controls.add( url );
-        controls.add( _connect );
-        controls.add( _disconnect );
-        _panel.add( controls );
-      }
-
-      {
-        final FlowPanel controls = new FlowPanel();
-        controls.add( input );
-        controls.add( _send );
-        _panel.add( controls );
-      }
-      initWidget( _panel );
-    }
-  }
-
-  private void registerListeners( final WebSocket webSocket )
-  {
-    webSocket.addOpenHandler( new OpenEvent.Handler()
+    _connect = new Button( "Connect", new ClickHandler()
     {
       @Override
-      public void onOpenEvent( @Nonnull final OpenEvent event )
+      public void onClick( final ClickEvent event )
       {
-        appendText( "open", "silver" );
-        _disconnect.setEnabled( true );
-        _send.setEnabled( true );
-      }
-    } );
-    webSocket.addCloseHandler( new CloseEvent.Handler()
-    {
-      @Override
-      public void onCloseEvent( @Nonnull final CloseEvent event )
-      {
-        appendText( "close", "silver" );
-        _connect.setEnabled( true );
-        _disconnect.setEnabled( false );
-        _send.setEnabled( false );
-      }
-    } );
-    webSocket.addErrorHandler( new ErrorEvent.Handler()
-    {
-      @Override
-      public void onErrorEvent( @Nonnull final ErrorEvent event )
-      {
-        appendText( "error", "red" );
         _connect.setEnabled( false );
-        _disconnect.setEnabled( false );
-        _send.setEnabled( false );
+        _createBuilding.setEnabled( true );
+        _disconnect.setEnabled( true );
+        dataLoaderService.connect();
       }
     } );
-    webSocket.addMessageHandler( new MessageEvent.Handler()
+    _disconnect = new Button( "Disconnect", new ClickHandler()
     {
       @Override
-      public void onMessageEvent( @Nonnull final MessageEvent event )
+      public void onClick( ClickEvent event )
       {
-        appendText( "message: " + event.getData(), "black" );
+        dataLoaderService.disconnect();
+        _connect.setEnabled( true );
+        _createBuilding.setEnabled( false );
+        _disconnect.setEnabled( false );
       }
     } );
+    _disconnect.setEnabled( false );
+
+    _createBuilding = new Button( "Create and Subscribe to building", new ClickHandler()
+    {
+      @Override
+      public void onClick( ClickEvent event )
+      {
+        buildingService.createBuilding( input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+        {
+          @Override
+          public void onSuccess( final Integer result )
+          {
+            dataLoaderService.subscribeToBuilding( result );
+          }
+        } );
+
+      }
+    } );
+    _createBuilding.setEnabled( false );
+
+    final VerticalPanel panel = new VerticalPanel();
+    {
+      final FlowPanel controls = new FlowPanel();
+      controls.add( _connect );
+      controls.add( _disconnect );
+      panel.add( controls );
+    }
+
+    {
+      final FlowPanel controls = new FlowPanel();
+      controls.add( input );
+      controls.add( _createBuilding );
+      panel.add( controls );
+    }
+    _tree = new Tree();
+
+    _create = new Button( "Create", new ClickHandler()
+    {
+      @Override
+      public void onClick( ClickEvent event )
+      {
+        if ( null == _selectedBuilding )
+        {
+          buildingService.createBuilding( input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+          {
+            @Override
+            public void onSuccess( final Integer result )
+            {
+              dataLoaderService.subscribeToBuilding( result );
+            }
+          } );
+        }
+        else
+        {
+          buildingService.createRoom( _selectedBuilding.getID(), 1, 1, input.getName(), true );
+        }
+      }
+    } );
+    _create.setEnabled( false );
+
+    _update = new Button( "Update", new ClickHandler()
+    {
+      @Override
+      public void onClick( ClickEvent event )
+      {
+        if ( null != _selectedBuilding )
+        {
+          buildingService.setBuildingName( _selectedBuilding.getID(), input.getValue() );
+        }
+        else
+        {
+          buildingService.setRoomName( _selectedRoom.getID(), input.getName() );
+        }
+      }
+    } );
+    _update.setEnabled( false );
+
+    final HorizontalPanel control = new HorizontalPanel();
+    control.add( _create );
+    control.add( _update );
+
+    panel.add( control );
+    panel.add( _tree );
+
+    _tree.addSelectionHandler( new SelectionHandler<TreeItem>()
+    {
+      @Override
+      public void onSelection( final SelectionEvent<TreeItem> event )
+      {
+        final Object userObject = event.getSelectedItem().getUserObject();
+        _selectedBuilding = null;
+        _selectedRoom = null;
+        if ( userObject instanceof Building )
+        {
+          _selectedBuilding = (Building) userObject;
+          _create.setText( "Create Room" );
+          _create.setEnabled( true );
+          _update.setEnabled( true );
+        }
+        else if ( userObject instanceof Room )
+        {
+          _selectedRoom = (Room) userObject;
+          _create.setEnabled( false );
+          _update.setEnabled( true );
+        }
+        else
+        {
+          _update.setEnabled( false );
+        }
+      }
+    } );
+    broker.addChangeListener( this );
+    eventBus.addHandler( BuildingDataLoadedEvent.TYPE, new BuildingDataLoadedEventHandler()
+    {
+      @Override
+      public void onBuildingDataLoaded( final BuildingDataLoadedEvent event )
+      {
+        final TreeItem treeItem = _tree.addTextItem( event.getBuilding().getName() );
+        final Building building = event.getBuilding();
+        treeItem.setUserObject( building );
+
+      }
+    } );
+    initWidget( panel );
   }
 
-  private void appendText( final String text, final String color )
+  @Override
+  public void entityRemoved( final EntityChangeEvent event )
   {
-    final DivElement div = Document.get().createDivElement();
-    div.setInnerText( text );
-    div.setAttribute( "style", "color:" + color );
-    _messages.getElement().appendChild( div );
-    _scrollPanel.scrollToBottom();
+    LOG.info( "entityRemoved(" + event + ")" );
+  }
+
+  @Override
+  public void attributeChanged( final EntityChangeEvent event )
+  {
+    LOG.info( "attributeChanged(" + event + ")" );
+  }
+
+  @Override
+  public void relatedAdded( final EntityChangeEvent event )
+  {
+    LOG.info( "relatedAdded(" + event + ")" );
+  }
+
+  @Override
+  public void relatedRemoved( final EntityChangeEvent event )
+  {
+    LOG.info( "relatedRemoved(" + event + ")" );
   }
 }
