@@ -25,7 +25,7 @@ import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
 
 @Stateless
-@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
+@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends InMemorySessionManager<TyrellSessionInfo>
   implements SubscriptionService, EntityMessageEndpoint
