@@ -6,12 +6,12 @@ import com.google.inject.name.Names;
 import com.google.web.bindery.event.shared.EventBus;
 import com.google.web.bindery.event.shared.SimpleEventBus;
 import org.realityforge.replicant.client.EntityChangeBroker;
+import org.realityforge.replicant.client.EntityChangeBrokerImpl;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntityRepositoryImpl;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 import org.realityforge.replicant.example.client.services.TyrellDataLoaderService;
-import org.realityforge.replicant.example.client.services.TyrellEntityChangeBroker;
 
 public class BasicModule
   extends AbstractGinModule
@@ -21,7 +21,7 @@ public class BasicModule
   {
     bindNamedService( "GLOBAL", AsyncCallback.class, GlobalAsyncCallback.class );
     bind( EntityRepository.class ).to( EntityRepositoryImpl.class ).asEagerSingleton();
-    bind( EntityChangeBroker.class ).to( TyrellEntityChangeBroker.class ).asEagerSingleton();
+    bind( EntityChangeBroker.class ).to( EntityChangeBrokerImpl.class ).asEagerSingleton();
     bind( DataLoaderService.class ).to( TyrellDataLoaderService.class ).asEagerSingleton();
     bind( EventBus.class ).to( SimpleEventBus.class ).asEagerSingleton();
   }
