@@ -78,6 +78,6 @@ public class TyrellSessionInfo
 
   private int newPacketSequence()
   {
-    return _lastSequence++;
+    return ++_lastSequence;
   }
 }
