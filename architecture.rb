@@ -104,5 +104,12 @@ Domgen.repository(:Tyrell) do |repository|
         m.exception(:BadSession)
       end
     end
+
+    data_module.services.each do |service|
+      if service.ejb?
+        service.ejb.generate_boundary = true
+        service.ejb.boundary_extends = "org.realityforge.replicant.example.server.service.tyrell.AbstractExternalService"
+      end
+    end
   end
 end
