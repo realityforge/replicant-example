@@ -10,7 +10,6 @@ import org.realityforge.replicant.example.server.service.tyrell.replicate.Change
 import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.ReplicantClient;
-import org.realityforge.ssf.SessionInfo;
 import org.realityforge.ssf.SimpleSessionInfo;
 
 public class TyrellSessionInfo
