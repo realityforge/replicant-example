@@ -21,7 +21,7 @@ public class TyrellSessionInfo
 
   // sequence of last packet delivered
   private int _lastSequence;
-  private final LinkedList<Packet> _packets = new LinkedList<Packet>();
+  private final LinkedList<Packet> _packets = new LinkedList<>();
 
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
