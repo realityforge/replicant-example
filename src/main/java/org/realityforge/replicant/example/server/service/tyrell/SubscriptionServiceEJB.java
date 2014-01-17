@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.ejb.Local;
-import javax.ejb.Stateless;
+import javax.ejb.Singleton;
 import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.EntityRouter;
@@ -24,7 +24,7 @@ import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
 
-@Stateless
+@Singleton
 @Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends InMemorySessionManager<TyrellSessionInfo>
