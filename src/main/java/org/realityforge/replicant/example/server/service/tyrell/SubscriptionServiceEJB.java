@@ -9,17 +9,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.annotation.PostConstruct;
 import javax.ejb.Local;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.EntityRouter;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageAccumulator;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
-import org.realityforge.replicant.server.EntityMessageGenerator;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
@@ -33,15 +32,7 @@ public class SubscriptionServiceEJB
   private static final Logger LOG = Logger.getLogger( SubscriptionServiceEJB.class.getName() );
 
   @Inject
-  private EntityMessageGenerator _messageGenerator;
-
-  private Encoder _encoder;
-
-  @PostConstruct
-  public void postConstruct()
-  {
-    _encoder = new Encoder( _messageGenerator );
-  }
+  private TyrellGraphEncoder _encoder;
 
   @Override
   @Nullable

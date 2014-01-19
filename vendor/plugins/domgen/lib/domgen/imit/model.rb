@@ -24,6 +24,16 @@ module Domgen
       def traversable?
         @traversable.nil? ? (self.inverse.traversable? && self.inverse.attribute.referenced_entity.imit?) : @traversable
       end
+
+      def replication_modes=(replication_modes)
+        raise "replication_modes should be an array of symbols" unless replication_modes.is_a?(Array) && replication_modes.all? { |m| m.is_a?(Symbol) }
+        raise "replication_modes should only be set when traversable?" unless traversable?
+        @replication_modes = replication_modes
+      end
+
+      def replication_modes
+        @replication_modes || [:default]
+      end
     end
 
     class ImitationAttribute < Domgen.ParentedElement(:attribute)
@@ -120,6 +130,12 @@ module Domgen
       def qualified_name
         "#{entity.data_module.imit.entity_package}.#{name}"
       end
+
+      def replication_root?
+        @replication_root.nil? ? false : @replication_root
+      end
+
+      attr_writer :replication_root
 
       def referencing_client_side_attributes
         entity.referencing_attributes.select do |attribute|
@@ -241,6 +257,21 @@ module Domgen
 
       def qualified_message_generator_name
         "#{encoder_package}.#{message_generator_name}"
+      end
+
+      def graph_encoder_name
+        "#{repository.name}GraphEncoder"
+      end
+
+      def qualified_graph_encoder_name
+        "#{encoder_package}.#{graph_encoder_name}"
+      end
+      def graph_encoder_impl_name
+        "#{repository.name}GraphEncoderImpl"
+      end
+
+      def qualified_graph_encoder_impl_name
+        "#{encoder_package}.#{graph_encoder_impl_name}"
       end
 
       attr_writer :services_module_name

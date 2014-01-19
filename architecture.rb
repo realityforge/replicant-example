@@ -20,6 +20,7 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.entity(:Building) do |t|
       t.integer(:ID, :primary_key => true)
       t.string(:Name, 100)
+      t.imit.replication_root = true
     end
 
     data_module.entity(:Room) do |t|
