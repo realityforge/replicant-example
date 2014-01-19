@@ -7,6 +7,7 @@ import javax.persistence.PersistenceContext;
 import org.realityforge.replicant.example.server.entity.TyrellPersistenceUnit;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.ee.AbstractReplicationInterceptor;
+import org.realityforge.replicant.server.ee.Replicate;
 
 @Interceptor
 @Replicate
