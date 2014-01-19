@@ -7,10 +7,8 @@ import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.entity.tyrell.Room;
 import org.realityforge.replicant.example.server.entity.tyrell.dao.BuildingRepository;
 import org.realityforge.replicant.example.server.entity.tyrell.dao.RoomRepository;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.Replicate;
 
 @Stateless
-@Replicate
 public class BuildingServiceEJB
   implements BuildingService
 {
