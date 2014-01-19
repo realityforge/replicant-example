@@ -6,7 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.Change;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.ReplicantClient;
@@ -16,7 +15,6 @@ public class TyrellSessionInfo
   extends SimpleSessionInfo
   implements ReplicantClient
 {
-  private final LinkedList<Change> _changes = new LinkedList<>();
   private final HashSet<Integer> _buildingsOfInterest = new HashSet<>();
 
   // sequence of last packet delivered
@@ -43,11 +41,6 @@ public class TyrellSessionInfo
   public boolean isBuildingInteresting( final int id )
   {
     return _buildingsOfInterest.contains( id );
-  }
-
-  public final LinkedList<Change> getChanges()
-  {
-    return _changes;
   }
 
   @Override
