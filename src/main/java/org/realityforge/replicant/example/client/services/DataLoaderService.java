@@ -11,4 +11,8 @@ public interface DataLoaderService
   void subscribeToBuilding( int buildingID );
 
   void unsubscribeFromBuilding( int buildingID );
+
+  void subscribeToAll();
+
+  void downloadAll();
 }

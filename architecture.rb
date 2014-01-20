@@ -85,6 +85,16 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.exception(:BadSession, "ejb.rollback" => false)
 
     data_module.service(:SubscriptionService) do |s|
+      s.method(:DownloadAll) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.returns(:text)
+        m.exception(:BadSession)
+      end
+      s.method(:SubscribeToAll) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.returns(:text)
+        m.exception(:BadSession)
+      end
       s.method(:SubscribeToBuilding) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.reference(:Building)

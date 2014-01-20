@@ -20,7 +20,7 @@ public class TyrellSessionInfo
   // sequence of last packet delivered
   private int _lastSequence;
   private final LinkedList<Packet> _packets = new LinkedList<>();
-
+  private boolean _interestedInAllBuildings;
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
                             @Nonnull final String username )
@@ -40,7 +40,7 @@ public class TyrellSessionInfo
 
   public boolean isBuildingInteresting( final int id )
   {
-    return _buildingsOfInterest.contains( id );
+    return _interestedInAllBuildings || _buildingsOfInterest.contains( id );
   }
 
   @Override
@@ -72,5 +72,10 @@ public class TyrellSessionInfo
   private int newPacketSequence()
   {
     return ++_lastSequence;
+  }
+
+  public void registerInterestInAll()
+  {
+    _interestedInAllBuildings = true;
   }
 }

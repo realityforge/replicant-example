@@ -67,10 +67,43 @@ public class TyrellDataLoaderService
         @Override
         public void onSuccess( final String result )
         {
-          onLoadBuildingData( buildingID, result );
+          enqueueDataLoad( false, result, null );
         }
       } );
     }
+  }
+
+  @Override
+  public void subscribeToAll()
+  {
+    _subscriptionService.subscribeToAll( new TyrellGwtRpcAsyncCallback<String>()
+    {
+      @Override
+      public void onSuccess( final String result )
+      {
+        enqueueDataLoad( false, result, new Runnable()
+        {
+          @Override
+          public void run()
+          {
+            LOG.info( "CompletedSubscribeToAll: " + _repository.findAll( Building.class ).size() );
+          }
+        } );
+      }
+    } );
+  }
+
+  @Override
+  public void downloadAll()
+  {
+    _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
+    {
+      @Override
+      public void onSuccess( final String result )
+      {
+        enqueueDataLoad( true, result, null );
+      }
+    } );
   }
 
   @Override

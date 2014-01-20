@@ -14,6 +14,7 @@ import javax.ejb.Singleton;
 import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
+import org.realityforge.replicant.example.server.entity.tyrell.dao.BuildingRepository;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.EntityRouter;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
 import org.realityforge.replicant.server.EntityMessage;
@@ -34,6 +35,9 @@ public class SubscriptionServiceEJB
   @Inject
   private TyrellGraphEncoder _encoder;
 
+  @Inject
+  private BuildingRepository _buildingRepository;
+
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
@@ -49,6 +53,37 @@ public class SubscriptionServiceEJB
     {
       return null;
     }
+  }
+
+  @Override
+  @Nonnull
+  public String downloadAll( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    final TyrellSessionInfo session = ensureSession( clientID );
+    return downloadAll( session );
+  }
+
+  @Nonnull
+  private String downloadAll( @Nonnull final TyrellSessionInfo session )
+  {
+    final LinkedList<EntityMessage> messages = new LinkedList<>();
+    for ( final Building building : _buildingRepository.findAll() )
+    {
+      session.registerInterest( building.getID() );
+      _encoder.encodeBuilding( messages, building );
+    }
+    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+  }
+
+  @Override
+  @Nonnull
+  public String subscribeToAll( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    final TyrellSessionInfo session = ensureSession( clientID );
+    session.registerInterestInAll();
+    return downloadAll( session );
   }
 
   @Override

@@ -47,6 +47,8 @@ public class SimpleUI
   private final DataLoaderService _dataLoaderService;
   private final GwtRpcBuildingService _buildingService;
   private final EntityChangeBroker _broker;
+  private final Button _subscribeToAll;
+  private final Button _downloadAll;
   private Building _selectedBuilding;
   private Room _selectedRoom;
 
@@ -82,11 +84,31 @@ public class SimpleUI
       }
     } );
     _disconnect.setEnabled( false );
+    _subscribeToAll = new Button( "Subscribe To All", new ClickHandler()
+    {
+      @Override
+      public void onClick( ClickEvent event )
+      {
+        doSubscribeToAll();
+      }
+    } );
+    _subscribeToAll.setEnabled( false );
+    _downloadAll = new Button( "Download All", new ClickHandler()
+    {
+      @Override
+      public void onClick( ClickEvent event )
+      {
+        doDownloadAll();
+      }
+    } );
+    _downloadAll.setEnabled( false );
 
     final VerticalPanel panel = new VerticalPanel();
     final FlowPanel controls = new FlowPanel();
     controls.add( _connect );
     controls.add( _disconnect );
+    controls.add( _subscribeToAll );
+    controls.add( _downloadAll );
     panel.add( controls );
 
     _tree = new Tree();
@@ -143,6 +165,16 @@ public class SimpleUI
       }
     } );
     initWidget( panel );
+  }
+
+  private void doDownloadAll()
+  {
+    _dataLoaderService.downloadAll();
+  }
+
+  private void doSubscribeToAll()
+  {
+    _dataLoaderService.subscribeToAll();
   }
 
   private void createBuilding( final Building building )
@@ -256,6 +288,8 @@ public class SimpleUI
     _create.setEnabled( true );
     _input.setEnabled( true );
     _disconnect.setEnabled( true );
+    _subscribeToAll.setEnabled( true );
+    _downloadAll.setEnabled( true );
     _tree.clear();
     _dataLoaderService.connect();
   }
