@@ -117,10 +117,11 @@ public class SimpleUI
     control.add( _input );
     control.add( _create );
     control.add( _update );
+    _selected = new Label();
+    _selected.setWidth( "600px" );
+    control.add( _selected );
 
     panel.add( control );
-    _selected = new Label();
-    panel.add( _selected );
     panel.add( _tree );
 
     _tree.addSelectionHandler( new SelectionHandler<TreeItem>()
