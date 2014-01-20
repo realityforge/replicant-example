@@ -30,6 +30,6 @@ public final class Packet
 
   public String toJson()
   {
-    return JsonEncoder.encodeChangeSetFromEntityMessages( getSequence(), _changes );
+    return JsonEncoder.encodeChangeSetFromEntityMessages( getSequence(), getChanges() );
   }
 }
