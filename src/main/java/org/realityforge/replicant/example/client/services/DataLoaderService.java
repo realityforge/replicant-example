@@ -6,8 +6,6 @@ public interface DataLoaderService
 
   void disconnect();
 
-  boolean isConnected();
-
   void subscribeToBuilding( int buildingID );
 
   void unsubscribeFromBuilding( int buildingID );

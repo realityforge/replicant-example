@@ -49,12 +49,6 @@ public class TyrellDataLoaderService
     stopPolling();
   }
 
-  @Override
-  public boolean isConnected()
-  {
-    return null != _timer;
-  }
-
   public void subscribeToBuilding( final int buildingID )
   {
     if ( !_subscriptions.contains( buildingID ) )
