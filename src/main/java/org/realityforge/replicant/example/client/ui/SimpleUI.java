@@ -169,7 +169,7 @@ public class SimpleUI
     else
     {
       _selected.setText( "" );
-      _create.setEnabled( false );
+      _create.setEnabled( true );
       _update.setEnabled( false );
     }
   }
