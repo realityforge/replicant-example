@@ -86,9 +86,9 @@ Domgen.template_set(:imit_jpa) do |template_set|
   facets = Domgen::Generator::Imit::FACETS + [:jpa]
   helpers = Domgen::Generator::Imit::HELPERS + [Domgen::JPA::Helper, Domgen::Java::Helper]
   template_set.template(facets,
-                        :data_module,
+                        :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/jpa_encoder.java.erb",
-                        'main/java/#{data_module.imit.qualified_jpa_encoder_name.gsub(".","/")}.java',
+                        'main/java/#{repository.imit.qualified_jpa_encoder_name.gsub(".","/")}.java',
                         helpers)
   template_set.template(facets,
                         :repository,
@@ -111,9 +111,9 @@ Domgen.template_set(:imit_jpa) do |template_set|
                         'main/java/#{repository.imit.qualified_replication_interceptor_name.gsub(".","/")}.java',
                         helpers)
   template_set.template(facets,
-                        :data_module,
+                        :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/router_interface.java.erb",
-                        'main/java/#{data_module.imit.qualified_router_interface_name.gsub(".","/")}.java',
+                        'main/java/#{repository.imit.qualified_router_interface_name.gsub(".","/")}.java',
                         helpers)
   template_set.template(facets,
                         :repository,
@@ -127,6 +127,6 @@ Domgen.template_set(:imit_jpa) do |template_set|
                         helpers)
 end
 
-Domgen.template_set(:imit_server => [:imit_jpa, :imit_json])
-Domgen.template_set(:imit_client => [:imit_gwt_proxy_service_test, :imit_gwt_proxy, :imit_entity])
+Domgen.template_set(:imit_server => [:imit_jpa])
+Domgen.template_set(:imit_client => [:imit_gwt_proxy_service_test, :imit_gwt_proxy, :imit_entity, :imit_json])
 Domgen.template_set(:imit => [:imit_client, :imit_server])

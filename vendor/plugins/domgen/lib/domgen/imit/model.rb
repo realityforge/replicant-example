@@ -27,7 +27,7 @@ module Domgen
 
       def replication_modes=(replication_modes)
         raise "replication_modes should be an array of symbols" unless replication_modes.is_a?(Array) && replication_modes.all? { |m| m.is_a?(Symbol) }
-        raise "replication_modes should only be set when traversable?" unless traversable?
+        raise "replication_modes should only be set when traversable?" unless inverse.traversable?
         @replication_modes = replication_modes
       end
 
@@ -172,22 +172,6 @@ module Domgen
         "#{entity_package}.#{mapper_name}"
       end
 
-      def jpa_encoder_name
-        "#{data_module.name}JpaEncoder"
-      end
-
-      def qualified_jpa_encoder_name
-        "#{encoder_package}.#{jpa_encoder_name}"
-      end
-
-      def router_interface_name
-        "#{data_module.name}Router"
-      end
-
-      def qualified_router_interface_name
-        "#{encoder_package}.#{router_interface_name}"
-      end
-
       def updater_name
         "#{data_module.name}Updater"
       end
@@ -241,6 +225,22 @@ module Domgen
 
       def qualified_change_mapper_name
         "#{entity_package}.#{change_mapper_name}"
+      end
+
+      def router_interface_name
+        "#{repository.name}Router"
+      end
+
+      def qualified_router_interface_name
+        "#{encoder_package}.#{router_interface_name}"
+      end
+
+      def jpa_encoder_name
+        "#{repository.name}JpaEncoder"
+      end
+
+      def qualified_jpa_encoder_name
+        "#{encoder_package}.#{jpa_encoder_name}"
       end
 
       def message_constants_name
