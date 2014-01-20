@@ -11,6 +11,6 @@
     "remote": "master/braid/vendor/plugins/domgen",
     "branch": "master",
     "squashed": true,
-    "revision": "d269bd835c287c286e9188b3ae3ed52fad0ebcb7"
+    "revision": "8fdb6b6ad0e340b1d8e1a75c33657312b396e6f3"
   }
 }
