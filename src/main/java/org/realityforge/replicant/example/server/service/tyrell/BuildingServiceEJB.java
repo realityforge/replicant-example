@@ -1,5 +1,7 @@
 package org.realityforge.replicant.example.server.service.tyrell;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -31,9 +33,10 @@ public class BuildingServiceEJB
   @Override
   public void removeBuilding( @Nonnull final Building building )
   {
-    for ( final Room room : building.getRooms() )
+    final ArrayList<Room> rooms = new ArrayList<>( building.getRooms() );
+    for ( final Room room : rooms )
     {
-      _roomRepository.remove( room );
+      removeRoom( room );
     }
     _buildingRepository.remove( building );
   }
