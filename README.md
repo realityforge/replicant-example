@@ -8,7 +8,6 @@ A sample application that demonstrates the use of the [replicant](https://github
 TODO
 ====
 
-* Consider stopping the propagation of attribute change messages on initial add of entity.
 * Inline bulk loads so that they are part of packet layer and are sequenced correctly.
 * Rework the graph Encode so that it can handle the scenario where the same object is encountered twice in graph traversal.
 * create generic server-side subscription handler for all these top level components.
