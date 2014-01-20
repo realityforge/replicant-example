@@ -11,7 +11,6 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.example.client.entity.tyrell.Building;
 import org.realityforge.replicant.example.client.entity.tyrell.Room;
-import org.realityforge.replicant.example.client.event.tyrell.BuildingDataLoadedEvent;
 import org.realityforge.replicant.example.client.event.tyrell.BulkLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.tyrell.IncrementalLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.tyrell.SystemErrorEvent;
@@ -135,19 +134,6 @@ public class TyrellDataLoaderService
       }
       _repository.deregisterEntity( Building.class, buildingID );
     }
-  }
-
-  private void onLoadBuildingData( final int buildingID, final String rawJsonData )
-  {
-    final Runnable runnable = new Runnable()
-    {
-      public void run()
-      {
-        final Building building = _repository.findByID( Building.class, buildingID );
-        _eventBus.fireEvent( new BuildingDataLoadedEvent( building ) );
-      }
-    };
-    enqueueDataLoad( true, rawJsonData, runnable );
   }
 
   private void poll()

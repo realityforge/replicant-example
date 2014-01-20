@@ -8,8 +8,6 @@ A sample application that demonstrates the use of the [replicant](https://github
 TODO
 ====
 
-* Add EntityListener method so you can be notified when entities are initially added.
-  - Remove BuildingDataLoaded Event
 * Consider stopping the propagation of attribute change messages on initial add of entity.
 * Inline bulk loads so that they are part of packet layer and are sequenced correctly.
 * Rework the graph Encode so that it can handle the scenario where the same object is encountered twice in graph traversal.

@@ -14,7 +14,6 @@ import com.google.gwt.user.client.ui.Tree;
 import com.google.gwt.user.client.ui.TreeItem;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
-import com.google.web.bindery.event.shared.EventBus;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -24,8 +23,6 @@ import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.example.client.entity.tyrell.Building;
 import org.realityforge.replicant.example.client.entity.tyrell.Room;
-import org.realityforge.replicant.example.client.event.tyrell.BuildingDataLoadedEvent;
-import org.realityforge.replicant.example.client.event.tyrell.BuildingDataLoadedEventHandler;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.service.tyrell.GwtRpcBuildingService;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
@@ -55,8 +52,7 @@ public class SimpleUI
   @Inject
   public SimpleUI( final EntityChangeBroker broker,
                    final DataLoaderService dataLoaderService,
-                   final GwtRpcBuildingService buildingService,
-                   final EventBus eventBus )
+                   final GwtRpcBuildingService buildingService )
   {
     super();
 
@@ -156,14 +152,6 @@ public class SimpleUI
       }
     } );
     _broker.addChangeListener( this );
-    eventBus.addHandler( BuildingDataLoadedEvent.TYPE, new BuildingDataLoadedEventHandler()
-    {
-      @Override
-      public void onBuildingDataLoaded( final BuildingDataLoadedEvent event )
-      {
-        createBuilding( event.getBuilding() );
-      }
-    } );
     initWidget( panel );
   }
 
