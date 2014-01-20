@@ -1,7 +1,6 @@
 package org.realityforge.replicant.example.server.service.tyrell;
 
 import java.util.ArrayList;
-import java.util.List;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
