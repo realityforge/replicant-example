@@ -137,14 +137,40 @@ public class SimpleUI
       @Override
       public void onBuildingDataLoaded( final BuildingDataLoadedEvent event )
       {
-        final TreeItem treeItem = _tree.addTextItem( event.getBuilding().getName() );
-        final Building building = event.getBuilding();
-        treeItem.setUserObject( building );
-        treeItem.setState( true );
-        _viewMap.put( building, treeItem );
+        createBuilding( event.getBuilding() );
       }
     } );
     initWidget( panel );
+  }
+
+  private void createBuilding( final Building building )
+  {
+    final TreeItem treeItem = _tree.addItem( createBuildingWidget( building ) );
+    treeItem.setUserObject( building );
+    treeItem.setState( true );
+    _viewMap.put( building, treeItem );
+  }
+
+  private Widget createBuildingWidget( final Building building )
+  {
+    final HorizontalPanel panel = new HorizontalPanel();
+    panel.add( new Label( building.getName() ) );
+    final Button delete = new Button( "X" );
+    delete.addClickHandler( new ClickHandler()
+    {
+      @Override
+      public void onClick( final ClickEvent event )
+      {
+        doDeleteBuilding( building );
+      }
+    } );
+    panel.add( delete );
+    return panel;
+  }
+
+  private void doDeleteBuilding( final Building building )
+  {
+    _buildingService.removeBuilding( building.getID() );
   }
 
   private void onSelect( final Object userObject )
@@ -252,7 +278,7 @@ public class SimpleUI
       final TreeItem treeItem = _viewMap.get( building );
       if ( null != treeItem )
       {
-        treeItem.setText( name );
+        treeItem.setWidget( createBuildingWidget( building ) );
       }
     }
     else if ( entity instanceof Room )
@@ -291,7 +317,7 @@ public class SimpleUI
     _viewMap.put( room, treeItem );
   }
 
-  private HorizontalPanel createRoomWidget( final Room room )
+  private Widget createRoomWidget( final Room room )
   {
     final HorizontalPanel panel = new HorizontalPanel();
     panel.add( new Label( room.getName() ) );
