@@ -43,7 +43,7 @@ public class SubscriptionServiceEJB
     final Packet packet = session.poll( lastSequenceAcked );
     if ( null != packet )
     {
-      return packet.toJson();
+      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getChanges() );
     }
     else
     {

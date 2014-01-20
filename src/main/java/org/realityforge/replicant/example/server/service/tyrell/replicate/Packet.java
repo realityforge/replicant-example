@@ -28,8 +28,4 @@ public final class Packet
     return _changes;
   }
 
-  public String toJson()
-  {
-    return JsonEncoder.encodeChangeSetFromEntityMessages( getSequence(), getChanges() );
-  }
 }
