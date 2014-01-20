@@ -172,6 +172,10 @@ public class SimpleUI
   private void doDeleteBuilding( final Building building )
   {
     _buildingService.removeBuilding( building.getID() );
+    if( _selectedBuilding == building )
+    {
+      onSelect( null );
+    }
   }
 
   private void onSelect( final Object userObject )
@@ -338,6 +342,10 @@ public class SimpleUI
   private void doDeleteRoom( final Room room )
   {
     _buildingService.removeRoom( room.getID() );
+    if( _selectedRoom == room )
+    {
+      onSelect( null );
+    }
   }
 
   @Override
