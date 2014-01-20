@@ -260,6 +260,17 @@ public class SimpleUI
   }
 
   @Override
+  public void entityAdded( final EntityChangeEvent event )
+  {
+    LOG.info( "entityAdded(" + event + ")" );
+    final Object entity = event.getObject();
+    if ( entity instanceof Building )
+    {
+      createBuilding( (Building) entity );
+    }
+  }
+
+  @Override
   public void entityRemoved( final EntityChangeEvent event )
   {
     LOG.info( "entityRemoved(" + event + ")" );
