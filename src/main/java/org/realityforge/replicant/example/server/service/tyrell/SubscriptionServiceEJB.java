@@ -16,11 +16,11 @@ import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.entity.tyrell.dao.BuildingRepository;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.EntityRouter;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
 import org.realityforge.replicant.server.EntityMessage;
-import org.realityforge.replicant.server.EntityMessageAccumulator;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
+import org.realityforge.replicant.server.transport.EntityMessageAccumulator;
+import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
 
@@ -115,7 +115,7 @@ public class SubscriptionServiceEJB
 
     //TODO: Rewrite this so that we add clients to indexes rather than searching through everyone for each change!
     final Map<String, TyrellSessionInfo> sessions = getSessions();
-    EntityMessageAccumulator<TyrellSessionInfo> accumulator = new EntityMessageAccumulator<>();
+    final EntityMessageAccumulator accumulator = new EntityMessageAccumulator();
     synchronized ( sessions )
     {
       for ( final EntityMessage message : messages )
@@ -129,7 +129,7 @@ public class SubscriptionServiceEJB
           {
             if ( sessionInfo.isBuildingInteresting( buildingID ) )
             {
-              accumulator.addEntityMessage( sessionInfo, message );
+              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
             }
           }
         }

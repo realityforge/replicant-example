@@ -1,18 +1,14 @@
 package org.realityforge.replicant.example.server.service.tyrell;
 
 import java.util.HashSet;
-import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.PacketQueue;
-import org.realityforge.replicant.server.EntityMessage;
-import org.realityforge.replicant.server.ReplicantClient;
+import org.realityforge.replicant.server.transport.Packet;
+import org.realityforge.replicant.server.transport.PacketQueue;
 import org.realityforge.ssf.SimpleSessionInfo;
 
 public class TyrellSessionInfo
   extends SimpleSessionInfo
-  implements ReplicantClient
 {
   private final HashSet<Integer> _buildingsOfInterest = new HashSet<>();
 
@@ -40,10 +36,9 @@ public class TyrellSessionInfo
     return _interestedInAllBuildings || _buildingsOfInterest.contains( id );
   }
 
-  @Override
-  public void addChangeSet( final List<EntityMessage> changeSet )
+  public final PacketQueue getQueue()
   {
-    _queue.addPacket( changeSet );
+    return _queue;
   }
 
   @Nullable
