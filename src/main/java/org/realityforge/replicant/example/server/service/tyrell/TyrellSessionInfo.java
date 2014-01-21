@@ -1,12 +1,11 @@
 package org.realityforge.replicant.example.server.service.tyrell;
 
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.realityforge.replicant.example.server.service.tyrell.replicate.Packet;
+import org.realityforge.replicant.example.server.service.tyrell.replicate.PacketQueue;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.ReplicantClient;
 import org.realityforge.ssf.SimpleSessionInfo;
@@ -17,9 +16,7 @@ public class TyrellSessionInfo
 {
   private final HashSet<Integer> _buildingsOfInterest = new HashSet<>();
 
-  // sequence of last packet delivered
-  private int _lastSequence;
-  private final LinkedList<Packet> _packets = new LinkedList<>();
+  private final PacketQueue _queue = new PacketQueue();
   private boolean _interestedInAllBuildings;
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
@@ -46,32 +43,15 @@ public class TyrellSessionInfo
   @Override
   public void addChangeSet( final List<EntityMessage> changeSet )
   {
-    _packets.add( new Packet( newPacketSequence(), changeSet ) );
+    _queue.addPacket( changeSet );
   }
 
   @Nullable
-  public synchronized Packet poll( final int lastSequenceAcked )
+  public synchronized Packet poll( final int ack )
   {
     updateAccessTime();
-    final Iterator<Packet> iterator = _packets.iterator();
-    while ( iterator.hasNext() )
-    {
-      final Packet packet = iterator.next();
-      if ( packet.getSequence() <= lastSequenceAcked )
-      {
-        iterator.remove();
-      }
-      else
-      {
-        return packet;
-      }
-    }
-    return null;
-  }
-
-  private int newPacketSequence()
-  {
-    return ++_lastSequence;
+    _queue.ack( ack );
+    return _queue.nextPacketToProcess();
   }
 
   public void registerInterestInAll()
