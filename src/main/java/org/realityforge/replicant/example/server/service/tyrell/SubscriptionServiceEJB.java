@@ -13,9 +13,9 @@ import javax.ejb.Local;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
+import org.realityforge.replicant.example.server.entity.TyrellRouterImpl;
 import org.realityforge.replicant.example.server.entity.tyrell.Building;
 import org.realityforge.replicant.example.server.entity.tyrell.dao.BuildingRepository;
-import org.realityforge.replicant.example.server.service.tyrell.replicate.EntityRouter;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
@@ -122,7 +122,7 @@ public class SubscriptionServiceEJB
       {
         final Map<String, Serializable> routingKeys = message.getRoutingKeys();
 
-        final Integer buildingID = (Integer) routingKeys.get( EntityRouter.BUILDING_KEY );
+        final Integer buildingID = (Integer) routingKeys.get( TyrellRouterImpl.BUILDING_KEY );
         if ( null != buildingID )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
