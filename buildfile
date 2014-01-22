@@ -36,8 +36,7 @@ define 'replicant-example' do
   test.with :mockito
 
   package(:war).tap do |war|
-    war.libs.clear
-    war.libs.concat PACKAGE_DEPS
+    war.libs = PACKAGE_DEPS
   end
 
   clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
