@@ -389,10 +389,8 @@ module Domgen
     end
 
     module JavaApplication
-      attr_writer :base_package
-
       def base_package
-        @base_package || Domgen::Naming.underscore(repository.name)
+        repository.java.base_package
       end
 
       attr_writer :package
@@ -445,10 +443,8 @@ module Domgen
     end
 
     module JavaClientServerApplication
-      attr_writer :base_package
-
       def base_package
-        @base_package || Domgen::Naming.underscore(repository.name)
+        repository.java.base_package
       end
 
       attr_writer :package
@@ -533,5 +529,17 @@ module Domgen
         nil
       end
     end
+
+    class Application < Domgen.ParentedElement(:repository)
+      attr_writer :base_package
+
+      def base_package
+        @base_package || Domgen::Naming.underscore(repository.name)
+      end
+    end
   end
+
+  FacetManager.define_facet(:java,
+                            {Repository => Domgen::Java::Application},
+                            [])
 end

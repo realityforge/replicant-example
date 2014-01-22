@@ -7,13 +7,7 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.jpa.provider = :eclipselink
 
-  repository.gwt.base_package =
-    repository.gwt_rpc.base_package =
-      repository.imit.base_package =
-        repository.jpa.base_package =
-          repository.ee.base_package =
-            repository.ejb.base_package = 'org.realityforge.replicant.example'
-
+  repository.java.base_package = 'org.realityforge.replicant.example'
 
   repository.data_module(:Tyrell) do |data_module|
 
