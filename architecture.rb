@@ -109,7 +109,7 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.services.each do |service|
       if service.ejb?
         service.ejb.generate_boundary = true
-        service.ejb.boundary_extends = "org.realityforge.replicant.example.server.service.tyrell.AbstractExternalService"
+        service.ejb.boundary_extends = "org.realityforge.replicant.example.server.service.AbstractExternalService"
       end
     end
   end
