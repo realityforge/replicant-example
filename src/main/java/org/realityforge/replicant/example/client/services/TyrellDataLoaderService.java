@@ -9,14 +9,14 @@ import java.util.logging.Level;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
-import org.realityforge.replicant.example.client.entity.tyrell.Building;
-import org.realityforge.replicant.example.client.entity.tyrell.Room;
+import org.realityforge.replicant.example.client.entity.Building;
+import org.realityforge.replicant.example.client.entity.Room;
 import org.realityforge.replicant.example.client.event.tyrell.BulkLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.tyrell.IncrementalLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.tyrell.SystemErrorEvent;
+import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
-import org.realityforge.replicant.example.client.service.tyrell.GwtRpcSubscriptionService;
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService

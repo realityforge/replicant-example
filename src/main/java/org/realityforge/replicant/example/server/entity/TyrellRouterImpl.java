@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.enterprise.context.Dependent;
-import org.realityforge.replicant.example.server.entity.tyrell.Building;
-import org.realityforge.replicant.example.server.entity.tyrell.Room;
 
 @Dependent
 public class TyrellRouterImpl

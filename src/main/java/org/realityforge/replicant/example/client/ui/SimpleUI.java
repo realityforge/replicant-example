@@ -21,10 +21,10 @@ import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
-import org.realityforge.replicant.example.client.entity.tyrell.Building;
-import org.realityforge.replicant.example.client.entity.tyrell.Room;
+import org.realityforge.replicant.example.client.entity.Building;
+import org.realityforge.replicant.example.client.entity.Room;
+import org.realityforge.replicant.example.client.service.GwtRpcBuildingService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
-import org.realityforge.replicant.example.client.service.tyrell.GwtRpcBuildingService;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 
 public class SimpleUI
@@ -313,7 +313,6 @@ public class SimpleUI
     if ( entity instanceof Building )
     {
       final Building building = (Building) entity;
-      final String name = building.getName();
       final TreeItem treeItem = _viewMap.get( building );
       if ( null != treeItem )
       {
