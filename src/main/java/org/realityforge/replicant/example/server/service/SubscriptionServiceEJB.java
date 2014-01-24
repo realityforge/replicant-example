@@ -12,10 +12,10 @@ import javax.annotation.Nullable;
 import javax.ejb.Local;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
 import org.realityforge.replicant.example.server.entity.TyrellRouterImpl;
-import org.realityforge.replicant.example.server.entity.Building;
-import org.realityforge.replicant.example.server.entity.dao.BuildingRepository;
+import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
@@ -36,7 +36,7 @@ public class SubscriptionServiceEJB
   private TyrellGraphEncoder _encoder;
 
   @Inject
-  private BuildingRepository _buildingRepository;
+  private RosterRepository _rosterRepository;
 
   @Override
   @Nullable
@@ -68,10 +68,10 @@ public class SubscriptionServiceEJB
   private String downloadAll( @Nonnull final TyrellSessionInfo session )
   {
     final LinkedList<EntityMessage> messages = new LinkedList<>();
-    for ( final Building building : _buildingRepository.findAll() )
+    for ( final Roster roster : _rosterRepository.findAll() )
     {
-      session.registerInterest( building.getID() );
-      _encoder.encodeBuilding( messages, building );
+      session.registerInterest( roster.getID() );
+      _encoder.encodeRoster( messages, roster );
     }
     return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
   }
@@ -88,21 +88,21 @@ public class SubscriptionServiceEJB
 
   @Override
   @Nonnull
-  public String subscribeToBuilding( @Nonnull final String clientID, @Nonnull final Building building )
+  public String subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    session.registerInterest( building.getID() );
+    session.registerInterest( roster.getID() );
     final LinkedList<EntityMessage> messages = new LinkedList<>();
-    _encoder.encodeBuilding( messages, building );
+    _encoder.encodeRoster( messages, roster );
     return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
   }
 
   @Override
-  public void unsubscribeFromBuilding( @Nonnull final String clientID, @Nonnull final Building building )
+  public void unsubscribeFromRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
-    ensureSession( clientID ).deregisterInterest( building.getID() );
+    ensureSession( clientID ).deregisterInterest( roster.getID() );
   }
 
   @Override
@@ -122,7 +122,7 @@ public class SubscriptionServiceEJB
       {
         final Map<String, Serializable> routingKeys = message.getRoutingKeys();
 
-        final Integer buildingID = (Integer) routingKeys.get( TyrellRouterImpl.BUILDING_KEY );
+        final Integer buildingID = (Integer) routingKeys.get( TyrellRouterImpl.ROSTER_KEY );
         if ( null != buildingID )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )

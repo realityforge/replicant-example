@@ -11,19 +11,16 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.data_module(:Tyrell) do |data_module|
 
-    data_module.entity(:Building) do |t|
+    data_module.entity(:Roster) do |t|
       t.integer(:ID, :primary_key => true)
       t.string(:Name, 100)
       t.imit.replication_root = true
     end
 
-    data_module.entity(:Room) do |t|
+    data_module.entity(:Shift) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Building, :immutable => true, :"inverse.traversable" => true)
-      t.integer(:Floor, :immutable => true)
-      t.integer(:LocalNumber)
+      t.reference(:Roster, :immutable => true, :"inverse.traversable" => true)
       t.string(:Name, 50)
-      t.boolean(:Active)
     end
 
     data_module.message(:IncrementalLoadComplete)
@@ -35,40 +32,29 @@ Domgen.repository(:Tyrell) do |repository|
       m.parameter(:Throwable, "java.lang.Throwable", :nullable => true)
     end
 
-    data_module.service(:BuildingService) do |s|
-      s.method(:CreateBuilding) do |m|
+    data_module.service(:RosterService) do |s|
+      s.method(:CreateRoster) do |m|
         m.text(:Name)
-        m.returns(:reference, :referenced_entity => :Building)
+        m.returns(:reference, :referenced_entity => :Roster)
       end
-      s.method(:RemoveBuilding) do |m|
-        m.reference(:Building)
+      s.method(:RemoveRoster) do |m|
+        m.reference(:Roster)
       end
-      s.method(:SetBuildingName) do |m|
-        m.reference(:Building)
-        m.text(:Name)
-      end
-      s.method(:CreateRoom) do |m|
-        m.reference(:Building)
-        m.integer(:Floor)
-        m.integer(:LocalNumber)
-        m.text(:Name)
-        m.boolean(:Active)
-        m.returns(:reference, :referenced_entity => :Room)
-      end
-      s.method(:RemoveRoom) do |m|
-        m.reference(:Room)
-      end
-      s.method(:SetRoomName) do |m|
-        m.reference(:Room)
+      s.method(:SetRosterName) do |m|
+        m.reference(:Roster)
         m.text(:Name)
       end
-      s.method(:SetRoomLocalNumber) do |m|
-        m.reference(:Room)
-        m.integer(:LocalNumber)
+      s.method(:CreateShift) do |m|
+        m.reference(:Roster)
+        m.text(:Name)
+        m.returns(:reference, :referenced_entity => :Shift)
       end
-      s.method(:SetRoomActivity) do |m|
-        m.reference(:Room)
-        m.boolean(:Active)
+      s.method(:RemoveShift) do |m|
+        m.reference(:Shift)
+      end
+      s.method(:SetShiftName) do |m|
+        m.reference(:Shift)
+        m.text(:Name)
       end
     end
 
@@ -85,15 +71,15 @@ Domgen.repository(:Tyrell) do |repository|
         m.returns(:text)
         m.exception(:BadSession)
       end
-      s.method(:SubscribeToBuilding) do |m|
+      s.method(:SubscribeToRoster) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.reference(:Building)
+        m.reference(:Roster)
         m.returns(:text)
         m.exception(:BadSession)
       end
-      s.method(:UnsubscribeFromBuilding) do |m|
+      s.method(:UnsubscribeFromRoster) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.reference(:Building)
+        m.reference(:Roster)
         m.exception(:BadSession)
       end
       s.method(:Poll) do |m|

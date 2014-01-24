@@ -21,9 +21,9 @@ import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
-import org.realityforge.replicant.example.client.entity.Building;
-import org.realityforge.replicant.example.client.entity.Room;
-import org.realityforge.replicant.example.client.service.GwtRpcBuildingService;
+import org.realityforge.replicant.example.client.entity.Roster;
+import org.realityforge.replicant.example.client.entity.Shift;
+import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 
@@ -42,23 +42,23 @@ public class SimpleUI
   private final Label _selected;
   private final TextBox _input;
   private final DataLoaderService _dataLoaderService;
-  private final GwtRpcBuildingService _buildingService;
+  private final GwtRpcRosterService _rosterService;
   private final EntityChangeBroker _broker;
   private final Button _subscribeToAll;
   private final Button _downloadAll;
-  private Building _selectedBuilding;
-  private Room _selectedRoom;
+  private Roster _selectedRoster;
+  private Shift _selectedShift;
 
   @Inject
   public SimpleUI( final EntityChangeBroker broker,
                    final DataLoaderService dataLoaderService,
-                   final GwtRpcBuildingService buildingService )
+                   final GwtRpcRosterService rosterService )
   {
     super();
 
     _broker = broker;
     _dataLoaderService = dataLoaderService;
-    _buildingService = buildingService;
+    _rosterService = rosterService;
     _input = new TextBox();
     _input.setValue( "MyBuilding" );
     _input.setEnabled( false );
@@ -165,35 +165,35 @@ public class SimpleUI
     _dataLoaderService.subscribeToAll();
   }
 
-  private void createBuilding( final Building building )
+  private void createBuilding( final Roster roster )
   {
-    final TreeItem treeItem = _tree.addItem( createBuildingWidget( building ) );
-    treeItem.setUserObject( building );
+    final TreeItem treeItem = _tree.addItem( createRosterWidget( roster ) );
+    treeItem.setUserObject( roster );
     treeItem.setState( true );
-    _viewMap.put( building, treeItem );
+    _viewMap.put( roster, treeItem );
   }
 
-  private Widget createBuildingWidget( final Building building )
+  private Widget createRosterWidget( final Roster roster )
   {
     final HorizontalPanel panel = new HorizontalPanel();
-    panel.add( new Label( building.getName() ) );
+    panel.add( new Label( roster.getName() ) );
     final Button delete = new Button( "X" );
     delete.addClickHandler( new ClickHandler()
     {
       @Override
       public void onClick( final ClickEvent event )
       {
-        doDeleteBuilding( building );
+        doDeleteRoster( roster );
       }
     } );
     panel.add( delete );
     return panel;
   }
 
-  private void doDeleteBuilding( final Building building )
+  private void doDeleteRoster( final Roster roster )
   {
-    _buildingService.removeBuilding( building.getID() );
-    if( _selectedBuilding == building )
+    _rosterService.removeRoster( roster.getID() );
+    if( _selectedRoster == roster )
     {
       onSelect( null );
     }
@@ -201,20 +201,20 @@ public class SimpleUI
 
   private void onSelect( final Object userObject )
   {
-    _selectedBuilding = null;
-    _selectedRoom = null;
-    if ( userObject instanceof Building )
+    _selectedRoster = null;
+    _selectedShift = null;
+    if ( userObject instanceof Roster )
     {
-      _selectedBuilding = (Building) userObject;
-      _selected.setText( "Selected Building: " + _selectedBuilding.getName() );
-      _create.setText( "Create Room" );
+      _selectedRoster = (Roster) userObject;
+      _selected.setText( "Selected Roster: " + _selectedRoster.getName() );
+      _create.setText( "Create Shift" );
       _create.setEnabled( true );
       _update.setEnabled( true );
     }
-    else if ( userObject instanceof Room )
+    else if ( userObject instanceof Shift )
     {
-      _selectedRoom = (Room) userObject;
-      _selected.setText( "Selected Room: " + _selectedRoom.getName() );
+      _selectedShift = (Shift) userObject;
+      _selected.setText( "Selected Shift: " + _selectedShift.getName() );
       _create.setEnabled( false );
       _update.setEnabled( true );
     }
@@ -228,33 +228,33 @@ public class SimpleUI
 
   private void onUpdate()
   {
-    if ( null != _selectedBuilding )
+    if ( null != _selectedRoster )
     {
-      _buildingService.setBuildingName( _selectedBuilding.getID(), _input.getValue() );
+      _rosterService.setRosterName( _selectedRoster.getID(), _input.getValue() );
     }
     else
     {
-      _buildingService.setRoomName( _selectedRoom.getID(), _input.getValue() );
+      _rosterService.setShiftName( _selectedShift.getID(), _input.getValue() );
     }
     _input.setValue( "" );
   }
 
   private void onCreate()
   {
-    if ( null == _selectedBuilding )
+    if ( null == _selectedRoster )
     {
-      _buildingService.createBuilding( _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+      _rosterService.createRoster( _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
       {
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.subscribeToBuilding( result );
+          _dataLoaderService.subscribeToRoster( result );
         }
       } );
     }
     else
     {
-      _buildingService.createRoom( _selectedBuilding.getID(), 1, 1, _input.getValue(), true );
+      _rosterService.createShift( _selectedRoster.getID(), _input.getValue() );
     }
     _input.setValue( "" );
   }
@@ -287,9 +287,9 @@ public class SimpleUI
   {
     LOG.info( "entityAdded(" + event + ")" );
     final Object entity = event.getObject();
-    if ( entity instanceof Building )
+    if ( entity instanceof Roster )
     {
-      createBuilding( (Building) entity );
+      createBuilding( (Roster) entity );
     }
   }
 
@@ -310,22 +310,22 @@ public class SimpleUI
   {
     LOG.info( "attributeChanged(" + event + ")" );
     final Object entity = event.getObject();
-    if ( entity instanceof Building )
+    if ( entity instanceof Roster )
     {
-      final Building building = (Building) entity;
-      final TreeItem treeItem = _viewMap.get( building );
+      final Roster roster = (Roster) entity;
+      final TreeItem treeItem = _viewMap.get( roster );
       if ( null != treeItem )
       {
-        treeItem.setWidget( createBuildingWidget( building ) );
+        treeItem.setWidget( createRosterWidget( roster ) );
       }
     }
-    else if ( entity instanceof Room )
+    else if ( entity instanceof Shift )
     {
-      final Room room = (Room) entity;
-      final TreeItem treeItem = _viewMap.get( room );
+      final Shift shift = (Shift) entity;
+      final TreeItem treeItem = _viewMap.get( shift );
       if ( null != treeItem )
       {
-        treeItem.setWidget( createRoomWidget( room ) );
+        treeItem.setWidget( createShiftWidget( shift ) );
       }
     }
   }
@@ -336,46 +336,46 @@ public class SimpleUI
     LOG.info( "relatedAdded(" + event + ")" );
     final Object value = event.getValue();
     final Object object = event.getObject();
-    if ( object instanceof Building && value instanceof Room )
+    if ( object instanceof Roster && value instanceof Shift )
     {
-      final Room room = (Room) value;
-      final Building building = (Building) object;
-      final TreeItem parent = _viewMap.get( building );
+      final Shift shift = (Shift) value;
+      final Roster roster = (Roster) object;
+      final TreeItem parent = _viewMap.get( roster );
       if ( null != parent )
       {
-        addRoom( parent, room );
+        addShift( parent, shift );
       }
     }
   }
 
-  private void addRoom( final TreeItem parent, final Room room )
+  private void addShift( final TreeItem parent, final Shift shift )
   {
-    final TreeItem treeItem = parent.addItem( createRoomWidget( room ) );
-    treeItem.setUserObject( room );
-    _viewMap.put( room, treeItem );
+    final TreeItem treeItem = parent.addItem( createShiftWidget( shift ) );
+    treeItem.setUserObject( shift );
+    _viewMap.put( shift, treeItem );
   }
 
-  private Widget createRoomWidget( final Room room )
+  private Widget createShiftWidget( final Shift shift )
   {
     final HorizontalPanel panel = new HorizontalPanel();
-    panel.add( new Label( room.getName() ) );
+    panel.add( new Label( shift.getName() ) );
     final Button delete = new Button( "X" );
     delete.addClickHandler( new ClickHandler()
     {
       @Override
       public void onClick( final ClickEvent event )
       {
-        doDeleteRoom( room );
+        doDeleteShift( shift );
       }
     } );
     panel.add( delete );
     return panel;
   }
 
-  private void doDeleteRoom( final Room room )
+  private void doDeleteShift( final Shift shift )
   {
-    _buildingService.removeRoom( room.getID() );
-    if( _selectedRoom == room )
+    _rosterService.removeShift( shift.getID() );
+    if( _selectedShift == shift )
     {
       onSelect( null );
     }
@@ -387,10 +387,10 @@ public class SimpleUI
     LOG.info( "relatedRemoved(" + event + ")" );
     final Object value = event.getValue();
     final Object object = event.getObject();
-    if ( object instanceof Building && value instanceof Room )
+    if ( object instanceof Roster && value instanceof Shift )
     {
-      final Room room = (Room) value;
-      final TreeItem treeItem = _viewMap.remove( room );
+      final Shift shift = (Shift) value;
+      final TreeItem treeItem = _viewMap.remove( shift );
       if ( null != treeItem )
       {
         treeItem.remove();

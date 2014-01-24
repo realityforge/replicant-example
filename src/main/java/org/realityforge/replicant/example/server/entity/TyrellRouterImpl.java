@@ -10,21 +10,21 @@ import javax.enterprise.context.Dependent;
 public class TyrellRouterImpl
   implements TyrellRouter
 {
-  public static final String BUILDING_KEY = "Tyrell.BuildingID";
+  public static final String ROSTER_KEY = "Tyrell.RosterID";
 
   @Nonnull
   @Override
-  public Map<String, Serializable> routeBuilding( @Nonnull final Building entity )
+  public Map<String, Serializable> routeRoster( @Nonnull final Roster entity )
   {
     final HashMap<String, Serializable> map = new HashMap<>();
-    map.put( BUILDING_KEY, entity.getID() );
+    map.put( ROSTER_KEY, entity.getID() );
     return map;
   }
 
   @Nonnull
   @Override
-  public Map<String, Serializable> routeRoom( @Nonnull final Room entity )
+  public Map<String, Serializable> routeShift( @Nonnull final Shift entity )
   {
-    return routeBuilding( entity.getBuilding() );
+    return routeRoster( entity.getRoster() );
   }
 }

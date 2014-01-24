@@ -6,9 +6,9 @@ public interface DataLoaderService
 
   void disconnect();
 
-  void subscribeToBuilding( int buildingID );
+  void subscribeToRoster( int rosterID );
 
-  void unsubscribeFromBuilding( int buildingID );
+  void unsubscribeFromRoster( int rosterID );
 
   void subscribeToAll();
 

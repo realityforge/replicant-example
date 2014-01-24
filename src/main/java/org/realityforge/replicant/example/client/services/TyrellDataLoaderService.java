@@ -9,8 +9,8 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
-import org.realityforge.replicant.example.client.entity.Building;
-import org.realityforge.replicant.example.client.entity.Room;
+import org.realityforge.replicant.example.client.entity.Roster;
+import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.event.BulkLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.IncrementalLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
@@ -56,7 +56,7 @@ public class TyrellDataLoaderService
   @Override
   public boolean canSubscribeToType( final int type )
   {
-    return Building.TRANSPORT_ID == type;
+    return Roster.TRANSPORT_ID == type;
   }
 
   @Override
@@ -81,7 +81,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToInstance( final int type, @Nonnull final Object id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToBuilding( (Integer) id, new TyrellGwtRpcAsyncCallback<String>()
+    _subscriptionService.subscribeToRoster( (Integer) id, new TyrellGwtRpcAsyncCallback<String>()
     {
       @Override
       public void onSuccess( final String result )
@@ -97,7 +97,7 @@ public class TyrellDataLoaderService
                                              @Nonnull final Runnable runnable )
   {
     final Integer buildingID = (Integer) id;
-    _subscriptionService.unsubscribeFromBuilding( buildingID, new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromRoster( buildingID, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -108,15 +108,15 @@ public class TyrellDataLoaderService
     } );
   }
 
-  public void subscribeToBuilding( final int buildingID )
+  public void subscribeToRoster( final int rosterID )
   {
-    _subscriptionManager.subscribeToInstance( Building.TRANSPORT_ID, buildingID );
+    _subscriptionManager.subscribeToInstance( Roster.TRANSPORT_ID, rosterID );
   }
 
   @Override
   public void subscribeToAll()
   {
-    _subscriptionManager.subscribeToType( Building.TRANSPORT_ID );
+    _subscriptionManager.subscribeToType( Roster.TRANSPORT_ID );
   }
 
   @Override
@@ -133,21 +133,21 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public void unsubscribeFromBuilding( final int buildingID )
+  public void unsubscribeFromRoster( final int rosterID )
   {
-    _subscriptionManager.unsubscribeFromInstance( Building.TRANSPORT_ID, buildingID );
+    _subscriptionManager.unsubscribeFromInstance( Roster.TRANSPORT_ID, rosterID );
   }
 
   private void unloadBuilding( final int buildingID )
   {
-    final Building building = _repository.findByID( Building.class, buildingID );
-    if ( null != building )
+    final Roster roster = _repository.findByID( Roster.class, buildingID );
+    if ( null != roster )
     {
-      for ( final Room room : building.getRooms() )
+      for ( final Shift shift : roster.getShifts() )
       {
-        _repository.deregisterEntity( Room.class, room.getID() );
+        _repository.deregisterEntity( Shift.class, shift.getID() );
       }
-      _repository.deregisterEntity( Building.class, buildingID );
+      _repository.deregisterEntity( Roster.class, buildingID );
     }
   }
 
