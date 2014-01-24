@@ -36,22 +36,22 @@ public class <%= repository.imit.subscription_manager_impl_name %>
 
   public void subscribeTo<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
   {
-    subscribeToInstance( <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
+    subscribeToInstance( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
   }
 
   public void unsubscribeFrom<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
   {
-    unsubscribeFromInstance( <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
+    unsubscribeFromInstance( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
   }
 
   public void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
   {
-    subscribeToType( <%= entity.imit.qualified_name %>.TRANSPORT_ID );
+    subscribeToType( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID );
   }
 
   public void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
   {
-    unsubscribeFromType( <%= entity.imit.qualified_name %>.TRANSPORT_ID );
+    unsubscribeFromType( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID );
   }
 <% end -%>
 <% end -%>

@@ -6,8 +6,10 @@ import javax.annotation.Nonnull;
 
 public abstract class AbstractSubscriptionManager
 {
-  private final HashMap<Integer, Map<Object, SubscriptionEntry>> _instanceSubscriptions = new HashMap<>();
-  private final HashMap<Integer, SubscriptionEntry> _typeSubscriptions = new HashMap<>();
+  //Mode => Type => InstanceID
+  private final HashMap<Enum, Map<Integer, Map<Object, SubscriptionEntry>>> _instanceSubscriptions = new HashMap<>();
+  //Mode => Type
+  private final HashMap<Enum, HashMap<Integer, SubscriptionEntry>> _typeSubscriptions = new HashMap<>();
   private final RemoteSubscriptionManager _remoteSubscriptionManager;
 
   protected AbstractSubscriptionManager( final RemoteSubscriptionManager remoteSubscriptionManager )
@@ -15,12 +17,18 @@ public abstract class AbstractSubscriptionManager
     _remoteSubscriptionManager = remoteSubscriptionManager;
   }
 
-  protected final boolean subscribeToType( final int type )
+  protected final boolean subscribeToType( final Enum mode, final int type )
   {
-    if ( !_typeSubscriptions.containsKey( type ) )
+    HashMap<Integer, SubscriptionEntry> typeMap = _typeSubscriptions.get( mode );
+    if ( null == typeMap )
+    {
+      typeMap = new HashMap<>();
+      _typeSubscriptions.put( mode, typeMap );
+    }
+    if ( !typeMap.containsKey( type ) )
     {
       final SubscriptionEntry entry = new SubscriptionEntry( type, null );
-      _typeSubscriptions.put( type, entry );
+      typeMap.put( type, entry );
       _remoteSubscriptionManager.remoteSubscribeToType( type, new Runnable()
       {
         @Override
@@ -37,13 +45,19 @@ public abstract class AbstractSubscriptionManager
     }
   }
 
-  protected final boolean subscribeToInstance( final int type, @Nonnull final Object id )
+  protected final boolean subscribeToInstance( final Enum mode, final int type, @Nonnull final Object id )
   {
-    Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
+    Map<Integer, Map<Object, SubscriptionEntry>> instanceMap = _instanceSubscriptions.get( mode );
+    if ( null == instanceMap )
+    {
+      instanceMap = new HashMap<>();
+      _instanceSubscriptions.put( mode, instanceMap );
+    }
+    Map<Object, SubscriptionEntry> map = instanceMap.get( type );
     if ( null == map )
     {
       map = new HashMap<>();
-      _instanceSubscriptions.put( type, map );
+      instanceMap.put( type, map );
     }
     if ( !map.containsKey( id ) )
     {
@@ -65,9 +79,14 @@ public abstract class AbstractSubscriptionManager
     }
   }
 
-  protected final boolean unsubscribeFromType( final int type )
+  protected final boolean unsubscribeFromType( final Enum mode, final int type )
   {
-    final SubscriptionEntry entry = _typeSubscriptions.get( type );
+    final HashMap<Integer, SubscriptionEntry> typeMap = _typeSubscriptions.get( mode );
+    if ( null == typeMap )
+    {
+      return false;
+    }
+    final SubscriptionEntry entry = typeMap.get( type );
     if ( null != entry )
     {
       entry.markDeregisterInProgress();
@@ -76,7 +95,7 @@ public abstract class AbstractSubscriptionManager
         @Override
         public void run()
         {
-          _typeSubscriptions.remove( type );
+          typeMap.remove( type );
         }
       } );
       return true;
@@ -87,9 +106,14 @@ public abstract class AbstractSubscriptionManager
     }
   }
 
-  protected final boolean unsubscribeFromInstance( final int type, @Nonnull final Object id )
+  protected final boolean unsubscribeFromInstance( final Enum mode, final int type, @Nonnull final Object id )
   {
-    final Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
+    final Map<Integer, Map<Object, SubscriptionEntry>> instanceMap = _instanceSubscriptions.get( mode );
+    if ( null == instanceMap )
+    {
+      return false;
+    }
+    final Map<Object, SubscriptionEntry> map = instanceMap.get( type );
     if ( null == map )
     {
       return false;
