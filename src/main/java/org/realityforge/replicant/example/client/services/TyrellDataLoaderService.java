@@ -4,8 +4,8 @@ import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
-import java.util.HashSet;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
@@ -17,10 +17,13 @@ import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
+import org.realityforge.replicant.example.client.services.replicant.RemoteSubscriptionManager;
+import org.realityforge.replicant.example.client.services.replicant.SubscriptionManager;
+import org.realityforge.replicant.example.client.services.replicant.SubscriptionManagerImpl;
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService
-  implements DataLoaderService
+  implements DataLoaderService, RemoteSubscriptionManager
 {
   private static final int POLL_DURATION = 2000;
 
@@ -31,11 +34,12 @@ public class TyrellDataLoaderService
   @Inject
   private EntityRepository _repository;
 
+  private final SubscriptionManager _subscriptionManager = new SubscriptionManagerImpl( this );
+
   private Timer _timer;
 
   private boolean _inPoll;
   private boolean _incrementalDataLoadInProgress;
-  private HashSet<Integer> _subscriptions = new HashSet<>();
 
   @Override
   public void connect()
@@ -49,41 +53,70 @@ public class TyrellDataLoaderService
     stopPolling();
   }
 
-  public void subscribeToBuilding( final int buildingID )
+  @Override
+  public boolean canSubscribeToType( final int type )
   {
-    if ( !_subscriptions.contains( buildingID ) )
-    {
-      //TODO: Need to track time whilst subscription updating
-      _subscriptions.add( buildingID );
-      _subscriptionService.subscribeToBuilding( buildingID, new TyrellGwtRpcAsyncCallback<String>()
-      {
-        @Override
-        public void onSuccess( final String result )
-        {
-          enqueueDataLoad( false, result, null );
-        }
-      } );
-    }
+    return Building.TRANSPORT_ID == type;
   }
 
   @Override
-  public void subscribeToAll()
+  public void remoteSubscribeToType( final int type, @Nonnull final Runnable runnable )
   {
     _subscriptionService.subscribeToAll( new TyrellGwtRpcAsyncCallback<String>()
     {
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( false, result, new Runnable()
-        {
-          @Override
-          public void run()
-          {
-            LOG.info( "CompletedSubscribeToAll: " + _repository.findAll( Building.class ).size() );
-          }
-        } );
+        enqueueDataLoad( false, result, runnable );
       }
     } );
+  }
+
+  @Override
+  public void remoteUnsubscribeFromType( final int type, @Nonnull final Runnable runnable )
+  {
+
+  }
+
+  @Override
+  public void remoteSubscribeToInstance( final int type, @Nonnull final Object id, @Nonnull final Runnable runnable )
+  {
+    _subscriptionService.subscribeToBuilding( (Integer) id, new TyrellGwtRpcAsyncCallback<String>()
+    {
+      @Override
+      public void onSuccess( final String result )
+      {
+        enqueueDataLoad( false, result, runnable );
+      }
+    } );
+  }
+
+  @Override
+  public void remoteUnsubscribeFromInstance( final int type,
+                                             @Nonnull final Object id,
+                                             @Nonnull final Runnable runnable )
+  {
+    final Integer buildingID = (Integer) id;
+    _subscriptionService.unsubscribeFromBuilding( buildingID, new TyrellGwtRpcAsyncCallback<Void>()
+    {
+      @Override
+      public void onSuccess( final Void result )
+      {
+        unloadBuilding( buildingID );
+        runnable.run();
+      }
+    } );
+  }
+
+  public void subscribeToBuilding( final int buildingID )
+  {
+    _subscriptionManager.subscribeToInstance( Building.TRANSPORT_ID, buildingID );
+  }
+
+  @Override
+  public void subscribeToAll()
+  {
+    _subscriptionManager.subscribeToType( Building.TRANSPORT_ID );
   }
 
   @Override
@@ -102,19 +135,7 @@ public class TyrellDataLoaderService
   @Override
   public void unsubscribeFromBuilding( final int buildingID )
   {
-    if ( _subscriptions.contains( buildingID ) )
-    {
-      //TODO: Need to track time whilst subscription updating
-      _subscriptions.remove( buildingID );
-      _subscriptionService.unsubscribeFromBuilding( buildingID, new TyrellGwtRpcAsyncCallback<Void>()
-      {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          unloadBuilding( buildingID );
-        }
-      } );
-    }
+    _subscriptionManager.unsubscribeFromInstance( Building.TRANSPORT_ID, buildingID );
   }
 
   private void unloadBuilding( final int buildingID )
