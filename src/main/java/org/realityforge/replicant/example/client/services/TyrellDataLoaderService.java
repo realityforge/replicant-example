@@ -110,13 +110,13 @@ public class TyrellDataLoaderService
 
   public void subscribeToRoster( final int rosterID )
   {
-    _subscriptionManager.subscribeToInstance( Roster.TRANSPORT_ID, rosterID );
+    _subscriptionManager.subscribeToRoster( rosterID );
   }
 
   @Override
   public void subscribeToAll()
   {
-    _subscriptionManager.subscribeToType( Roster.TRANSPORT_ID );
+    _subscriptionManager.subscribeToAllRosters();
   }
 
   @Override
@@ -135,7 +135,7 @@ public class TyrellDataLoaderService
   @Override
   public void unsubscribeFromRoster( final int rosterID )
   {
-    _subscriptionManager.unsubscribeFromInstance( Roster.TRANSPORT_ID, rosterID );
+    _subscriptionManager.unsubscribeFromRoster( rosterID );
   }
 
   private void unloadBuilding( final int buildingID )

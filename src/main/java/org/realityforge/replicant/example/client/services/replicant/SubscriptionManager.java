@@ -1,14 +1,12 @@
 package org.realityforge.replicant.example.client.services.replicant;
 
-import javax.annotation.Nonnull;
-
 public interface SubscriptionManager
 {
-  boolean subscribeToType( int type );
+  void subscribeToRoster( int rosterID );
 
-  boolean subscribeToInstance( int type, @Nonnull Object id );
+  void unsubscribeFromRoster( int rosterID );
 
-  boolean unsubscribeFromType( int type );
+  void subscribeToAllRosters();
 
-  boolean unsubscribeFromInstance( int type, @Nonnull Object id );
+  void unsubscribeFromAllRosters();
 }

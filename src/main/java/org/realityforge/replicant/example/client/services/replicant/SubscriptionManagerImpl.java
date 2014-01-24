@@ -1,135 +1,37 @@
 package org.realityforge.replicant.example.client.services.replicant;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
+import org.realityforge.replicant.example.client.entity.Roster;
 
 public class SubscriptionManagerImpl
+  extends AbstractSubscriptionManager
   implements SubscriptionManager
 {
-  private final HashMap<Integer, Map<Object, SubscriptionEntry>> _instanceSubscriptions = new HashMap<>();
-  private final HashMap<Integer, SubscriptionEntry> _typeSubscriptions = new HashMap<>();
-
-  private final RemoteSubscriptionManager _remoteSubscriptionManager;
-
   public SubscriptionManagerImpl( final RemoteSubscriptionManager remoteSubscriptionManager )
   {
-    _remoteSubscriptionManager = remoteSubscriptionManager;
+    super( remoteSubscriptionManager );
   }
 
   @Override
-  public final boolean subscribeToType( final int type )
+  public void subscribeToRoster( final int rosterID )
   {
-    checkCanSubscribeToType( type );
-    if ( !_typeSubscriptions.containsKey( type ) )
-    {
-      final SubscriptionEntry entry = new SubscriptionEntry( type, null );
-      _typeSubscriptions.put( type, entry );
-      _remoteSubscriptionManager.remoteSubscribeToType( type, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          entry.markAsPresent();
-        }
-      } );
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    subscribeToInstance( Roster.TRANSPORT_ID, rosterID );
   }
 
   @Override
-  public final boolean subscribeToInstance( final int type, @Nonnull final Object id )
+  public void unsubscribeFromRoster( final int rosterID )
   {
-    checkCanSubscribeToType( type );
-    Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
-    if ( null == map )
-    {
-      map = new HashMap<>();
-      _instanceSubscriptions.put( type, map );
-    }
-    if ( !map.containsKey( id ) )
-    {
-      final SubscriptionEntry entry = new SubscriptionEntry( type, id );
-      map.put( id, entry );
-      _remoteSubscriptionManager.remoteSubscribeToInstance( type, id, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          entry.markAsPresent();
-        }
-      } );
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    unsubscribeFromInstance( Roster.TRANSPORT_ID, rosterID );
   }
 
   @Override
-  public final boolean unsubscribeFromType( final int type )
+  public void subscribeToAllRosters()
   {
-    checkCanSubscribeToType( type );
-    final SubscriptionEntry entry = _typeSubscriptions.get( type );
-    if ( null != entry )
-    {
-      entry.markDeregisterInProgress();
-      _remoteSubscriptionManager.remoteUnsubscribeFromType( type, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          _typeSubscriptions.remove( type );
-        }
-      } );
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+    subscribeToType( Roster.TRANSPORT_ID );
   }
 
   @Override
-  public final boolean unsubscribeFromInstance( final int type, @Nonnull final Object id )
+  public void unsubscribeFromAllRosters()
   {
-    checkCanSubscribeToType( type );
-    final Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
-    if ( null == map )
-    {
-      return false;
-    }
-    final SubscriptionEntry entry = map.get( id );
-    if ( null != entry )
-    {
-      entry.markDeregisterInProgress();
-      _remoteSubscriptionManager.remoteUnsubscribeFromInstance( type, id, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          map.remove( id );
-        }
-      } );
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-  protected final void checkCanSubscribeToType( final int type )
-  {
-    if ( !_remoteSubscriptionManager.canSubscribeToType( type ) )
-    {
-      throw new IllegalStateException( "Attempted to subscribe to invalid type " + type );
-    }
+    unsubscribeFromType( Roster.TRANSPORT_ID );
   }
 }
