@@ -268,6 +268,22 @@ module Domgen
         "#{encoder_package}.#{graph_encoder_name}"
       end
 
+      def subscription_manager_name
+        "#{repository.name}SubscriptionManager"
+      end
+
+      def qualified_subscription_manager_name
+        "#{entity_package}.#{subscription_manager_name}"
+      end
+
+      def subscription_manager_impl_name
+        "#{repository.name}SubscriptionManagerImpl"
+      end
+
+      def qualified_subscription_manager_impl_name
+        "#{entity_package}.#{subscription_manager_impl_name}"
+      end
+
       def change_recorder_name
         "#{repository.name}ChangeRecorder"
       end

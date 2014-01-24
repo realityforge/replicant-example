@@ -11,6 +11,8 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
+import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
+import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManagerImpl;
 import org.realityforge.replicant.example.client.event.BulkLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.IncrementalLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
@@ -18,8 +20,6 @@ import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionServi
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
 import org.realityforge.replicant.example.client.services.replicant.RemoteSubscriptionManager;
-import org.realityforge.replicant.example.client.services.replicant.SubscriptionManager;
-import org.realityforge.replicant.example.client.services.replicant.SubscriptionManagerImpl;
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService
@@ -34,7 +34,7 @@ public class TyrellDataLoaderService
   @Inject
   private EntityRepository _repository;
 
-  private final SubscriptionManager _subscriptionManager = new SubscriptionManagerImpl( this );
+  private final TyrellSubscriptionManager _subscriptionManager = new TyrellSubscriptionManagerImpl( this );
 
   private Timer _timer;
 
@@ -54,7 +54,7 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public SubscriptionManager getSubscriptionManager()
+  public TyrellSubscriptionManager getSubscriptionManager()
   {
     return _subscriptionManager;
   }

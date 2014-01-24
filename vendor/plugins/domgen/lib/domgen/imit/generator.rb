@@ -32,9 +32,16 @@ Domgen.template_set(:imit_entity) do |template_set|
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/mapper.java.erb",
                         'main/java/#{data_module.imit.qualified_mapper_name.gsub(".","/")}.java',
                         Domgen::Generator::Imit::HELPERS)
-end
-
-Domgen.template_set(:imit_json) do |template_set|
+  template_set.template(Domgen::Generator::Imit::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/subscription_manager.java.erb",
+                        'main/java/#{repository.imit.qualified_subscription_manager_name.gsub(".","/")}.java',
+                        Domgen::Generator::Imit::HELPERS)
+  template_set.template(Domgen::Generator::Imit::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/subscription_manager_impl.java.erb",
+                        'main/java/#{repository.imit.qualified_subscription_manager_impl_name.gsub(".","/")}.java',
+                        Domgen::Generator::Imit::HELPERS)
   template_set.template(Domgen::Generator::Imit::FACETS,
                         :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_mapper.java.erb",
@@ -128,5 +135,5 @@ Domgen.template_set(:imit_jpa) do |template_set|
 end
 
 Domgen.template_set(:imit_server => [:imit_jpa])
-Domgen.template_set(:imit_client => [:imit_gwt_proxy_service_test, :imit_gwt_proxy, :imit_entity, :imit_json])
+Domgen.template_set(:imit_client => [:imit_gwt_proxy_service_test, :imit_gwt_proxy, :imit_entity])
 Domgen.template_set(:imit => [:imit_client, :imit_server])

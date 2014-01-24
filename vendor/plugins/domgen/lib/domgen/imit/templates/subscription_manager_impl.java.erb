@@ -1,0 +1,58 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= repository.imit.entity_package %>;
+
+@javax.annotation.Generated( "Domgen" )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+public class <%= repository.imit.subscription_manager_impl_name %>
+  extends org.realityforge.replicant.example.client.services.replicant.AbstractSubscriptionManager
+  implements <%= repository.imit.qualified_subscription_manager_name %>
+{
+  public <%= repository.imit.subscription_manager_impl_name %>( final org.realityforge.replicant.example.client.services.replicant.RemoteSubscriptionManager remoteSubscriptionManager )
+  {
+    super( remoteSubscriptionManager );
+  }
+
+<% repository.data_modules.select { |data_module| data_module.imit?  }.each do |data_module| -%>
+<% data_module.entities.select { |entity| entity.imit? && !entity.abstract? && entity.imit.replication_root? }.each do |entity| %>
+  public void subscribeTo<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id )
+  {
+    subscribeTo<%= entity.name %>( id, Mode.DEFAULT );
+  }
+
+  public void unsubscribeFrom<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id )
+  {
+    unsubscribeFrom<%= entity.name %>( id, Mode.DEFAULT );
+  }
+
+  public void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>()
+  {
+    subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( Mode.DEFAULT );
+  }
+
+  public void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>()
+  {
+    unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( Mode.DEFAULT );
+  }
+
+  public void subscribeTo<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
+  {
+    subscribeToInstance( <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
+  }
+
+  public void unsubscribeFrom<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
+  {
+    unsubscribeFromInstance( <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
+  }
+
+  public void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
+  {
+    subscribeToType( <%= entity.imit.qualified_name %>.TRANSPORT_ID );
+  }
+
+  public void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
+  {
+    unsubscribeFromType( <%= entity.imit.qualified_name %>.TRANSPORT_ID );
+  }
+<% end -%>
+<% end -%>
+}

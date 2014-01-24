@@ -1,6 +1,6 @@
 package org.realityforge.replicant.example.client.services;
 
-import org.realityforge.replicant.example.client.services.replicant.SubscriptionManager;
+import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
 
 public interface DataLoaderService
 {
@@ -8,7 +8,7 @@ public interface DataLoaderService
 
   void disconnect();
 
-  SubscriptionManager getSubscriptionManager();
+  TyrellSubscriptionManager getSubscriptionManager();
 
   void downloadAll();
 }
