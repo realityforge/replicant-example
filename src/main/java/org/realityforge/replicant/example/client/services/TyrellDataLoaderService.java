@@ -54,9 +54,9 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public boolean canSubscribeToType( final int type )
+  public SubscriptionManager getSubscriptionManager()
   {
-    return Roster.TRANSPORT_ID == type;
+    return _subscriptionManager;
   }
 
   @Override
@@ -114,12 +114,6 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public void subscribeToAll()
-  {
-    _subscriptionManager.subscribeToAllRosters();
-  }
-
-  @Override
   public void downloadAll()
   {
     _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
@@ -130,12 +124,6 @@ public class TyrellDataLoaderService
         enqueueDataLoad( true, result, null );
       }
     } );
-  }
-
-  @Override
-  public void unsubscribeFromRoster( final int rosterID )
-  {
-    _subscriptionManager.unsubscribeFromRoster( rosterID );
   }
 
   private void unloadBuilding( final int buildingID )

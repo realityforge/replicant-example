@@ -17,7 +17,6 @@ public abstract class AbstractSubscriptionManager
 
   protected final boolean subscribeToType( final int type )
   {
-    checkCanSubscribeToType( type );
     if ( !_typeSubscriptions.containsKey( type ) )
     {
       final SubscriptionEntry entry = new SubscriptionEntry( type, null );
@@ -40,7 +39,6 @@ public abstract class AbstractSubscriptionManager
 
   protected final boolean subscribeToInstance( final int type, @Nonnull final Object id )
   {
-    checkCanSubscribeToType( type );
     Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
     if ( null == map )
     {
@@ -69,7 +67,6 @@ public abstract class AbstractSubscriptionManager
 
   protected final boolean unsubscribeFromType( final int type )
   {
-    checkCanSubscribeToType( type );
     final SubscriptionEntry entry = _typeSubscriptions.get( type );
     if ( null != entry )
     {
@@ -92,7 +89,6 @@ public abstract class AbstractSubscriptionManager
 
   protected final boolean unsubscribeFromInstance( final int type, @Nonnull final Object id )
   {
-    checkCanSubscribeToType( type );
     final Map<Object, SubscriptionEntry> map = _instanceSubscriptions.get( type );
     if ( null == map )
     {
@@ -115,14 +111,6 @@ public abstract class AbstractSubscriptionManager
     else
     {
       return false;
-    }
-  }
-
-  protected final void checkCanSubscribeToType( final int type )
-  {
-    if ( !_remoteSubscriptionManager.canSubscribeToType( type ) )
-    {
-      throw new IllegalStateException( "Attempted to subscribe to invalid type " + type );
     }
   }
 }

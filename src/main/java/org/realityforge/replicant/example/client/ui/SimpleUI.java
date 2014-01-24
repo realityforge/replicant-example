@@ -162,7 +162,7 @@ public class SimpleUI
 
   private void doSubscribeToAll()
   {
-    _dataLoaderService.subscribeToAll();
+    _dataLoaderService.getSubscriptionManager().subscribeToAllRosters();
   }
 
   private void createBuilding( final Roster roster )
@@ -248,7 +248,7 @@ public class SimpleUI
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.subscribeToRoster( result );
+          _dataLoaderService.getSubscriptionManager().subscribeToRoster( result );
         }
       } );
     }
