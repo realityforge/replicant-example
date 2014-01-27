@@ -16,6 +16,7 @@ import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
 import org.realityforge.replicant.example.server.entity.TyrellRouterImpl;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
+import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
@@ -34,6 +35,9 @@ public class SubscriptionServiceEJB
 
   @Inject
   private TyrellGraphEncoder _encoder;
+
+  @Inject
+  private RosterTypeRepository _rosterTypeRepository;
 
   @Inject
   private RosterRepository _rosterRepository;
@@ -88,6 +92,31 @@ public class SubscriptionServiceEJB
 
   @Override
   @Nonnull
+  public String subscribeToMetaData( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    final TyrellSessionInfo session = ensureSession( clientID );
+    session.registerInterestInMetaData();
+    return downloadMetaData();
+  }
+
+  @Nonnull
+  private String downloadMetaData()
+  {
+    final LinkedList<EntityMessage> messages = new LinkedList<>();
+    _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
+    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+  }
+
+  @Override
+  public void unsubscribeFromMetaData( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    ensureSession( clientID ).deregisterInterestInMetaData();
+  }
+
+  @Override
+  @Nonnull
   public String subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
@@ -133,6 +162,17 @@ public class SubscriptionServiceEJB
             }
           }
         }
+        if( null != routingKeys.get( TyrellRouterImpl.METADATA_KEY ) )
+        {
+          for ( final TyrellSessionInfo sessionInfo : sessions.values() )
+          {
+            if ( sessionInfo.isInterestedInMetaData() )
+            {
+              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
+            }
+          }
+        }
+
       }
     }
 

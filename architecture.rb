@@ -66,6 +66,15 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.exception(:BadSession, "ejb.rollback" => false)
 
     data_module.service(:SubscriptionService) do |s|
+      s.method(:SubscribeToMetaData) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.returns(:text)
+        m.exception(:BadSession)
+      end
+      s.method(:UnsubscribeFromMetaData) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.exception(:BadSession)
+      end
       s.method(:DownloadAll) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.returns(:text)

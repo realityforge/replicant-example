@@ -14,6 +14,7 @@ public class TyrellSessionInfo
 
   private final PacketQueue _queue = new PacketQueue();
   private boolean _interestedInAllBuildings;
+  private boolean _interestedInMetaData;
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
                             @Nonnull final String username )
@@ -36,6 +37,11 @@ public class TyrellSessionInfo
     return _interestedInAllBuildings || _buildingsOfInterest.contains( id );
   }
 
+  public boolean isInterestedInMetaData()
+  {
+    return _interestedInMetaData;
+  }
+
   public final PacketQueue getQueue()
   {
     return _queue;
@@ -52,5 +58,15 @@ public class TyrellSessionInfo
   public void registerInterestInAll()
   {
     _interestedInAllBuildings = true;
+  }
+
+  public void registerInterestInMetaData()
+  {
+    _interestedInMetaData = true;
+  }
+
+  public void deregisterInterestInMetaData()
+  {
+    _interestedInMetaData = true;
   }
 }
