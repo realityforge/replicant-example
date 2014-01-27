@@ -4,14 +4,19 @@ import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import org.realityforge.replicant.example.server.entity.Roster;
+import org.realityforge.replicant.example.server.entity.RosterType;
 import org.realityforge.replicant.example.server.entity.Shift;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
+import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
 @Stateless( name = RosterService.EJB_NAME )
 public class RosterServiceEJB
   implements RosterService
 {
+  @EJB
+  private RosterTypeRepository _rosterTypeRepository;
+
   @EJB
   private RosterRepository _rosterRepository;
 
@@ -20,9 +25,9 @@ public class RosterServiceEJB
 
   @Override
   @Nonnull
-  public Roster createRoster( @Nonnull final String name )
+  public Roster createRoster( @Nonnull final RosterType rosterType, @Nonnull final String name )
   {
-    final Roster roster = new Roster();
+    final Roster roster = new Roster( rosterType );
     roster.setName( name );
     _rosterRepository.persist( roster );
     return roster;

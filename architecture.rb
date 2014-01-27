@@ -14,10 +14,12 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.entity(:RosterType) do |t|
       t.integer(:ID, :primary_key => true)
       t.string(:Code, 20)
+      t.imit.replication_root = true
     end
 
     data_module.entity(:Roster) do |t|
       t.integer(:ID, :primary_key => true)
+      t.reference(:RosterType, :immutable => true)
       t.string(:Name, 100)
       t.imit.replication_root = true
     end
@@ -39,6 +41,7 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.service(:RosterService) do |s|
       s.method(:CreateRoster) do |m|
+        m.reference(:RosterType)
         m.text(:Name)
         m.returns(:reference, :referenced_entity => :Roster)
       end

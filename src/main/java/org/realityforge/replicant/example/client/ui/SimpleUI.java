@@ -243,7 +243,8 @@ public class SimpleUI
   {
     if ( null == _selectedRoster )
     {
-      _rosterService.createRoster( _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+      final int rosterType = 1;
+      _rosterService.createRoster( rosterType, _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
       {
         @Override
         public void onSuccess( final Integer result )
