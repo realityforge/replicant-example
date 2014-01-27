@@ -11,6 +11,11 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.data_module(:Tyrell) do |data_module|
 
+    data_module.entity(:RosterType) do |t|
+      t.integer(:ID, :primary_key => true)
+      t.string(:Code, 20)
+    end
+
     data_module.entity(:Roster) do |t|
       t.integer(:ID, :primary_key => true)
       t.string(:Name, 100)

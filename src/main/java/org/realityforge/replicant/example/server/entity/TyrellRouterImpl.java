@@ -10,7 +10,17 @@ import javax.enterprise.context.Dependent;
 public class TyrellRouterImpl
   implements TyrellRouter
 {
+  public static final String METADATA_KEY = "Tyrell.MetaData";
   public static final String ROSTER_KEY = "Tyrell.RosterID";
+
+  @Nonnull
+  @Override
+  public Map<String, Serializable> routeRosterType( @Nonnull final RosterType entity )
+  {
+    final HashMap<String, Serializable> map = new HashMap<>();
+    map.put( METADATA_KEY, Boolean.TRUE );
+    return map;
+  }
 
   @Nonnull
   @Override
