@@ -186,7 +186,16 @@ public class SubscriptionServiceEJB
             }
           }
         }
-
+        if( null != routingKeys.get( TyrellRouterImpl.ROSTER_LIST_KEY ) )
+        {
+          for ( final TyrellSessionInfo sessionInfo : sessions.values() )
+          {
+            if ( sessionInfo.isInterestedInRosterList() )
+            {
+              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
+            }
+          }
+        }
       }
     }
 
