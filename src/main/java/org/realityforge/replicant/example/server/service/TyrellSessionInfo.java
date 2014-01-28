@@ -10,10 +10,10 @@ import org.realityforge.ssf.SimpleSessionInfo;
 public class TyrellSessionInfo
   extends SimpleSessionInfo
 {
-  private final HashSet<Integer> _buildingsOfInterest = new HashSet<>();
+  private final HashSet<Integer> _rostersOfInterest = new HashSet<>();
 
   private final PacketQueue _queue = new PacketQueue();
-  private boolean _interestedInAllBuildings;
+  private boolean _interestedInAllRosters;
   private boolean _interestedInMetaData;
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
@@ -24,17 +24,17 @@ public class TyrellSessionInfo
 
   public void registerInterest( final int id )
   {
-    _buildingsOfInterest.add( id );
+    _rostersOfInterest.add( id );
   }
 
   public void deregisterInterest( final int id )
   {
-    _buildingsOfInterest.remove( id );
+    _rostersOfInterest.remove( id );
   }
 
-  public boolean isBuildingInteresting( final int id )
+  public boolean isRosterInteresting( final int id )
   {
-    return _interestedInAllBuildings || _buildingsOfInterest.contains( id );
+    return _interestedInAllRosters || _rostersOfInterest.contains( id );
   }
 
   public boolean isInterestedInMetaData()
@@ -57,7 +57,7 @@ public class TyrellSessionInfo
 
   public void registerInterestInAll()
   {
-    _interestedInAllBuildings = true;
+    _interestedInAllRosters = true;
   }
 
   public void registerInterestInMetaData()

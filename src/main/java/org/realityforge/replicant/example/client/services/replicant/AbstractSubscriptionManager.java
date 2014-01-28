@@ -4,137 +4,78 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 
-public abstract class AbstractSubscriptionManager
+public abstract class AbstractSubscriptionManager<T extends Enum>
 {
-  //Mode => Type => InstanceID
-  private final HashMap<Enum, Map<Integer, Map<Object, SubscriptionEntry>>> _instanceSubscriptions = new HashMap<>();
-  //Mode => Type
-  private final HashMap<Enum, HashMap<Integer, SubscriptionEntry>> _typeSubscriptions = new HashMap<>();
-  private final RemoteSubscriptionManager _remoteSubscriptionManager;
+  //Graph => InstanceID
+  private final HashMap<T, Map<Object, SubscriptionEntry<T>>> _instanceSubscriptions = new HashMap<>();
+  //Graph => Type
+  private final HashMap<T, SubscriptionEntry<T>> _typeSubscriptions = new HashMap<>();
 
-  protected AbstractSubscriptionManager( final RemoteSubscriptionManager remoteSubscriptionManager )
+  protected final SubscriptionEntry<T> subscribeToTypeGraph( final T graph )
   {
-    _remoteSubscriptionManager = remoteSubscriptionManager;
-  }
-
-  protected final boolean subscribeToType( final Enum mode, final int type )
-  {
-    HashMap<Integer, SubscriptionEntry> typeMap = _typeSubscriptions.get( mode );
+    SubscriptionEntry<T> typeMap = _typeSubscriptions.get( graph );
     if ( null == typeMap )
     {
-      typeMap = new HashMap<>();
-      _typeSubscriptions.put( mode, typeMap );
-    }
-    if ( !typeMap.containsKey( type ) )
-    {
-      final SubscriptionEntry entry = new SubscriptionEntry( type, null );
-      typeMap.put( type, entry );
-      _remoteSubscriptionManager.remoteSubscribeToType( type, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          entry.markAsPresent();
-        }
-      } );
-      return true;
+      final SubscriptionEntry<T> entry = new SubscriptionEntry<>( graph, null );
+      _typeSubscriptions.put( graph, entry );
+      return entry;
     }
     else
     {
-      return false;
+      return null;
     }
   }
 
-  protected final boolean subscribeToInstance( final Enum mode, final int type, @Nonnull final Object id )
+  protected final SubscriptionEntry<T> subscribeToInstanceGraph( final T graph, @Nonnull final Object id )
   {
-    Map<Integer, Map<Object, SubscriptionEntry>> instanceMap = _instanceSubscriptions.get( mode );
+    Map<Object, SubscriptionEntry<T>> instanceMap = _instanceSubscriptions.get( graph );
     if ( null == instanceMap )
     {
       instanceMap = new HashMap<>();
-      _instanceSubscriptions.put( mode, instanceMap );
+      _instanceSubscriptions.put( graph, instanceMap );
     }
-    Map<Object, SubscriptionEntry> map = instanceMap.get( type );
-    if ( null == map )
+    if ( !instanceMap.containsKey( id ) )
     {
-      map = new HashMap<>();
-      instanceMap.put( type, map );
-    }
-    if ( !map.containsKey( id ) )
-    {
-      final SubscriptionEntry entry = new SubscriptionEntry( type, id );
-      map.put( id, entry );
-      _remoteSubscriptionManager.remoteSubscribeToInstance( type, id, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          entry.markAsPresent();
-        }
-      } );
-      return true;
+      final SubscriptionEntry<T> entry = new SubscriptionEntry<>( graph, id );
+      instanceMap.put( id, entry );
+      return entry;
     }
     else
     {
-      return false;
+      return null;
     }
   }
 
-  protected final boolean unsubscribeFromType( final Enum mode, final int type )
+  protected final SubscriptionEntry<T> unsubscribeFromTypeGraph( final T graph )
   {
-    final HashMap<Integer, SubscriptionEntry> typeMap = _typeSubscriptions.get( mode );
-    if ( null == typeMap )
-    {
-      return false;
-    }
-    final SubscriptionEntry entry = typeMap.get( type );
+    final SubscriptionEntry<T> entry = _typeSubscriptions.remove( graph );
     if ( null != entry )
     {
       entry.markDeregisterInProgress();
-      _remoteSubscriptionManager.remoteUnsubscribeFromType( type, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          typeMap.remove( type );
-        }
-      } );
-      return true;
+      return entry;
     }
     else
     {
-      return false;
+      return null;
     }
   }
 
-  protected final boolean unsubscribeFromInstance( final Enum mode, final int type, @Nonnull final Object id )
+  protected final SubscriptionEntry<T> unsubscribeFromInstanceGraph( final T graph, @Nonnull final Object id )
   {
-    final Map<Integer, Map<Object, SubscriptionEntry>> instanceMap = _instanceSubscriptions.get( mode );
+    final Map<Object, SubscriptionEntry<T>> instanceMap = _instanceSubscriptions.get( graph );
     if ( null == instanceMap )
     {
-      return false;
+      return null;
     }
-    final Map<Object, SubscriptionEntry> map = instanceMap.get( type );
-    if ( null == map )
-    {
-      return false;
-    }
-    final SubscriptionEntry entry = map.get( id );
+    final SubscriptionEntry<T> entry = instanceMap.remove( id );
     if ( null != entry )
     {
       entry.markDeregisterInProgress();
-      _remoteSubscriptionManager.remoteUnsubscribeFromInstance( type, id, new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          map.remove( id );
-        }
-      } );
-      return true;
+      return entry;
     }
     else
     {
-      return false;
+      return null;
     }
   }
 }

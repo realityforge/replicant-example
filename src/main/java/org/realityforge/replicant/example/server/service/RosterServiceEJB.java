@@ -1,5 +1,6 @@
 package org.realityforge.replicant.example.server.service;
 
+import java.util.ArrayList;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -10,7 +11,7 @@ import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
-@Stateless( name = RosterService.EJB_NAME )
+@Stateless(name = RosterService.EJB_NAME)
 public class RosterServiceEJB
   implements RosterService
 {
@@ -36,7 +37,7 @@ public class RosterServiceEJB
   @Override
   public void removeRoster( @Nonnull final Roster roster )
   {
-    for ( final Shift shift : roster.getShifts() )
+    for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
     {
       removeShift( shift );
     }

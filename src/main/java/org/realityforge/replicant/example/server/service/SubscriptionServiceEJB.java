@@ -97,12 +97,6 @@ public class SubscriptionServiceEJB
   {
     final TyrellSessionInfo session = ensureSession( clientID );
     session.registerInterestInMetaData();
-    return downloadMetaData();
-  }
-
-  @Nonnull
-  private String downloadMetaData()
-  {
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
     return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
@@ -151,12 +145,12 @@ public class SubscriptionServiceEJB
       {
         final Map<String, Serializable> routingKeys = message.getRoutingKeys();
 
-        final Integer buildingID = (Integer) routingKeys.get( TyrellRouterImpl.ROSTER_KEY );
-        if ( null != buildingID )
+        final Integer rosterID = (Integer) routingKeys.get( TyrellRouterImpl.ROSTER_KEY );
+        if ( null != rosterID )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.isBuildingInteresting( buildingID ) )
+            if ( sessionInfo.isRosterInteresting( rosterID ) )
             {
               accumulator.addEntityMessage( sessionInfo.getQueue(), message );
             }

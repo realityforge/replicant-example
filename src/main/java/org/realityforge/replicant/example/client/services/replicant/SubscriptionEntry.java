@@ -2,9 +2,9 @@ package org.realityforge.replicant.example.client.services.replicant;
 
 import javax.annotation.Nullable;
 
-class SubscriptionEntry
+public class SubscriptionEntry<T extends Enum>
 {
-  private final int _type;
+  private final T _type;
   @Nullable
   private final Object _id;
 
@@ -16,41 +16,51 @@ class SubscriptionEntry
    * True if the subscription is part way through being cancelled.
    */
   private boolean _deregisterInProgress;
+  /**
+   * True if a deregister has not been completed.
+   */
+  private boolean _registered;
 
-  SubscriptionEntry( final int type, final Object id )
+  public SubscriptionEntry( final T type, final Object id )
   {
     _type = type;
     _id = id;
+    _registered = true;
   }
 
-  int getType()
+  public T getType()
   {
     return _type;
   }
 
   @Nullable
-  Object getId()
+  public Object getId()
   {
     return _id;
   }
 
-  boolean isPresent()
+  public boolean isPresent()
   {
     return _present;
   }
 
-  void markAsPresent()
+  public void markAsPresent()
   {
     _present = true;
   }
 
-  boolean isDeregisterInProgress()
+  public boolean isDeregisterInProgress()
   {
     return _deregisterInProgress;
   }
 
-  void markDeregisterInProgress()
+  public void markDeregisterInProgress()
   {
     _deregisterInProgress = true;
+  }
+
+  public void markAsDeregistered()
+  {
+    _registered = false;
   }
 }

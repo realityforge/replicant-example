@@ -10,8 +10,8 @@ import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.example.client.entity.Roster;
-import org.realityforge.replicant.example.client.entity.RosterType;
 import org.realityforge.replicant.example.client.entity.Shift;
+import org.realityforge.replicant.example.client.entity.TyrellRemoteSubscriptionManager;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManagerImpl;
 import org.realityforge.replicant.example.client.event.BulkLoadCompleteEvent;
@@ -20,11 +20,10 @@ import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
-import org.realityforge.replicant.example.client.services.replicant.RemoteSubscriptionManager;
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService
-  implements DataLoaderService, RemoteSubscriptionManager
+  implements DataLoaderService, TyrellRemoteSubscriptionManager
 {
   private static final int POLL_DURATION = 2000;
 
@@ -46,7 +45,7 @@ public class TyrellDataLoaderService
   public void connect()
   {
     startPolling();
-    getSubscriptionManager().subscribeToAllRosterTypes();
+    getSubscriptionManager().subscribeToMetaData();
   }
 
   @Override
@@ -62,96 +61,56 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public void remoteSubscribeToType( final int type, @Nonnull final Runnable runnable )
+  public void remoteSubscribeToMetaData( @Nonnull final Runnable runnable )
   {
-    if ( Roster.TRANSPORT_ID == type )
+    _subscriptionService.subscribeToMetaData( new TyrellGwtRpcAsyncCallback<String>()
     {
-      _subscriptionService.subscribeToAll( new TyrellGwtRpcAsyncCallback<String>()
+      @Override
+      public void onSuccess( final String result )
       {
-        @Override
-        public void onSuccess( final String result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
-      } );
-    }
-    else if ( RosterType.TRANSPORT_ID == type )
-    {
-      _subscriptionService.subscribeToMetaData( new TyrellGwtRpcAsyncCallback<String>()
-      {
-        @Override
-        public void onSuccess( final String result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
-      } );
-    }
-    else
-    {
-      throw impossible();
-    }
+        enqueueDataLoad( false, result, runnable );
+      }
+    } );
   }
 
   @Override
-  public void remoteUnsubscribeFromType( final int type, @Nonnull final Runnable runnable )
+  public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
   {
-    if ( RosterType.TRANSPORT_ID == type )
+    _subscriptionService.unsubscribeFromMetaData( new TyrellGwtRpcAsyncCallback<Void>()
     {
-      _subscriptionService.unsubscribeFromMetaData();
-    }
-    else
-    {
-      throw impossible();
-    }
+      @Override
+      public void onSuccess( final Void result )
+      {
+        runnable.run();
+      }
+    } );
   }
 
   @Override
-  public void remoteSubscribeToInstance( final int type, @Nonnull final Object id, @Nonnull final Runnable runnable )
+  public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
   {
-    if ( Roster.TRANSPORT_ID == type )
+    _subscriptionService.subscribeToRoster( id, new TyrellGwtRpcAsyncCallback<String>()
     {
-      _subscriptionService.subscribeToRoster( (Integer) id, new TyrellGwtRpcAsyncCallback<String>()
+      @Override
+      public void onSuccess( final String result )
       {
-        @Override
-        public void onSuccess( final String result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
-      } );
-    }
-    else
-    {
-      throw impossible();
-    }
-  }
-
-  private IllegalStateException impossible()
-  {
-    return new IllegalStateException( "Impossible scenario" );
+        enqueueDataLoad( false, result, runnable );
+      }
+    } );
   }
 
   @Override
-  public void remoteUnsubscribeFromInstance( final int type,
-                                             @Nonnull final Object id,
-                                             @Nonnull final Runnable runnable )
+  public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
   {
-    if ( Roster.TRANSPORT_ID == type )
+    _subscriptionService.unsubscribeFromRoster( id, new TyrellGwtRpcAsyncCallback<Void>()
     {
-      final Integer buildingID = (Integer) id;
-      _subscriptionService.unsubscribeFromRoster( buildingID, new TyrellGwtRpcAsyncCallback<Void>()
+      @Override
+      public void onSuccess( final Void result )
       {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          unloadBuilding( buildingID );
-          runnable.run();
-        }
-      } );
-    }
-    else
-    {
-      throw impossible();
-    }
+        unloadRoster( id );
+        runnable.run();
+      }
+    } );
   }
 
   public void subscribeToRoster( final int rosterID )
@@ -167,12 +126,12 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( true, result, null );
+        enqueueDataLoad( false, result, null );
       }
     } );
   }
 
-  private void unloadBuilding( final int buildingID )
+  private void unloadRoster( final int buildingID )
   {
     final Roster roster = _repository.findByID( Roster.class, buildingID );
     if ( null != roster )
