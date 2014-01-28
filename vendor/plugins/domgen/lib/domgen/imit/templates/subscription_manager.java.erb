@@ -4,38 +4,17 @@ package <%= repository.imit.entity_package %>;
 @javax.annotation.Generated( "Domgen" )
 @SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
 public interface <%= repository.imit.subscription_manager_name %>
-{
-<%
-replication_modes = []
-repository.data_modules.select { |data_module| data_module.imit?  }.each do |data_module|
-  data_module.entities.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
-  replication_modes.concat entity.referencing_attributes.select{|a| a.imit? && a.imit.client_side?}.collect{|a| a.inverse.imit.replication_modes }.flatten
+{<%
+  repository.imit.graphs.each do |graph|
+  param = ''
+  if graph.instance_root?
+    # Names are fully qualified so take any random data module
+    entity = repository.data_modules[0].entity_by_name(graph.instance_root)
+    type = entity.primary_key.imit.primitive_java_type
+    param = "#{type} id"
   end
-end
-replication_modes = replication_modes.flatten.sort.uniq
 %>
-  enum Mode
-  {
-    <%= replication_modes.collect{|replication_mode|Domgen::Naming.uppercase_constantize(replication_mode) }.join(", ") %>
-  }
+  void subscribeTo<%= graph.key %>(<%= param %>);
 
-<% repository.data_modules.select { |data_module| data_module.imit?  }.each do |data_module| -%>
-<% data_module.entities.select { |entity| entity.imit? && !entity.abstract? && entity.imit.replication_root? }.each do |entity| %>
-  void subscribeTo<%= entity.name %>( <%= entity.primary_key.imit.java_type %> id );
-
-  void unsubscribeFrom<%= entity.name %>( <%= entity.primary_key.imit.java_type %> id );
-
-  void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>();
-
-  void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>();
-
-  void subscribeTo<%= entity.name %>( <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode );
-
-  void unsubscribeFrom<%= entity.name %>( <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode );
-
-  void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode );
-
-  void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode );
-<% end -%>
-<% end -%>
-}
+  void unsubscribeFrom<%= graph.key %>(<%= param %>);
+<% end %>}

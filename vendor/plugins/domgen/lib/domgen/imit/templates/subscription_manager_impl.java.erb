@@ -1,58 +1,69 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= repository.imit.entity_package %>;
 
+import org.realityforge.replicant.example.client.services.replicant.SubscriptionEntry;
+
 @javax.annotation.Generated( "Domgen" )
 @java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
 public class <%= repository.imit.subscription_manager_impl_name %>
-  extends org.realityforge.replicant.example.client.services.replicant.AbstractSubscriptionManager
+  extends org.realityforge.replicant.example.client.services.replicant.AbstractSubscriptionManager<<%= repository.imit.qualified_graph_enum_name %>>
   implements <%= repository.imit.qualified_subscription_manager_name %>
 {
-  public <%= repository.imit.subscription_manager_impl_name %>( final org.realityforge.replicant.example.client.services.replicant.RemoteSubscriptionManager remoteSubscriptionManager )
+  private final <%= repository.imit.qualified_remote_subscription_manager_name %> _remote;
+
+  public <%= repository.imit.subscription_manager_impl_name %>( final <%= repository.imit.qualified_remote_subscription_manager_name %> remote )
   {
-    super( remoteSubscriptionManager );
+    _remote = remote;
+  }
+<%
+  repository.imit.graphs.each do |graph|
+  param = ''
+  param_value = ''
+  param_early_value = ''
+  subscribe_method = 'Type'
+  if graph.instance_root?
+    # Names are fully qualified so take any random data module
+    entity = repository.data_modules[0].entity_by_name(graph.instance_root)
+    type = entity.primary_key.imit.primitive_java_type
+    param = "#{type} id"
+    param_value = ', id'
+    param_early_value = 'id, '
+    subscribe_method = 'Instance'
+  end
+%>
+  public void subscribeTo<%= graph.key %>(<%= param %>)
+  {
+    final SubscriptionEntry<<%= repository.imit.qualified_graph_enum_name %>> entry =
+      subscribeTo<%= subscribe_method %>Graph( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.key) %><%= param_value %> );
+    if( null != entry )
+    {
+      _remote.remoteSubscribeTo<%= graph.key %>( <%= param_early_value %>new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          entry.markAsPresent();
+        }
+      } );
+    }
   }
 
-<% repository.data_modules.select { |data_module| data_module.imit?  }.each do |data_module| -%>
-<% data_module.entities.select { |entity| entity.imit? && !entity.abstract? && entity.imit.replication_root? }.each do |entity| %>
-  public void subscribeTo<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id )
+  public void unsubscribeFrom<%= graph.key %>(<%= param %>)
   {
-    subscribeTo<%= entity.name %>( id, Mode.DEFAULT );
+    final SubscriptionEntry<<%= repository.imit.qualified_graph_enum_name %>> entry =
+      unsubscribeFrom<%= subscribe_method %>Graph( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.key) %><%= param_value %> );
+    if( null != entry )
+    {
+      entry.markDeregisterInProgress();
+      _remote.remoteUnsubscribeFrom<%= graph.key %>( <%= param_early_value %>new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          entry.markAsDeregistered();
+        }
+      } );
+    }
   }
-
-  public void unsubscribeFrom<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id )
-  {
-    unsubscribeFrom<%= entity.name %>( id, Mode.DEFAULT );
-  }
-
-  public void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>()
-  {
-    subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( Mode.DEFAULT );
-  }
-
-  public void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>()
-  {
-    unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( Mode.DEFAULT );
-  }
-
-  public void subscribeTo<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
-  {
-    subscribeToInstance( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
-  }
-
-  public void unsubscribeFrom<%= entity.name %>( final <%= entity.primary_key.imit.java_type %> id, @javax.annotation.Nonnull final Mode mode )
-  {
-    unsubscribeFromInstance( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID, id );
-  }
-
-  public void subscribeToAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
-  {
-    subscribeToType( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID );
-  }
-
-  public void unsubscribeFromAll<%= Domgen::Naming.pluralize(entity.name) %>( @javax.annotation.Nonnull final Mode mode )
-  {
-    unsubscribeFromType( mode, <%= entity.imit.qualified_name %>.TRANSPORT_ID );
-  }
-<% end -%>
-<% end -%>
+<% end %>
 }

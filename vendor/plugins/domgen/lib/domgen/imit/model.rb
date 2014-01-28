@@ -132,10 +132,24 @@ module Domgen
       end
 
       def replication_root?
-        @replication_root.nil? ? false : @replication_root
+        k = entity.qualified_name.to_s
+        entity.data_module.repository.imit.graphs.any?{|g| g.instance_root? && g.instance_root.to_s == k }
       end
 
-      attr_writer :replication_root
+      def replicate(graph, replication_type)
+        raise "#{replication_type.inspect} is not of a known type" unless [:instance, :type].include?(replication_type)
+        graph = entity.data_module.repository.imit.graph_by_name(graph)
+        k = entity.qualified_name
+        graph.instance_root = k if :instance == replication_type
+        graph.type_roots.concat([k.to_s]) if :type == replication_type
+      end
+
+      def replication_graphs
+        entity.data_module.repository.imit.graphs.select do |graph|
+          (graph.instance_root? && graph.instance_root.to_s == entity.qualified_name.to_s) ||
+            graph.type_roots.include?(entity.qualified_name.to_s)
+        end
+      end
 
       def referencing_client_side_attributes
         entity.referencing_attributes.select do |attribute|
@@ -179,6 +193,58 @@ module Domgen
       def qualified_updater_name
         "#{entity_package}.#{updater_name}"
       end
+    end
+
+    class ReplicationGraph < Domgen.ParentedElement(:application)
+      def initialize(application, key, options, &block)
+        @key = key
+        @type_roots = []
+        @instance_root = nil
+        application.send :register_graph, key, self
+        super(application, options, &block)
+      end
+
+      attr_reader :application
+
+      attr_reader :key
+
+      def instance_root?
+        !@instance_root.nil?
+      end
+
+      def type_roots
+        raise "type_roots invoked for graph #{key} when instance based" if instance_root?
+        @type_roots
+      end
+
+      def type_roots=(type_roots)
+        raise "Attempted to assign type_roots #{type_roots.inspect} for graph #{key} when instance based on #{@instance_root.inspect}" if instance_root?
+        @type_roots = type_roots
+      end
+
+      def instance_root
+        raise "instance_root invoked for graph #{key} when not instance based" if 0 != @type_roots.size
+        @instance_root
+      end
+
+      def instance_root=(instance_root)
+        raise "Attempted to assign instance_root to #{instance_root.inspect} for graph #{key} when not instance based (type_roots=#{@type_roots.inspect})" if 0 != @type_roots.size
+        @instance_root = instance_root
+      end
+
+=begin
+      def post_verify
+        index = 0
+        repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
+          data_module.entities.each do |entity|
+            if entity.imit? && !entity.abstract?
+              entity.imit.transport_id = index
+              index += 1
+            end
+          end
+        end
+      end
+=end
     end
 
     class ImitationApplication < Domgen.ParentedElement(:repository)
@@ -228,6 +294,14 @@ module Domgen
         "#{entity_package}.#{change_mapper_name}"
       end
 
+      def graph_enum_name
+        "#{repository.name}ReplicationGraph"
+      end
+
+      def qualified_graph_enum_name
+        "#{entity_package}.#{graph_enum_name}"
+      end
+
       def router_interface_name
         "#{repository.name}Router"
       end
@@ -274,6 +348,14 @@ module Domgen
 
       def qualified_subscription_manager_name
         "#{entity_package}.#{subscription_manager_name}"
+      end
+
+      def remote_subscription_manager_name
+        "#{repository.name}RemoteSubscriptionManager"
+      end
+
+      def qualified_remote_subscription_manager_name
+        "#{entity_package}.#{remote_subscription_manager_name}"
       end
 
       def subscription_manager_impl_name
@@ -328,6 +410,20 @@ module Domgen
         "#{ioc_package}.#{mock_services_module_name}"
       end
 
+      def graphs
+        graph_map.values
+      end
+
+      def graph(name, options = {}, &block)
+        Domgen::Imit::ReplicationGraph.new(self, name, options, &block)
+      end
+
+      def graph_by_name(name)
+        graph = graph_map[name.to_s]
+        Domgen.error("Unable to locate graph #{name}") unless graph
+        graph
+      end
+
       def post_verify
         index = 0
         repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
@@ -338,6 +434,16 @@ module Domgen
             end
           end
         end
+      end
+
+      private
+
+      def register_graph(name, graph)
+        graph_map[name.to_s] = graph
+      end
+
+      def graph_map
+        @graphs ||= Domgen::OrderedHash.new
       end
     end
   end

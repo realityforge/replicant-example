@@ -9,19 +9,22 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.java.base_package = 'org.realityforge.replicant.example'
 
+  repository.imit.graph(:MetaData)
+  repository.imit.graph(:Roster)
+
   repository.data_module(:Tyrell) do |data_module|
 
     data_module.entity(:RosterType) do |t|
       t.integer(:ID, :primary_key => true)
       t.string(:Code, 20)
-      t.imit.replication_root = true
+      t.imit.replicate(:MetaData, :type)
     end
 
     data_module.entity(:Roster) do |t|
       t.integer(:ID, :primary_key => true)
       t.reference(:RosterType, :immutable => true)
       t.string(:Name, 100)
-      t.imit.replication_root = true
+      t.imit.replicate(:Roster, :instance)
     end
 
     data_module.entity(:Shift) do |t|
