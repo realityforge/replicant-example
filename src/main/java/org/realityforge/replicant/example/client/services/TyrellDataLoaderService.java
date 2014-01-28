@@ -4,6 +4,7 @@ import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -149,7 +150,7 @@ public class TyrellDataLoaderService
     final Roster roster = _repository.findByID( Roster.class, buildingID );
     if ( null != roster )
     {
-      for ( final Shift shift : roster.getShifts() )
+      for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
       {
         _repository.deregisterEntity( Shift.class, shift.getID() );
       }
