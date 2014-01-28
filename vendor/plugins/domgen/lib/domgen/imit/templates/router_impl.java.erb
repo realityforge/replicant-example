@@ -12,8 +12,8 @@ public class <%= repository.imit.router_impl_name %>
 %>
   public static final String <%= key %> = "<%= repository.name %>.<%= graph.key %>";
 <% end %>
-<% repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module| -%>
 <%
+repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
   data_module.entities.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
     instance_graphs = entity.imit.associated_instance_root_graphs
     type_graphs = entity.imit.associated_type_graphs
