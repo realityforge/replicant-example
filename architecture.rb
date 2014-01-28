@@ -11,6 +11,7 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.imit.graph(:MetaData)
   repository.imit.graph(:Roster)
+  repository.imit.graph(:RosterList)
 
   repository.data_module(:Tyrell) do |data_module|
 
@@ -25,6 +26,7 @@ Domgen.repository(:Tyrell) do |repository|
       t.reference(:RosterType, :immutable => true)
       t.string(:Name, 100)
       t.imit.replicate(:Roster, :instance)
+      t.imit.replicate(:RosterList, :type)
     end
 
     data_module.entity(:Shift) do |t|
@@ -33,6 +35,11 @@ Domgen.repository(:Tyrell) do |repository|
       t.string(:Name, 50)
     end
 
+    data_module.entity(:Position) do |t|
+      t.integer(:ID, :primary_key => true)
+      t.reference(:Shift, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:RosterList])
+      t.string(:Name, 50)
+    end
 
     data_module.message(:SystemError) do |m|
       m.text(:Message)

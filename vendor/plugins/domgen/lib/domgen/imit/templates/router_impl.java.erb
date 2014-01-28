@@ -15,30 +15,33 @@ public class <%= repository.imit.router_impl_name %>
 <%
 repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
   data_module.entities.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
-    instance_graphs = entity.imit.associated_instance_root_graphs
-    type_graphs = entity.imit.associated_type_graphs
-    outgoing_links = entity.attributes.select {|a| a.reference? && a.imit? && a.inverse.imit.traversable? }
-    replication_edges = outgoing_links.collect{|a|a.inverse.imit.replication_edges}.flatten.sort.uniq
+    outgoing_links = entity.attributes.select {|a| a.reference? && a.imit? && a.inverse.imit.traversable?}
  -%>
   @javax.annotation.Nonnull
   public java.util.Map<String, java.io.Serializable> route<%= entity.name %>( @javax.annotation.Nonnull <%= entity.jpa.qualified_name %> entity )
   {
-<% if replication_edges.size == 1 && instance_graphs.size == 0 && type_graphs.size == 0 %>
-    return route<%= outgoing_links[0].referenced_entity.name %>( entity.<%= getter_for(outgoing_links[0]) %> );
-<% else %>
     final java.util.HashMap<String, java.io.Serializable> map = new java.util.HashMap<>();
-<% instance_graphs.each do |graph| %>
-    map.put( <%= Domgen::Naming.uppercase_constantize(graph.key) %>_KEY, entity.<%= getter_for(entity.primary_key) %> );
-<% end %>
-<% type_graphs.each do |graph| %>
-    map.put( <%= Domgen::Naming.uppercase_constantize(graph.key) %>_KEY, Boolean.TRUE );
-<% end %>
-<% outgoing_links.each do |outgoing_link| %>
-    map.putAll( route<%= outgoing_link.referenced_entity.name %>( entity.<%= getter_for(outgoing_link) %> ) );
+<% entity.imit.replication_graphs.each do |graph| %>
+    _route<%= graph.key %>_<%= entity.name %>( map, entity );
 <% end %>
     return map;
+  }
+
+<%
+  entity.imit.replication_graphs.each do |graph| %>
+  private void _route<%= graph.key %>_<%= entity.name %>( @javax.annotation.Nonnull java.util.Map<String, java.io.Serializable> map, @javax.annotation.Nonnull <%= entity.jpa.qualified_name %> entity )
+  {
+<% if graph.instance_root? && graph.instance_root.to_s == entity.qualified_name.to_s %>
+    map.put( <%= Domgen::Naming.uppercase_constantize(graph.key) %>_KEY, entity.<%= getter_for(entity.primary_key) %> );
+<% elsif graph.instance_root? %>
+<% outgoing_links.each do |outgoing_link| %>
+    _route<%= graph.key %>_<%= outgoing_link.referenced_entity.name %>( map, entity.<%= getter_for(outgoing_link) %> );
+<% end %>
+<% else %>
+    map.put( <%= Domgen::Naming.uppercase_constantize(graph.key) %>_KEY, Boolean.TRUE );
 <% end %>
   }
-<% end -%>
+<% end %>
+<% end %>
 <% end -%>
 }
