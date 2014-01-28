@@ -15,8 +15,6 @@ import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellRemoteSubscriptionManager;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManagerImpl;
-import org.realityforge.replicant.example.client.event.BulkLoadCompleteEvent;
-import org.realityforge.replicant.example.client.event.IncrementalLoadCompleteEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
@@ -229,18 +227,6 @@ public class TyrellDataLoaderService
       _timer.cancel();
       _timer = null;
     }
-  }
-
-  @Override
-  protected void onBulkLoadComplete()
-  {
-    _eventBus.fireEvent( new BulkLoadCompleteEvent() );
-  }
-
-  @Override
-  protected void onIncrementalLoadComplete()
-  {
-    _eventBus.fireEvent( new IncrementalLoadCompleteEvent() );
   }
 
   protected void scheduleDataLoad()

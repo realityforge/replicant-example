@@ -33,9 +33,6 @@ Domgen.repository(:Tyrell) do |repository|
       t.string(:Name, 50)
     end
 
-    data_module.message(:IncrementalLoadComplete)
-
-    data_module.message(:BulkLoadComplete)
 
     data_module.message(:SystemError) do |m|
       m.text(:Message)
