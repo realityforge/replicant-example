@@ -134,6 +134,11 @@ Domgen.template_set(:imit_jpa) do |template_set|
                         helpers)
   template_set.template(facets,
                         :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/router_impl.java.erb",
+                        'main/java/#{repository.imit.qualified_router_impl_name.gsub(".","/")}.java',
+                        helpers)
+  template_set.template(facets,
+                        :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/message_generator.java.erb",
                         'main/java/#{repository.imit.qualified_message_generator_name.gsub(".","/")}.java',
                         helpers)

@@ -25,14 +25,23 @@ module Domgen
         @traversable.nil? ? (self.inverse.traversable? && self.inverse.attribute.referenced_entity.imit?) : @traversable
       end
 
-      def replication_modes=(replication_modes)
-        raise "replication_modes should be an array of symbols" unless replication_modes.is_a?(Array) && replication_modes.all? { |m| m.is_a?(Symbol) }
-        raise "replication_modes should only be set when traversable?" unless inverse.traversable?
-        @replication_modes = replication_modes
+      def exclude_edges
+        @exclude_edges ||= []
       end
 
-      def replication_modes
-        @replication_modes || [:default]
+      def exclude_edges=(exclude_edges)
+        @exclude_edges = exclude_edges
+      end
+
+      def replication_edges=(replication_edges)
+        raise "replication_edges should be an array of symbols" unless replication_edges.is_a?(Array) && replication_edges.all? { |m| m.is_a?(Symbol) }
+        raise "replication_edges should only be set when traversable?" unless inverse.traversable?
+        raise "replication_edges should only contain valid graphs" unless replication_edges.all? { |m| inverse.attribute.entity.data_module.repository.imit.graph_by_name(m) }
+        @replication_edges = replication_edges
+      end
+
+      def replication_edges
+        @replication_edges || []
       end
     end
 
@@ -132,8 +141,15 @@ module Domgen
       end
 
       def replication_root?
-        k = entity.qualified_name.to_s
-        entity.data_module.repository.imit.graphs.any?{|g| g.instance_root? && g.instance_root.to_s == k }
+        entity.data_module.repository.imit.graphs.any?{|g| g.instance_root? && g.instance_root.to_s == entity.qualified_name.to_s }
+      end
+
+      def associated_instance_root_graphs
+        entity.data_module.repository.imit.graphs.select {|g| g.instance_root? && g.instance_root.to_s == entity.qualified_name.to_s }
+      end
+
+      def associated_type_graphs
+        entity.data_module.repository.imit.graphs.select {|g| !g.instance_root? && g.type_roots.include?(entity.qualified_name.to_s) }
       end
 
       def replicate(graph, replication_type)
@@ -232,19 +248,11 @@ module Domgen
         @instance_root = instance_root
       end
 
-=begin
-      def post_verify
-        index = 0
-        repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
-          data_module.entities.each do |entity|
-            if entity.imit? && !entity.abstract?
-              entity.imit.transport_id = index
-              index += 1
-            end
-          end
-        end
+      # Return the list of entities reachable in instance graph
+      def reachable_entities
+        raise "reachable_entities invoked for graph #{key} when not instance based" if 0 != @type_roots.size
+        @reachable_entities ||= []
       end
-=end
     end
 
     class ImitationApplication < Domgen.ParentedElement(:repository)
@@ -308,6 +316,14 @@ module Domgen
 
       def qualified_router_interface_name
         "#{encoder_package}.#{router_interface_name}"
+      end
+
+      def router_impl_name
+        "#{repository.name}RouterImpl"
+      end
+
+      def qualified_router_impl_name
+        "#{encoder_package}.#{router_impl_name}"
       end
 
       def jpa_encoder_name
@@ -431,6 +447,19 @@ module Domgen
             if entity.imit? && !entity.abstract?
               entity.imit.transport_id = index
               index += 1
+            end
+          end
+        end
+        repository.imit.graphs.select { |graph| graph.instance_root? }.each do |graph|
+          entity_list = [repository.data_modules[0].entity_by_name(graph.instance_root)]
+          while entity_list.size > 0
+            entity = entity_list.pop
+            graph.reachable_entities << entity.name.to_s
+            entity.referencing_attributes.each do |a|
+              if a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && !a.inverse.imit.exclude_edges.include?(graph.key)
+                a.inverse.imit.replication_edges = a.inverse.imit.replication_edges + [graph.key]
+                entity_list << a.entity unless graph.reachable_entities.include?(a.entity.name.to_s)
+              end
             end
           end
         end
