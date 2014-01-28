@@ -162,7 +162,7 @@ public class SimpleUI
 
   private void doSubscribeToAll()
   {
-    _dataLoaderService.getSubscriptionManager().subscribeToAllRosters();
+    _dataLoaderService.subscribeToAll();
   }
 
   private void createBuilding( final Roster roster )

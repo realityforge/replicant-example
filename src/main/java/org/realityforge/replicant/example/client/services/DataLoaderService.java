@@ -11,4 +11,6 @@ public interface DataLoaderService
   TyrellSubscriptionManager getSubscriptionManager();
 
   void downloadAll();
+
+  void subscribeToAll();
 }

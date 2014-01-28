@@ -119,6 +119,19 @@ public class TyrellDataLoaderService
   }
 
   @Override
+  public void subscribeToAll()
+  {
+    _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
+    {
+      @Override
+      public void onSuccess( final String result )
+      {
+        enqueueDataLoad( false, result, null );
+      }
+    } );
+  }
+
+  @Override
   public void downloadAll()
   {
     _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
