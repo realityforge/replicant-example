@@ -67,7 +67,10 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( false, result, runnable );
+        if ( null != result )
+        {
+          enqueueDataLoad( false, result, runnable );
+        }
       }
     } );
   }
@@ -93,7 +96,10 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( false, result, runnable );
+        if ( null != result )
+        {
+          enqueueDataLoad( false, result, runnable );
+        }
       }
     } );
   }
@@ -120,7 +126,10 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( false, result, runnable );
+        if ( null != result )
+        {
+          enqueueDataLoad( false, result, runnable );
+        }
       }
     } );
   }

@@ -26,7 +26,7 @@ import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
+@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
 public class SubscriptionServiceEJB
   extends InMemorySessionManager<TyrellSessionInfo>
   implements SubscriptionService, EntityMessageEndpoint
@@ -60,12 +60,19 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nonnull
+  @Nullable
   public String downloadAll( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    return downloadAll( session );
+    if ( session.isInterestedInAllRosters() )
+    {
+      return null;
+    }
+    else
+    {
+      return downloadAll( session );
+    }
   }
 
   @Nonnull
@@ -81,44 +88,65 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nonnull
+  @Nullable
   public String subscribeToAll( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    session.registerInterestInAll();
-    return downloadAll( session );
+    if ( session.isInterestedInAllRosters() )
+    {
+      return null;
+    }
+    else
+    {
+      session.setInterestedInAllRosters( true );
+      return downloadAll( session );
+    }
   }
 
   @Override
-  @Nonnull
+  @Nullable
   public String subscribeToMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    session.registerInterestInMetaData();
-    final LinkedList<EntityMessage> messages = new LinkedList<>();
-    _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
-    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    if ( session.isInterestedInMetaData() )
+    {
+      return null;
+    }
+    else
+    {
+      session.setInterestedInMetaData( true );
+      final LinkedList<EntityMessage> messages = new LinkedList<>();
+      _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
+      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    }
   }
 
   @Override
   public void unsubscribeFromMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).deregisterInterestInMetaData();
+    ensureSession( clientID ).setInterestedInMetaData( false );
   }
 
   @Override
-  @Nonnull
+  @Nullable
   public String subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    session.registerInterest( roster.getID() );
-    final LinkedList<EntityMessage> messages = new LinkedList<>();
-    _encoder.encodeRoster( messages, roster );
-    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    if ( session.isRosterInteresting( roster.getID() ) )
+    {
+      return null;
+    }
+    else
+    {
+      session.registerInterest( roster.getID() );
+      final LinkedList<EntityMessage> messages = new LinkedList<>();
+      _encoder.encodeRoster( messages, roster );
+      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    }
   }
 
   @Override
@@ -129,16 +157,22 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nonnull
+  @Nullable
   public String subscribeToRosterList( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    session.setInterestedInRosterList( true );
-    final LinkedList<EntityMessage> messages = new LinkedList<>();
-    _encoder.encodeObjects( messages, _rosterRepository.findAll() );
-    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
-
+    if ( session.isInterestedInRosterList() )
+    {
+      return null;
+    }
+    else
+    {
+      session.setInterestedInRosterList( true );
+      final LinkedList<EntityMessage> messages = new LinkedList<>();
+      _encoder.encodeObjects( messages, _rosterRepository.findAll() );
+      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    }
   }
 
   @Override
@@ -170,13 +204,13 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.isRosterInteresting( rosterID ) )
+            if ( sessionInfo.isInterestedInAllRosters() || sessionInfo.isRosterInteresting( rosterID ) )
             {
               accumulator.addEntityMessage( sessionInfo.getQueue(), message );
             }
           }
         }
-        if( null != routingKeys.get( TyrellRouterImpl.META_DATA_KEY ) )
+        if ( null != routingKeys.get( TyrellRouterImpl.META_DATA_KEY ) )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
@@ -186,7 +220,7 @@ public class SubscriptionServiceEJB
             }
           }
         }
-        if( null != routingKeys.get( TyrellRouterImpl.ROSTER_LIST_KEY ) )
+        if ( null != routingKeys.get( TyrellRouterImpl.ROSTER_LIST_KEY ) )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {

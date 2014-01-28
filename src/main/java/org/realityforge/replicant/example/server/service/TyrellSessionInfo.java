@@ -45,7 +45,7 @@ public class TyrellSessionInfo
 
   public boolean isRosterInteresting( final int id )
   {
-    return _interestedInAllRosters || _rostersOfInterest.contains( id );
+    return _rostersOfInterest.contains( id );
   }
 
   public boolean isInterestedInMetaData()
@@ -66,18 +66,18 @@ public class TyrellSessionInfo
     return _queue.nextPacketToProcess();
   }
 
-  public void registerInterestInAll()
+  public boolean isInterestedInAllRosters()
   {
-    _interestedInAllRosters = true;
+    return _interestedInAllRosters;
   }
 
-  public void registerInterestInMetaData()
+  public void setInterestedInAllRosters( final boolean interestedInAllRosters )
   {
-    _interestedInMetaData = true;
+    _interestedInAllRosters = interestedInAllRosters;
   }
 
-  public void deregisterInterestInMetaData()
+  public void setInterestedInMetaData( final boolean interestedInMetaData )
   {
-    _interestedInMetaData = true;
+    _interestedInMetaData = interestedInMetaData;
   }
 }

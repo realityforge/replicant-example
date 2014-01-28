@@ -78,7 +78,7 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToMetaData) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.returns(:text)
+        m.returns(:text, :nullable => true)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromMetaData) do |m|
@@ -87,18 +87,18 @@ Domgen.repository(:Tyrell) do |repository|
       end
       s.method(:DownloadAll) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.returns(:text)
+        m.returns(:text, :nullable => true)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToAll) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.returns(:text)
+        m.returns(:text, :nullable => true)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToRoster) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.reference(:Roster)
-        m.returns(:text)
+        m.returns(:text, :nullable => true)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromRoster) do |m|
@@ -108,7 +108,7 @@ Domgen.repository(:Tyrell) do |repository|
       end
       s.method(:SubscribeToRosterList) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
-        m.returns(:text)
+        m.returns(:text, :nullable => true)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromRosterList) do |m|
