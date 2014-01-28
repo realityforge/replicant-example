@@ -14,6 +14,7 @@ public class TyrellSessionInfo
 
   private final PacketQueue _queue = new PacketQueue();
   private boolean _interestedInAllRosters;
+  private boolean _interestedInRosterList;
   private boolean _interestedInMetaData;
 
   public TyrellSessionInfo( @Nonnull final String sessionID,
@@ -30,6 +31,16 @@ public class TyrellSessionInfo
   public void deregisterInterest( final int id )
   {
     _rostersOfInterest.remove( id );
+  }
+
+  public boolean isInterestedInRosterList()
+  {
+    return _interestedInRosterList;
+  }
+
+  public void setInterestedInRosterList( final boolean interestedInRosterList )
+  {
+    _interestedInRosterList = interestedInRosterList;
   }
 
   public boolean isRosterInteresting( final int id )

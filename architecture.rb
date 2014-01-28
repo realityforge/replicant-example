@@ -106,6 +106,15 @@ Domgen.repository(:Tyrell) do |repository|
         m.reference(:Roster)
         m.exception(:BadSession)
       end
+      s.method(:SubscribeToRosterList) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.returns(:text)
+        m.exception(:BadSession)
+      end
+      s.method(:UnsubscribeFromRosterList) do |m|
+        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.exception(:BadSession)
+      end
       s.method(:Poll) do |m|
         m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
         m.integer(:LastSequenceAcked)

@@ -112,9 +112,31 @@ public class TyrellDataLoaderService
     } );
   }
 
-  public void subscribeToRoster( final int rosterID )
+  @Override
+  public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionManager.subscribeToRoster( rosterID );
+    _subscriptionService.subscribeToRosterList( new TyrellGwtRpcAsyncCallback<String>()
+    {
+      @Override
+      public void onSuccess( final String result )
+      {
+        enqueueDataLoad( false, result, runnable );
+      }
+    } );
+  }
+
+  @Override
+  public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
+  {
+    _subscriptionService.unsubscribeFromRosterList( new TyrellGwtRpcAsyncCallback<Void>()
+    {
+      @Override
+      public void onSuccess( final Void result )
+      {
+        unloadRosters();
+        runnable.run();
+      }
+    } );
   }
 
   @Override
@@ -143,16 +165,29 @@ public class TyrellDataLoaderService
     } );
   }
 
-  private void unloadRoster( final int buildingID )
+  private void unloadRoster( final int rosterID )
   {
-    final Roster roster = _repository.findByID( Roster.class, buildingID );
+    final Roster roster = _repository.findByID( Roster.class, rosterID );
     if ( null != roster )
     {
-      for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
-      {
-        _repository.deregisterEntity( Shift.class, shift.getID() );
-      }
-      _repository.deregisterEntity( Roster.class, buildingID );
+      unloadRoster( roster );
+    }
+  }
+
+  private void unloadRoster( final Roster roster )
+  {
+    for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
+    {
+      _repository.deregisterEntity( Shift.class, shift.getID() );
+    }
+    _repository.deregisterEntity( Roster.class, roster.getID() );
+  }
+
+  private void unloadRosters()
+  {
+    for ( final Roster roster : _repository.findAll( Roster.class ) )
+    {
+      unloadRoster( roster );
     }
   }
 

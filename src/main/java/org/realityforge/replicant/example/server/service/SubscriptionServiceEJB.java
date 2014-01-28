@@ -129,6 +129,26 @@ public class SubscriptionServiceEJB
   }
 
   @Override
+  @Nonnull
+  public String subscribeToRosterList( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    final TyrellSessionInfo session = ensureSession( clientID );
+    session.setInterestedInRosterList( true );
+    final LinkedList<EntityMessage> messages = new LinkedList<>();
+    _encoder.encodeObjects( messages, _rosterRepository.findAll() );
+    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+
+  }
+
+  @Override
+  public void unsubscribeFromRosterList( @Nonnull final String clientID )
+    throws BadSessionException
+  {
+    ensureSession( clientID ).setInterestedInRosterList( false );
+  }
+
+  @Override
   public void saveEntityMessages( @Nonnull final Collection<EntityMessage> messages )
   {
     if ( LOG.isLoggable( Level.FINER ) )
