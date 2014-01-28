@@ -14,7 +14,7 @@ import javax.ejb.Singleton;
 import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellGraphEncoder;
-import org.realityforge.replicant.example.server.entity.TyrellRouterImpl;
+import org.realityforge.replicant.example.server.entity.TyrellRouterImplOrig;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.server.EntityMessage;
@@ -145,7 +145,7 @@ public class SubscriptionServiceEJB
       {
         final Map<String, Serializable> routingKeys = message.getRoutingKeys();
 
-        final Integer rosterID = (Integer) routingKeys.get( TyrellRouterImpl.ROSTER_KEY );
+        final Integer rosterID = (Integer) routingKeys.get( TyrellRouterImplOrig.ROSTER_KEY );
         if ( null != rosterID )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
@@ -156,7 +156,7 @@ public class SubscriptionServiceEJB
             }
           }
         }
-        if( null != routingKeys.get( TyrellRouterImpl.METADATA_KEY ) )
+        if( null != routingKeys.get( TyrellRouterImplOrig.METADATA_KEY ) )
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
