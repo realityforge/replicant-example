@@ -60,7 +60,7 @@ public class SimpleUI
     _dataLoaderService = dataLoaderService;
     _rosterService = rosterService;
     _input = new TextBox();
-    _input.setValue( "MyBuilding" );
+    _input.setValue( "My Roster" );
     _input.setEnabled( false );
 
     _connect = new Button( "Connect", new ClickHandler()
@@ -165,7 +165,7 @@ public class SimpleUI
     _dataLoaderService.subscribeToAll();
   }
 
-  private void createBuilding( final Roster roster )
+  private void createRoster( final Roster roster )
   {
     final TreeItem treeItem = _tree.addItem( createRosterWidget( roster ) );
     treeItem.setUserObject( roster );
@@ -290,7 +290,7 @@ public class SimpleUI
     final Object entity = event.getObject();
     if ( entity instanceof Roster )
     {
-      createBuilding( (Roster) entity );
+      createRoster( (Roster) entity );
     }
   }
 
