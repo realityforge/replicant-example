@@ -122,7 +122,7 @@ public class TyrellDataLoaderService
   @Override
   public void subscribeToAll()
   {
-    _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
+    _subscriptionService.subscribeToAll( new TyrellGwtRpcAsyncCallback<String>()
     {
       @Override
       public void onSuccess( final String result )
