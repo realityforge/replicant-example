@@ -294,6 +294,7 @@ public class TyrellDataLoaderService
           catch ( final Exception e )
           {
             handleSystemFailure( e, "Failed to progress data load" );
+            _incrementalDataLoadInProgress = false;
             return false;
           }
           return _incrementalDataLoadInProgress;
