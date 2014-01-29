@@ -318,6 +318,14 @@ module Domgen
         "#{encoder_package}.#{session_name}"
       end
 
+      def session_manager_name
+        "Abstract#{repository.name}SessionManager"
+      end
+
+      def qualified_session_manager_name
+        "#{encoder_package}.#{session_manager_name}"
+      end
+
       def router_interface_name
         "#{repository.name}Router"
       end
