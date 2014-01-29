@@ -100,7 +100,7 @@ public class SubscriptionServiceEJB
     final TyrellSessionInfo session = ensureSession( clientID );
     if ( !session.getInterestManager().isInterestedInMetaData() )
     {
-      session.getInterestManager().setInterestedInAllRosters( true );
+      session.getInterestManager().setInterestedInMetaData( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
       session.getInterestManager().getQueue().addPacket( messages );
@@ -111,7 +111,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).getInterestManager().setInterestedInAllRosters( false );
+    ensureSession( clientID ).getInterestManager().setInterestedInMetaData( false );
   }
 
   @Override
