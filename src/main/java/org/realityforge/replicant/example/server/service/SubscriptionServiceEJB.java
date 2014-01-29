@@ -22,11 +22,12 @@ import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.EntityMessageAccumulator;
 import org.realityforge.replicant.server.transport.Packet;
+import org.realityforge.replicant.server.transport.PacketQueue;
 import org.realityforge.ssf.InMemorySessionManager;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
+@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends InMemorySessionManager<TyrellSessionInfo>
   implements SubscriptionService, EntityMessageEndpoint
@@ -42,13 +43,20 @@ public class SubscriptionServiceEJB
   @Inject
   private RosterRepository _rosterRepository;
 
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    final Packet packet = session.poll( lastSequenceAcked );
+    final PacketQueue queue = session.getSession().getQueue();
+    final Packet packet;
+    synchronized ( session )
+    {
+      queue.ack( lastSequenceAcked );
+      packet = queue.nextPacketToProcess();
+    }
     if ( null != packet )
     {
       return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getChanges() );
@@ -64,7 +72,7 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInRosterList() )
+    if ( !session.getSession().isInterestedInRosterList() )
     {
       downloadAll( session );
     }
@@ -75,10 +83,10 @@ public class SubscriptionServiceEJB
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      session.getInterestManager().registerInterestInRoster( roster.getID() );
+      session.getSession().registerInterestInRoster( roster.getID() );
       _encoder.encodeRoster( messages, roster );
     }
-    session.getInterestManager().getQueue().addPacket( messages );
+    session.getSession().getQueue().addPacket( messages );
   }
 
   @Override
@@ -86,9 +94,9 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInRosterList() )
+    if ( !session.getSession().isInterestedInRosterList() )
     {
-      session.getInterestManager().setInterestedInRosterList( true );
+      session.getSession().setInterestedInRosterList( true );
       downloadAll( session );
     }
   }
@@ -98,12 +106,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInMetaData() )
+    if ( !session.getSession().isInterestedInMetaData() )
     {
-      session.getInterestManager().setInterestedInMetaData( true );
+      session.getSession().setInterestedInMetaData( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
-      session.getInterestManager().getQueue().addPacket( messages );
+      session.getSession().getQueue().addPacket( messages );
     }
   }
 
@@ -111,7 +119,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).getInterestManager().setInterestedInMetaData( false );
+    ensureSession( clientID ).getSession().setInterestedInMetaData( false );
   }
 
   @Override
@@ -119,12 +127,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isRosterInteresting( roster.getID() ) )
+    if ( !session.getSession().isRosterInteresting( roster.getID() ) )
     {
-      session.getInterestManager().registerInterestInRoster( roster.getID() );
+      session.getSession().registerInterestInRoster( roster.getID() );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeRoster( messages, roster );
-      session.getInterestManager().getQueue().addPacket( messages );
+      session.getSession().getQueue().addPacket( messages );
     }
   }
 
@@ -132,7 +140,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
-    ensureSession( clientID ).getInterestManager().deregisterInterestInRoster( roster.getID() );
+    ensureSession( clientID ).getSession().deregisterInterestInRoster( roster.getID() );
   }
 
   @Override
@@ -140,12 +148,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInRosterList() )
+    if ( !session.getSession().isInterestedInRosterList() )
     {
-      session.getInterestManager().setInterestedInRosterList( true );
+      session.getSession().setInterestedInRosterList( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterRepository.findAll() );
-      session.getInterestManager().getQueue().addPacket( messages );
+      session.getSession().getQueue().addPacket( messages );
     }
   }
 
@@ -153,10 +161,10 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromRosterList( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).getInterestManager().setInterestedInRosterList( false );
+    ensureSession( clientID ).getSession().setInterestedInRosterList( false );
   }
 
-  @SuppressWarnings( "SynchronizationOnLocalVariableOrMethodParameter" )
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override
   public void saveEntityMessages( @Nonnull final Collection<EntityMessage> messages )
   {
@@ -179,9 +187,9 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.getInterestManager().isRosterInteresting( rosterID ) )
+            if ( sessionInfo.getSession().isRosterInteresting( rosterID ) )
             {
-              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getSession().getQueue(), message );
             }
           }
         }
@@ -189,9 +197,9 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.getInterestManager().isInterestedInMetaData() )
+            if ( sessionInfo.getSession().isInterestedInMetaData() )
             {
-              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getSession().getQueue(), message );
             }
           }
         }
@@ -199,9 +207,9 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.getInterestManager().isInterestedInRosterList() )
+            if ( sessionInfo.getSession().isInterestedInRosterList() )
             {
-              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getSession().getQueue(), message );
             }
           }
         }
@@ -213,9 +221,9 @@ public class SubscriptionServiceEJB
 
   @Nonnull
   @Override
-  protected TyrellSessionInfo newSessionInfo( @Nonnull final String username )
+  protected TyrellSessionInfo newSessionInfo()
   {
-    return new TyrellSessionInfo( UUID.randomUUID().toString(), username );
+    return new TyrellSessionInfo( UUID.randomUUID().toString() );
   }
 
   @Nonnull

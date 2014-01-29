@@ -310,12 +310,12 @@ module Domgen
         "#{entity_package}.#{graph_enum_name}"
       end
 
-      def interest_manager_name
-        "#{repository.name}InterestManager"
+      def session_name
+        "#{repository.name}Session"
       end
 
-      def qualified_interest_manager_name
-        "#{encoder_package}.#{interest_manager_name}"
+      def qualified_session_name
+        "#{encoder_package}.#{session_name}"
       end
 
       def router_interface_name

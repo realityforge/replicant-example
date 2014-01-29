@@ -1,34 +1,21 @@
 package org.realityforge.replicant.example.server.service;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import org.realityforge.replicant.example.server.entity.TyrellInterestManager;
-import org.realityforge.replicant.server.transport.Packet;
-import org.realityforge.replicant.server.transport.PacketQueue;
+import org.realityforge.replicant.example.server.entity.TyrellSession;
 import org.realityforge.ssf.SimpleSessionInfo;
 
 public class TyrellSessionInfo
   extends SimpleSessionInfo
 {
-  private final TyrellInterestManager _interestManager = new TyrellInterestManager();
+  private final TyrellSession _session = new TyrellSession();
 
-  public TyrellSessionInfo( @Nonnull final String sessionID,
-                            @Nonnull final String username )
+  public TyrellSessionInfo( @Nonnull final String sessionID )
   {
-    super( sessionID, username );
+    super( sessionID );
   }
 
-  public TyrellInterestManager getInterestManager()
+  public TyrellSession getSession()
   {
-    return _interestManager;
-  }
-
-  @Nullable
-  public synchronized Packet poll( final int ack )
-  {
-    updateAccessTime();
-    final PacketQueue queue = getInterestManager().getQueue();
-    queue.ack( ack );
-    return queue.nextPacketToProcess();
+    return _session;
   }
 }

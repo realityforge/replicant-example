@@ -40,6 +40,13 @@ public class AuthenticationService
   }
 
   @GET
+  @Path("/token")
+  public Response generateToken()
+  {
+    return Response.ok( _sessionManager.createSession().getSessionID() ).build();
+  }
+
+  @GET
   @Path("/logout")
   public Response logout( @Nonnull @Context final HttpServletRequest request )
   {
@@ -64,7 +71,8 @@ public class AuthenticationService
   {
     if ( authenticate( request, username, password ) )
     {
-      final SessionInfo sessionInfo = _sessionManager.createSession( username );
+      final SessionInfo sessionInfo = _sessionManager.createSession();
+      sessionInfo.setAttribute( "username",  username  );
       final URI uri = HttpUtil.getContextURI( request, getStartLocation() );
       final NewCookie newCookie =
         newCookie( request, _sessionManager.getSessionKey(), sessionInfo.getSessionID(), true );

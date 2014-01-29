@@ -77,41 +77,41 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToMetaData) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromMetaData) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:DownloadAll) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToAll) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToRoster) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.reference(:Roster)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromRoster) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.reference(:Roster)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToRosterList) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromRosterList) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
       s.method(:Poll) do |m|
-        m.string(:ClientID, 50, :"gwt_rpc.environment_key" => "request:cookie:sid")
+        m.string(:ClientID, 50)
         m.integer(:LastSequenceAcked)
         m.returns(:text, :nullable => true) do |a|
           a.description("A changeset represented as json or null if no changeset outstanding.")

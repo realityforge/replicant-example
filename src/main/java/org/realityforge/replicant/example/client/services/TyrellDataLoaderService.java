@@ -1,7 +1,14 @@
 package org.realityforge.replicant.example.client.services;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.Scheduler;
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Timer;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
 import java.util.ArrayList;
@@ -39,12 +46,38 @@ public class TyrellDataLoaderService
 
   private boolean _inPoll;
   private boolean _incrementalDataLoadInProgress;
+  private String _sessionID;
 
   @Override
   public void connect()
   {
-    startPolling();
-    getSubscriptionManager().subscribeToMetaData();
+    final String url = GWT.getHostPageBaseURL() + "api/auth/token";
+    final RequestBuilder builder = new RequestBuilder( RequestBuilder.GET, url );
+    try
+    {
+      builder.sendRequest( "", new RequestCallback()
+      {
+        @Override
+        public void onResponseReceived( final Request request, final Response response )
+        {
+          _sessionID = response.getText();
+          startPolling();
+          getSubscriptionManager().subscribeToMetaData();
+        }
+
+        @Override
+        public void onError( final Request request, final Throwable exception )
+        {
+          LOG.log( Level.SEVERE, "Error generating token", exception );
+          Window.alert( "Failed to generate token" );
+        }
+      } );
+    }
+    catch ( final RequestException e )
+    {
+      LOG.log( Level.SEVERE, "Error generating token", e );
+      Window.alert( "Failed to generate token" );
+    }
   }
 
   @Override
@@ -62,7 +95,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToMetaData( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToMetaData( new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToMetaData( _sessionID, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -75,7 +108,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromMetaData( new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromMetaData( _sessionID, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -88,7 +121,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRoster( id, new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToRoster( _sessionID, id, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -101,7 +134,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromRoster( id, new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromRoster( _sessionID, id, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -115,7 +148,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRosterList(new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToRosterList( _sessionID, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -128,7 +161,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromRosterList( new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromRosterList( _sessionID, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -142,13 +175,13 @@ public class TyrellDataLoaderService
   @Override
   public void subscribeToAll()
   {
-    _subscriptionService.subscribeToAll();
+    _subscriptionService.subscribeToAll( _sessionID );
   }
 
   @Override
   public void downloadAll()
   {
-    _subscriptionService.downloadAll();
+    _subscriptionService.downloadAll( _sessionID );
   }
 
   private void unloadRoster( final int rosterID )
@@ -186,7 +219,8 @@ public class TyrellDataLoaderService
 
     _inPoll = true;
     _subscriptionService.
-      poll( getLastKnownChangeSet(),
+      poll( _sessionID,
+            getLastKnownChangeSet(),
             new TyrellGwtRpcAsyncCallback<String>()
             {
               @Override
