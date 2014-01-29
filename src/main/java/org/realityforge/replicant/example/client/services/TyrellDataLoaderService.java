@@ -169,7 +169,10 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final String result )
       {
-        enqueueDataLoad( false, result, null );
+        if ( null != result )
+        {
+          enqueueDataLoad( false, result, null );
+        }
       }
     } );
   }
