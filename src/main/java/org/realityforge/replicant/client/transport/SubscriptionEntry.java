@@ -2,6 +2,13 @@ package org.realityforge.replicant.client.transport;
 
 import javax.annotation.Nullable;
 
+/**
+ * An object representing a subscription.
+ * The subscription is to a "graph" of objects and any changes to that graph will be replicated
+ * to the client from the server via the subscription. The graph is represented by an enum.
+ *
+ * @param <T> The enum type representing the different graphs.
+ */
 public class SubscriptionEntry<T extends Enum>
 {
   private final T _graph;
@@ -57,6 +64,11 @@ public class SubscriptionEntry<T extends Enum>
   public void markDeregisterInProgress()
   {
     _deregisterInProgress = true;
+  }
+
+  public boolean isRegistered()
+  {
+    return _registered;
   }
 
   public void markAsDeregistered()
