@@ -9,7 +9,6 @@ TODO
 ====
 
 * Allow poll to return a list of packets.
-* Inline bulk loads so that they are part of packet layer and are sequenced correctly.
 * Rework the graph Encode so that it can handle the scenario where the same object is encountered twice in graph traversal.
 * create generic server-side subscription handler for all these top level components.
 * Handle scenario where session goes away. Gracefully handle re-authentication etc.
