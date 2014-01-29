@@ -60,23 +60,17 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nullable
-  public String downloadAll( @Nonnull final String clientID )
+  public void downloadAll( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( session.isInterestedInAllRosters() )
+    if ( !session.isInterestedInAllRosters() )
     {
-      return null;
-    }
-    else
-    {
-      return downloadAll( session );
+      downloadAll( session );
     }
   }
 
-  @Nonnull
-  private String downloadAll( @Nonnull final TyrellSessionInfo session )
+  private void downloadAll( @Nonnull final TyrellSessionInfo session )
   {
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
@@ -84,42 +78,32 @@ public class SubscriptionServiceEJB
       session.registerInterest( roster.getID() );
       _encoder.encodeRoster( messages, roster );
     }
-    return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+    session.getQueue().addPacket( messages );
   }
 
   @Override
-  @Nullable
-  public String subscribeToAll( @Nonnull final String clientID )
+  public void subscribeToAll( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( session.isInterestedInAllRosters() )
-    {
-      return null;
-    }
-    else
+    if ( !session.isInterestedInAllRosters() )
     {
       session.setInterestedInAllRosters( true );
-      return downloadAll( session );
+      downloadAll( session );
     }
   }
 
   @Override
-  @Nullable
-  public String subscribeToMetaData( @Nonnull final String clientID )
+  public void subscribeToMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( session.isInterestedInMetaData() )
-    {
-      return null;
-    }
-    else
+    if ( !session.isInterestedInMetaData() )
     {
       session.setInterestedInMetaData( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
-      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+      session.getQueue().addPacket( messages );
     }
   }
 
@@ -131,21 +115,16 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nullable
-  public String subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
+  public void subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( session.isRosterInteresting( roster.getID() ) )
-    {
-      return null;
-    }
-    else
+    if ( !session.isRosterInteresting( roster.getID() ) )
     {
       session.registerInterest( roster.getID() );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeRoster( messages, roster );
-      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+      session.getQueue().addPacket( messages );
     }
   }
 
@@ -157,21 +136,16 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  @Nullable
-  public String subscribeToRosterList( @Nonnull final String clientID )
+  public void subscribeToRosterList( @Nonnull final String clientID )
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( session.isInterestedInRosterList() )
-    {
-      return null;
-    }
-    else
+    if ( !session.isInterestedInRosterList() )
     {
       session.setInterestedInRosterList( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterRepository.findAll() );
-      return JsonEncoder.encodeChangeSetFromEntityMessages( 0, messages );
+      session.getQueue().addPacket( messages );
     }
   }
 

@@ -62,15 +62,12 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToMetaData( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToMetaData( new TyrellGwtRpcAsyncCallback<String>()
+    _subscriptionService.subscribeToMetaData( new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
-      public void onSuccess( final String result )
+      public void onSuccess( final Void result )
       {
-        if ( null != result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
+        runnable.run();
       }
     } );
   }
@@ -91,15 +88,12 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRoster( id, new TyrellGwtRpcAsyncCallback<String>()
+    _subscriptionService.subscribeToRoster( id, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
-      public void onSuccess( final String result )
+      public void onSuccess( final Void result )
       {
-        if ( null != result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
+        runnable.run();
       }
     } );
   }
@@ -121,15 +115,12 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRosterList( new TyrellGwtRpcAsyncCallback<String>()
+    _subscriptionService.subscribeToRosterList(new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
-      public void onSuccess( final String result )
+      public void onSuccess( final Void result )
       {
-        if ( null != result )
-        {
-          enqueueDataLoad( false, result, runnable );
-        }
+        runnable.run();
       }
     } );
   }
@@ -151,30 +142,13 @@ public class TyrellDataLoaderService
   @Override
   public void subscribeToAll()
   {
-    _subscriptionService.subscribeToAll( new TyrellGwtRpcAsyncCallback<String>()
-    {
-      @Override
-      public void onSuccess( final String result )
-      {
-        enqueueDataLoad( false, result, null );
-      }
-    } );
+    _subscriptionService.subscribeToAll();
   }
 
   @Override
   public void downloadAll()
   {
-    _subscriptionService.downloadAll( new TyrellGwtRpcAsyncCallback<String>()
-    {
-      @Override
-      public void onSuccess( final String result )
-      {
-        if ( null != result )
-        {
-          enqueueDataLoad( false, result, null );
-        }
-      }
-    } );
+    _subscriptionService.downloadAll();
   }
 
   private void unloadRoster( final int rosterID )
