@@ -75,7 +75,7 @@ public class SubscriptionServiceEJB
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      session.getInterestManager().registerInterest( roster.getID() );
+      session.getInterestManager().registerInterestInRoster( roster.getID() );
       _encoder.encodeRoster( messages, roster );
     }
     session.getInterestManager().getQueue().addPacket( messages );
@@ -121,7 +121,7 @@ public class SubscriptionServiceEJB
     final TyrellSessionInfo session = ensureSession( clientID );
     if ( !session.getInterestManager().isRosterInteresting( roster.getID() ) )
     {
-      session.getInterestManager().registerInterest( roster.getID() );
+      session.getInterestManager().registerInterestInRoster( roster.getID() );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeRoster( messages, roster );
       session.getInterestManager().getQueue().addPacket( messages );
@@ -132,7 +132,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
-    ensureSession( clientID ).getInterestManager().deregisterInterest( roster.getID() );
+    ensureSession( clientID ).getInterestManager().deregisterInterestInRoster( roster.getID() );
   }
 
   @Override
