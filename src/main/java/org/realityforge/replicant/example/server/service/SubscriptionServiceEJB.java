@@ -156,6 +156,7 @@ public class SubscriptionServiceEJB
     ensureSession( clientID ).setInterestedInRosterList( false );
   }
 
+  @SuppressWarnings( "SynchronizationOnLocalVariableOrMethodParameter" )
   @Override
   public void saveEntityMessages( @Nonnull final Collection<EntityMessage> messages )
   {
