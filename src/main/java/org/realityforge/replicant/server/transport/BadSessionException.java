@@ -1,7 +1,7 @@
 package org.realityforge.replicant.server.transport;
 
 public class BadSessionException
-  extends Exception
+  extends RuntimeException
 {
   public BadSessionException()
   {

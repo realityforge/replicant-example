@@ -34,185 +34,55 @@ public class SubscriptionServiceEJB
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
-    throws BadSessionException
   {
-    try
+    final TyrellSession session = ensureSession( clientID );
+    final PacketQueue queue = session.getQueue();
+      queue.ack( lastSequenceAcked );
+    final Packet packet = queue.nextPacketToProcess();
+    if ( null != packet )
     {
-      final TyrellSession session = ensureSession( clientID );
-      final PacketQueue queue = session.getQueue();
-      final Packet packet;
-      synchronized ( session )
-      {
-        queue.ack( lastSequenceAcked );
-        packet = queue.nextPacketToProcess();
-      }
-      if ( null != packet )
-      {
-        return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getChanges() );
-      }
-      else
-      {
-        return null;
-      }
+      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getChanges() );
     }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
+    else
     {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
+      return null;
     }
   }
 
   @Override
   public void downloadAll( @Nonnull final String clientID )
-    throws BadSessionException
   {
-    try
-    {
-      final TyrellSession session = ensureSession( clientID );
-      if ( !session.isInterestedInRosterList() )
-      {
-        downloadAll( session );
-      }
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-  }
-
-  private void downloadAll( @Nonnull final TyrellSession session )
-  {
+    final TyrellSession session = ensureSession( clientID );
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      session.registerInterestInRoster( roster.getID() );
-      getEncoder().encodeRoster( messages, roster );
+      if ( !session.isRosterInteresting( roster.getID() ) )
+      {
+        session.registerInterestInRoster( roster.getID() );
+        getEncoder().encodeRoster( messages, roster );
+      }
     }
     session.getQueue().addPacket( messages );
   }
 
   @Override
   public void subscribeToAll( @Nonnull final String clientID )
-    throws BadSessionException
   {
-    try
-    {
-      final TyrellSession session = ensureSession( clientID );
-      if ( !session.isInterestedInRosterList() )
-      {
-        session.setInterestedInRosterList( true );
-        downloadAll( session );
-      }
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
+    subscribeToRosterList( clientID );
   }
 
   @Override
-  public void subscribeToMetaData( @Nonnull final String clientID )
-    throws BadSessionException
+  protected void collectMetaData( @Nonnull final LinkedList<EntityMessage> messages )
   {
-    try
-    {
-      final TyrellSession session = ensureSession( clientID );
-      if ( !session.isInterestedInMetaData() )
-      {
-        session.setInterestedInMetaData( true );
-        final LinkedList<EntityMessage> messages = new LinkedList<>();
-        getEncoder().encodeObjects( messages, _rosterTypeRepository.findAll() );
-        session.getQueue().addPacket( messages );
-      }
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
+    getEncoder().encodeObjects( messages, _rosterTypeRepository.findAll() );
   }
 
   @Override
-  public void unsubscribeFromMetaData( @Nonnull final String clientID )
-    throws BadSessionException
+  protected void collectRosterList( @Nonnull final LinkedList<EntityMessage> messages )
   {
-    try
+    for ( final Roster roster : _rosterRepository.findAll() )
     {
-      ensureSession( clientID ).setInterestedInMetaData( false );
+      getEncoder().encodeRoster( messages, roster );
     }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-  }
-
-  @Override
-  public void subscribeToRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
-    throws BadSessionException
-  {
-    try
-    {
-      final TyrellSession session = ensureSession( clientID );
-      if ( !session.isRosterInteresting( roster.getID() ) )
-      {
-        session.registerInterestInRoster( roster.getID() );
-        final LinkedList<EntityMessage> messages = new LinkedList<>();
-        getEncoder().encodeRoster( messages, roster );
-        session.getQueue().addPacket( messages );
-      }
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-  }
-
-  @Override
-  public void unsubscribeFromRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
-    throws BadSessionException
-  {
-    try
-    {
-      ensureSession( clientID ).deregisterInterestInRoster( roster.getID() );
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-  }
-
-  @Override
-  public void subscribeToRosterList( @Nonnull final String clientID )
-    throws BadSessionException
-  {
-    try
-    {
-      final TyrellSession session = ensureSession( clientID );
-      if ( !session.isInterestedInRosterList() )
-      {
-        session.setInterestedInRosterList( true );
-        final LinkedList<EntityMessage> messages = new LinkedList<>();
-        getEncoder().encodeObjects( messages, _rosterRepository.findAll() );
-        session.getQueue().addPacket( messages );
-      }
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-
-  }
-
-  @Override
-  public void unsubscribeFromRosterList( @Nonnull final String clientID )
-    throws BadSessionException
-  {
-    try
-    {
-      ensureSession( clientID ).setInterestedInRosterList( false );
-    }
-    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
-    {
-      throw new BadSessionException( e.getMessage(), e.getCause() );
-    }
-
   }
 }
