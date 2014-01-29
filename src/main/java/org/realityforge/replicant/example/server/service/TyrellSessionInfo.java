@@ -2,6 +2,7 @@ package org.realityforge.replicant.example.server.service;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.realityforge.replicant.example.server.entity.TyrellInterestManager;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.replicant.server.transport.PacketQueue;
 import org.realityforge.ssf.SimpleSessionInfo;

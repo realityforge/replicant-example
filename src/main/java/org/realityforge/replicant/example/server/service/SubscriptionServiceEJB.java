@@ -64,7 +64,7 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInAllRosters() )
+    if ( !session.getInterestManager().isInterestedInRosterList() )
     {
       downloadAll( session );
     }
@@ -86,9 +86,9 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.getInterestManager().isInterestedInAllRosters() )
+    if ( !session.getInterestManager().isInterestedInRosterList() )
     {
-      session.getInterestManager().setInterestedInAllRosters( true );
+      session.getInterestManager().setInterestedInRosterList( true );
       downloadAll( session );
     }
   }
@@ -179,8 +179,7 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.getInterestManager().isInterestedInAllRosters() ||
-                 sessionInfo.getInterestManager().isRosterInteresting( rosterID ) )
+            if ( sessionInfo.getInterestManager().isRosterInteresting( rosterID ) )
             {
               accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
             }
