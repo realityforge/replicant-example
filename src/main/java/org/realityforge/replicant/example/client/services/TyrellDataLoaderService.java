@@ -248,6 +248,7 @@ public class TyrellDataLoaderService
 
   final void handleSystemFailure( final Throwable caught, final String message )
   {
+    LOG.log( Level.SEVERE, "System Failure: " + message, caught );
     final Throwable cause = ( caught instanceof InvocationException ) ? caught.getCause() : caught;
     _eventBus.fireEvent( new SystemErrorEvent( message, cause ) );
   }
