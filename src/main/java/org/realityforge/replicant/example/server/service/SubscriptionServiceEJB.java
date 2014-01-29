@@ -64,7 +64,7 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.isInterestedInAllRosters() )
+    if ( !session.getInterestManager().isInterestedInAllRosters() )
     {
       downloadAll( session );
     }
@@ -75,10 +75,10 @@ public class SubscriptionServiceEJB
     final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      session.registerInterest( roster.getID() );
+      session.getInterestManager().registerInterest( roster.getID() );
       _encoder.encodeRoster( messages, roster );
     }
-    session.getQueue().addPacket( messages );
+    session.getInterestManager().getQueue().addPacket( messages );
   }
 
   @Override
@@ -86,9 +86,9 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.isInterestedInAllRosters() )
+    if ( !session.getInterestManager().isInterestedInAllRosters() )
     {
-      session.setInterestedInAllRosters( true );
+      session.getInterestManager().setInterestedInAllRosters( true );
       downloadAll( session );
     }
   }
@@ -98,12 +98,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.isInterestedInMetaData() )
+    if ( !session.getInterestManager().isInterestedInMetaData() )
     {
-      session.setInterestedInMetaData( true );
+      session.getInterestManager().setInterestedInAllRosters( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
-      session.getQueue().addPacket( messages );
+      session.getInterestManager().getQueue().addPacket( messages );
     }
   }
 
@@ -111,7 +111,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromMetaData( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).setInterestedInMetaData( false );
+    ensureSession( clientID ).getInterestManager().setInterestedInAllRosters( false );
   }
 
   @Override
@@ -119,12 +119,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.isRosterInteresting( roster.getID() ) )
+    if ( !session.getInterestManager().isRosterInteresting( roster.getID() ) )
     {
-      session.registerInterest( roster.getID() );
+      session.getInterestManager().registerInterest( roster.getID() );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeRoster( messages, roster );
-      session.getQueue().addPacket( messages );
+      session.getInterestManager().getQueue().addPacket( messages );
     }
   }
 
@@ -132,7 +132,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromRoster( @Nonnull final String clientID, @Nonnull final Roster roster )
     throws BadSessionException
   {
-    ensureSession( clientID ).deregisterInterest( roster.getID() );
+    ensureSession( clientID ).getInterestManager().deregisterInterest( roster.getID() );
   }
 
   @Override
@@ -140,12 +140,12 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSessionInfo session = ensureSession( clientID );
-    if ( !session.isInterestedInRosterList() )
+    if ( !session.getInterestManager().isInterestedInRosterList() )
     {
-      session.setInterestedInRosterList( true );
+      session.getInterestManager().setInterestedInRosterList( true );
       final LinkedList<EntityMessage> messages = new LinkedList<>();
       _encoder.encodeObjects( messages, _rosterRepository.findAll() );
-      session.getQueue().addPacket( messages );
+      session.getInterestManager().getQueue().addPacket( messages );
     }
   }
 
@@ -153,7 +153,7 @@ public class SubscriptionServiceEJB
   public void unsubscribeFromRosterList( @Nonnull final String clientID )
     throws BadSessionException
   {
-    ensureSession( clientID ).setInterestedInRosterList( false );
+    ensureSession( clientID ).getInterestManager().setInterestedInRosterList( false );
   }
 
   @SuppressWarnings( "SynchronizationOnLocalVariableOrMethodParameter" )
@@ -179,9 +179,10 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.isInterestedInAllRosters() || sessionInfo.isRosterInteresting( rosterID ) )
+            if ( sessionInfo.getInterestManager().isInterestedInAllRosters() ||
+                 sessionInfo.getInterestManager().isRosterInteresting( rosterID ) )
             {
-              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
             }
           }
         }
@@ -189,9 +190,9 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.isInterestedInMetaData() )
+            if ( sessionInfo.getInterestManager().isInterestedInMetaData() )
             {
-              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
             }
           }
         }
@@ -199,9 +200,9 @@ public class SubscriptionServiceEJB
         {
           for ( final TyrellSessionInfo sessionInfo : sessions.values() )
           {
-            if ( sessionInfo.isInterestedInRosterList() )
+            if ( sessionInfo.getInterestManager().isInterestedInRosterList() )
             {
-              accumulator.addEntityMessage( sessionInfo.getQueue(), message );
+              accumulator.addEntityMessage( sessionInfo.getInterestManager().getQueue(), message );
             }
           }
         }
