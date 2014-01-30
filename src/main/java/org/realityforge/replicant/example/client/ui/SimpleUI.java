@@ -247,7 +247,7 @@ public class SimpleUI
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.getSubscriptionManager().subscribeToRoster( result );
+          _dataLoaderService.getSession().getSubscriptionManager().subscribeToRoster( result );
         }
       } );
     }

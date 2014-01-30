@@ -21,8 +21,6 @@ import org.realityforge.replicant.client.transport.SessionContext;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellRemoteSubscriptionManager;
-import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
-import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManagerImpl;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
@@ -41,7 +39,7 @@ public class TyrellDataLoaderService
   @Inject
   private EntityRepository _repository;
 
-  private final TyrellSubscriptionManager _subscriptionManager = new TyrellSubscriptionManagerImpl( this );
+  private TyrellClientSession _session;
 
   private Timer _timer;
 
@@ -60,9 +58,7 @@ public class TyrellDataLoaderService
         @Override
         public void onResponseReceived( final Request request, final Response response )
         {
-          SessionContext.setSessionID( response.getText() );
-          startPolling();
-          getSubscriptionManager().subscribeToMetaData();
+          onSessionCreated( response.getText() );
         }
 
         @Override
@@ -80,6 +76,14 @@ public class TyrellDataLoaderService
     }
   }
 
+  private void onSessionCreated( final String sessionID )
+  {
+    _session = new TyrellClientSession( sessionID, this );
+    SessionContext.setSessionID( _session.getSessionID() );
+    startPolling();
+    getSession().getSubscriptionManager().subscribeToMetaData();
+  }
+
   @Override
   public void disconnect()
   {
@@ -87,9 +91,9 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public TyrellSubscriptionManager getSubscriptionManager()
+  public TyrellClientSession getSession()
   {
-    return _subscriptionManager;
+    return _session;
   }
 
   @Override
