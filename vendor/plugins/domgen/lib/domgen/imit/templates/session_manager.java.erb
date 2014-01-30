@@ -112,7 +112,7 @@ public abstract class <%= repository.imit.session_manager_name %>
 <% else -%>
       collect<%= graph.key %>( messages );
 <% end -%>
-      final String jobID = (String) _registry.getResource( org.realityforge.replicant.shared.transport.ReplicantContext.JOB_ID_KEY );
+      final String jobID = (String) _registry.getResource( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_ID_KEY );
       session.getQueue().addPacket( jobID, messages );
     }
   }
