@@ -6,15 +6,15 @@ public final class SessionContext
   {
   }
 
-  private static String c_sessionID;
+  private static ClientSession c_session;
 
-  public static void setSessionID( final String sessionID )
+  public static ClientSession getSession()
   {
-    c_sessionID = sessionID;
+    return c_session;
   }
 
-  public static String getSessionID()
+  public static void setSession( final ClientSession session )
   {
-    return c_sessionID;
+    c_session = session;
   }
 }

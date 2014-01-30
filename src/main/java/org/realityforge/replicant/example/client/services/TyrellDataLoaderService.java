@@ -79,7 +79,7 @@ public class TyrellDataLoaderService
   private void onSessionCreated( final String sessionID )
   {
     _session = new TyrellClientSession( sessionID, this );
-    SessionContext.setSessionID( _session.getSessionID() );
+    SessionContext.setSession( _session );
     startPolling();
     getSession().getSubscriptionManager().subscribeToMetaData();
   }
@@ -99,7 +99,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToMetaData( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToMetaData( SessionContext.getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToMetaData( SessionContext.getSession().getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -112,7 +112,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromMetaData( SessionContext.getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromMetaData( SessionContext.getSession().getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -125,7 +125,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRoster( SessionContext.getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToRoster( SessionContext.getSession().getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -138,7 +138,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromRoster( SessionContext.getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromRoster( SessionContext.getSession().getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -152,7 +152,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToRosterList( SessionContext.getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToRosterList( SessionContext.getSession().getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -165,7 +165,7 @@ public class TyrellDataLoaderService
   @Override
   public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
   {
-    _subscriptionService.unsubscribeFromRosterList( SessionContext.getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.unsubscribeFromRosterList( SessionContext.getSession().getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -179,13 +179,13 @@ public class TyrellDataLoaderService
   @Override
   public void subscribeToAll()
   {
-    _subscriptionService.subscribeToAll( SessionContext.getSessionID() );
+    _subscriptionService.subscribeToAll( SessionContext.getSession().getSessionID() );
   }
 
   @Override
   public void downloadAll()
   {
-    _subscriptionService.downloadAll( SessionContext.getSessionID() );
+    _subscriptionService.downloadAll( SessionContext.getSession().getSessionID() );
   }
 
   private void unloadRoster( final int rosterID )
@@ -223,7 +223,7 @@ public class TyrellDataLoaderService
 
     _inPoll = true;
     _subscriptionService.
-      poll( SessionContext.getSessionID(),
+      poll( SessionContext.getSession().getSessionID(),
             getLastKnownChangeSet(),
             new TyrellGwtRpcAsyncCallback<String>()
             {

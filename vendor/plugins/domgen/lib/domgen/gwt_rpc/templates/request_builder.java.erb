@@ -10,6 +10,6 @@ final class <%= repository.gwt_rpc.request_builder_name %>
   protected void doSetRequestId( final com.google.gwt.http.client.RequestBuilder rb, final int id )
   {
     rb.setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_ID_HEADER, String.valueOf( id ) );
-    rb.setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.SESSION_ID_HEADER, org.realityforge.replicant.client.transport.SessionContext.getSessionID() );
+    rb.setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.SESSION_ID_HEADER, org.realityforge.replicant.client.transport.SessionContext.getSession().getSessionID() );
   }
 }
