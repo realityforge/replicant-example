@@ -3,9 +3,11 @@ package org.realityforge.replicant.example.server.service;
 import java.util.LinkedList;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.Resource;
 import javax.ejb.Local;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import javax.transaction.TransactionSynchronizationRegistry;
 import org.realityforge.replicant.example.server.entity.AbstractTyrellSessionManager;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellSession;
@@ -16,6 +18,7 @@ import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.replicant.server.transport.PacketQueue;
+import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
@@ -30,6 +33,9 @@ public class SubscriptionServiceEJB
   @Inject
   private RosterRepository _rosterRepository;
 
+  @Resource
+  private TransactionSynchronizationRegistry _registry;
+
   @SuppressWarnings( "SynchronizationOnLocalVariableOrMethodParameter" )
   @Override
   @Nullable
@@ -41,7 +47,7 @@ public class SubscriptionServiceEJB
     final Packet packet = queue.nextPacketToProcess();
     if ( null != packet )
     {
-      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getChanges() );
+      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), null, packet.getChanges() );
     }
     else
     {
@@ -62,7 +68,8 @@ public class SubscriptionServiceEJB
         getEncoder().encodeRoster( messages, roster );
       }
     }
-    session.getQueue().addPacket( messages );
+    final String jobID = (String) _registry.getResource( ReplicantContext.JOB_ID_KEY );
+    session.getQueue().addPacket( jobID, messages );
   }
 
   @Override
