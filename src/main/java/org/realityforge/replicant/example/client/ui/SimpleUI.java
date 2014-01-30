@@ -43,7 +43,6 @@ public class SimpleUI
   private final TextBox _input;
   private final DataLoaderService _dataLoaderService;
   private final GwtRpcRosterService _rosterService;
-  private final EntityChangeBroker _broker;
   private final Button _subscribeToAll;
   private final Button _downloadAll;
   private Roster _selectedRoster;
@@ -56,7 +55,6 @@ public class SimpleUI
   {
     super();
 
-    _broker = broker;
     _dataLoaderService = dataLoaderService;
     _rosterService = rosterService;
     _input = new TextBox();
@@ -151,7 +149,7 @@ public class SimpleUI
         onSelect( event.getSelectedItem().getUserObject() );
       }
     } );
-    _broker.addChangeListener( this );
+    broker.addChangeListener( this );
     initWidget( panel );
   }
 
