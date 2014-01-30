@@ -47,7 +47,9 @@ public class SubscriptionServiceEJB
     final Packet packet = queue.nextPacketToProcess();
     if ( null != packet )
     {
-      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(), null, packet.getChanges() );
+      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(),
+                                                            packet.getRequestID(),
+                                                            packet.getChanges() );
     }
     else
     {
