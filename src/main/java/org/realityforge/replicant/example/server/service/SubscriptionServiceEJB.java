@@ -22,7 +22,7 @@ import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
+@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends AbstractTyrellSessionManager
   implements SubscriptionService
@@ -36,7 +36,7 @@ public class SubscriptionServiceEJB
   @Resource
   private TransactionSynchronizationRegistry _registry;
 
-  @SuppressWarnings( "SynchronizationOnLocalVariableOrMethodParameter" )
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
@@ -47,9 +47,8 @@ public class SubscriptionServiceEJB
     final Packet packet = queue.nextPacketToProcess();
     if ( null != packet )
     {
-      return JsonEncoder.encodeChangeSetFromEntityMessages( packet.getSequence(),
-                                                            packet.getRequestID(),
-                                                            packet.getChanges() );
+      return JsonEncoder.
+        encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getRequestID(), packet.getChanges() );
     }
     else
     {
