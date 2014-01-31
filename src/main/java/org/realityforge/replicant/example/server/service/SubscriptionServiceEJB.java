@@ -43,7 +43,7 @@ public class SubscriptionServiceEJB
   {
     final TyrellSession session = ensureSession( clientID );
     final PacketQueue queue = session.getQueue();
-      queue.ack( lastSequenceAcked );
+    queue.ack( lastSequenceAcked );
     final Packet packet = queue.nextPacketToProcess();
     if ( null != packet )
     {
