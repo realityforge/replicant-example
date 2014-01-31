@@ -131,7 +131,7 @@ end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.env
       if( null != callback ) callback.onSuccess( <%= result_string %> );
       _callback.onSuccess( result );
     }
-  });
+    });
   }
 
 <% end %>}
