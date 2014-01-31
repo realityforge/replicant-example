@@ -52,6 +52,11 @@ public class <%= service.gwt_rpc.proxy_name %>
     }
     <% if parameter.nullable? %>}<% end %>
   <% end %>
+  final org.realityforge.replicant.client.transport.ClientSession session = org.realityforge.replicant.client.transport.SessionContext.getSession();
+  if( null != session )
+  {
+    org.realityforge.replicant.client.transport.SessionContext.setRequest( session.getRequestManager().newRequestRegistration( false ) );
+  }
   _service.<%= method.gwt_rpc.name %>(<%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect do |parameter|
   param_value = parameter.name
   if parameter.collection? && (parameter.enumeration? || parameter.struct?)
@@ -132,6 +137,7 @@ end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.env
       _callback.onSuccess( result );
     }
     });
+    org.realityforge.replicant.client.transport.SessionContext.setRequest( null );
   }
 
 <% end %>}
