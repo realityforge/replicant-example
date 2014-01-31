@@ -69,8 +69,11 @@ public class SubscriptionServiceEJB
         getEncoder().encodeRoster( messages, roster );
       }
     }
-    final String jobID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
-    session.getQueue().addPacket( jobID, messages );
+    if ( 0 != messages.size() )
+    {
+      final String jobID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
+      session.getQueue().addPacket( jobID, messages );
+    }
   }
 
   @Override
