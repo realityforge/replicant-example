@@ -14,11 +14,10 @@ import com.google.web.bindery.event.shared.EventBus;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
-import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.ClientSession;
-import org.realityforge.replicant.client.transport.SessionContext;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
@@ -29,7 +28,7 @@ import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallba
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
 
 public class TyrellDataLoaderService
-  extends GwtDataLoaderService
+  extends GwtDataLoaderService<TyrellClientSession>
   implements DataLoaderService, TyrellRemoteSubscriptionManager
 {
   private static final int POLL_DURATION = 2000;
@@ -38,10 +37,6 @@ public class TyrellDataLoaderService
   private EventBus _eventBus;
   @Inject
   private GwtRpcSubscriptionService _subscriptionService;
-  @Inject
-  private EntityRepository _repository;
-
-  private TyrellClientSession _session;
 
   private Timer _timer;
 
@@ -80,8 +75,7 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    _session = new TyrellClientSession( sessionID, this );
-    SessionContext.setSession( _session );
+    setSession( new TyrellClientSession( sessionID, this ) );
     startPolling();
     getSession().getSubscriptionManager().subscribeToMetaData();
   }
@@ -90,12 +84,6 @@ public class TyrellDataLoaderService
   public void disconnect()
   {
     stopPolling();
-  }
-
-  @Override
-  public TyrellClientSession getSession()
-  {
-    return _session;
   }
 
   @Override
@@ -192,7 +180,7 @@ public class TyrellDataLoaderService
 
   private String getSessionID()
   {
-    final ClientSession session = SessionContext.getSession();
+    final ClientSession session = getSession();
     if ( null == session )
     {
       throw new IllegalStateException( "Missing session" );
@@ -202,7 +190,7 @@ public class TyrellDataLoaderService
 
   private void unloadRoster( final int rosterID )
   {
-    final Roster roster = _repository.findByID( Roster.class, rosterID );
+    final Roster roster = getRepository().findByID( Roster.class, rosterID );
     if ( null != roster )
     {
       unloadRoster( roster );
@@ -213,14 +201,14 @@ public class TyrellDataLoaderService
   {
     for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
     {
-      _repository.deregisterEntity( Shift.class, shift.getID() );
+      getRepository().deregisterEntity( Shift.class, shift.getID() );
     }
-    _repository.deregisterEntity( Roster.class, roster.getID() );
+    getRepository().deregisterEntity( Roster.class, roster.getID() );
   }
 
   private void unloadRosters()
   {
-    for ( final Roster roster : _repository.findAll( Roster.class ) )
+    for ( final Roster roster : getRepository().findAll( Roster.class ) )
     {
       unloadRoster( roster );
     }
@@ -266,7 +254,7 @@ public class TyrellDataLoaderService
       {
         LOG.severe( "Received data from poll: " + rawJsonData );
       }
-      enqueueDataLoad( false, rawJsonData, null );
+      enqueueDataLoad( rawJsonData );
     }
   }
 
