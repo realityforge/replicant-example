@@ -1,5 +1,7 @@
 package org.realityforge.replicant.example.client.services;
 
+import org.realityforge.replicant.example.client.entity.TyrellClientSession;
+
 public interface DataLoaderService
 {
   void connect();
