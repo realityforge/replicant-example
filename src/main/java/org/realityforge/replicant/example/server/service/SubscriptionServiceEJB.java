@@ -1,10 +1,13 @@
 package org.realityforge.replicant.example.server.service;
 
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.Resource;
 import javax.ejb.Local;
+import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 import javax.transaction.TransactionSynchronizationRegistry;
@@ -22,11 +25,15 @@ import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
+@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
 public class SubscriptionServiceEJB
   extends AbstractTyrellSessionManager
   implements SubscriptionService
 {
+  private static final Logger LOG = Logger.getLogger( SubscriptionServiceEJB.class.getName() );
+
+  private static final int MAX_IDLE_TIME = 1000 * 30;
+
   @Inject
   private RosterTypeRepository _rosterTypeRepository;
 
@@ -50,7 +57,19 @@ public class SubscriptionServiceEJB
     return "MyConstant";
   }
 
-  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+  /**
+   * Remove idle session changes every 30 seconds.
+   */
+  @Schedule( second = "30", minute = "*", hour = "*", persistent = false )
+  public void removeIdleSessions()
+  {
+    final int removedSessions = removeIdleSessions( MAX_IDLE_TIME );
+    if ( 0 != removedSessions && LOG.isLoggable( Level.INFO ) )
+    {
+      LOG.info( "Removed " + removedSessions + " idle sessions" );
+    }
+  }
+
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
