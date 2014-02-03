@@ -23,7 +23,7 @@ artifacts:
   replicant: org.realityforge.replicant:replicant:jar:0.5.6
 
   # Dependency used for session management
-  simple_session_filter: org.realityforge.ssf:simple-session-filter:jar:0.2
+  simple_session_filter: org.realityforge.ssf:simple-session-filter:jar:0.3
 
   #
   # Used in mapping entities to json
