@@ -43,7 +43,6 @@ public class SimpleUI
   private final TextBox _input;
   private final DataLoaderService _dataLoaderService;
   private final GwtRpcRosterService _rosterService;
-  private final Button _subscribeToAll;
   private final Button _downloadAll;
   private Roster _selectedRoster;
   private Shift _selectedShift;
@@ -78,15 +77,6 @@ public class SimpleUI
       }
     } );
     _disconnect.setEnabled( false );
-    _subscribeToAll = new Button( "Subscribe To All", new ClickHandler()
-    {
-      @Override
-      public void onClick( ClickEvent event )
-      {
-        doSubscribeToAll();
-      }
-    } );
-    _subscribeToAll.setEnabled( false );
     _downloadAll = new Button( "Download All", new ClickHandler()
     {
       @Override
@@ -101,7 +91,6 @@ public class SimpleUI
     final FlowPanel controls = new FlowPanel();
     controls.add( _connect );
     controls.add( _disconnect );
-    controls.add( _subscribeToAll );
     controls.add( _downloadAll );
     panel.add( controls );
 
@@ -156,11 +145,6 @@ public class SimpleUI
   private void doDownloadAll()
   {
     _dataLoaderService.downloadAll();
-  }
-
-  private void doSubscribeToAll()
-  {
-    _dataLoaderService.subscribeToAll();
   }
 
   private void createRoster( final Roster roster )
@@ -275,7 +259,6 @@ public class SimpleUI
     _create.setEnabled( true );
     _input.setEnabled( true );
     _disconnect.setEnabled( true );
-    _subscribeToAll.setEnabled( true );
     _downloadAll.setEnabled( true );
     _tree.clear();
     _dataLoaderService.connect();

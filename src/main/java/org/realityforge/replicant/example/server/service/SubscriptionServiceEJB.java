@@ -77,12 +77,6 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  public void subscribeToAll( @Nonnull final String clientID )
-  {
-    subscribeToRosterList( clientID );
-  }
-
-  @Override
   protected void collectMetaData( @Nonnull final LinkedList<EntityMessage> messages )
   {
     getEncoder().encodeObjects( messages, _rosterTypeRepository.findAll() );

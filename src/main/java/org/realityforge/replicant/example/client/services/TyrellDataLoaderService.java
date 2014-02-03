@@ -166,12 +166,6 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public void subscribeToAll()
-  {
-    _subscriptionService.subscribeToAll( getSessionID() );
-  }
-
-  @Override
   public void downloadAll()
   {
     _subscriptionService.downloadAll( getSessionID() );

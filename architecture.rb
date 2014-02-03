@@ -88,10 +88,6 @@ Domgen.repository(:Tyrell) do |repository|
         m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
-      s.method(:SubscribeToAll) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
       s.method(:SubscribeToRoster) do |m|
         m.string(:ClientID, 50)
         m.reference(:Roster)

@@ -11,6 +11,4 @@ public interface DataLoaderService
   TyrellClientSession getSession();
 
   void downloadAll();
-
-  void subscribeToAll();
 }
