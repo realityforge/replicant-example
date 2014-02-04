@@ -77,6 +77,7 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToMetaData) do |m|
+        m.imit.graph_to_subscribe = :MetaData
         m.text(:ClientID)
         m.text(:ETag, :nullable => true)
         m.exception(:BadSession)
