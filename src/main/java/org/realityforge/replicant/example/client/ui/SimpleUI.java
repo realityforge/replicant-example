@@ -16,6 +16,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
@@ -32,6 +33,7 @@ public class SimpleUI
   implements EntityChangeListener
 {
   private static final Logger LOG = Logger.getLogger( SimpleUI.class.getName() );
+  private static final Level LOG_LEVEL = Level.FINE;
 
   private final Tree _tree;
   private final Button _create;
@@ -267,7 +269,7 @@ public class SimpleUI
   @Override
   public void entityAdded( final EntityChangeEvent event )
   {
-    LOG.info( "entityAdded(" + event + ")" );
+    LOG.log( LOG_LEVEL, "entityAdded(" + event + ")" );
     final Object entity = event.getObject();
     if ( entity instanceof Roster )
     {
@@ -278,7 +280,7 @@ public class SimpleUI
   @Override
   public void entityRemoved( final EntityChangeEvent event )
   {
-    LOG.info( "entityRemoved(" + event + ")" );
+    LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
     final TreeItem treeItem = _viewMap.remove( entity );
     if ( null != treeItem )
@@ -290,7 +292,7 @@ public class SimpleUI
   @Override
   public void attributeChanged( final EntityChangeEvent event )
   {
-    LOG.info( "attributeChanged(" + event + ")" );
+    LOG.log( LOG_LEVEL, "attributeChanged(" + event + ")" );
     final Object entity = event.getObject();
     if ( entity instanceof Roster )
     {
@@ -315,7 +317,7 @@ public class SimpleUI
   @Override
   public void relatedAdded( final EntityChangeEvent event )
   {
-    LOG.info( "relatedAdded(" + event + ")" );
+    LOG.log( LOG_LEVEL, "relatedAdded(" + event + ")" );
     final Object value = event.getValue();
     final Object object = event.getObject();
     if ( object instanceof Roster && value instanceof Shift )
@@ -366,7 +368,7 @@ public class SimpleUI
   @Override
   public void relatedRemoved( final EntityChangeEvent event )
   {
-    LOG.info( "relatedRemoved(" + event + ")" );
+    LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
     final Object value = event.getValue();
     final Object object = event.getObject();
     if ( object instanceof Roster && value instanceof Shift )
