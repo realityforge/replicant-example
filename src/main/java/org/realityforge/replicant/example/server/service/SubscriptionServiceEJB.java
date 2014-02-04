@@ -32,7 +32,7 @@ public class SubscriptionServiceEJB
 {
   private static final Logger LOG = Logger.getLogger( SubscriptionServiceEJB.class.getName() );
 
-  private static final int MAX_IDLE_TIME = 1000 * 30;
+  private static final int MAX_IDLE_TIME = 1000 * 60 * 5;
 
   @Inject
   private RosterTypeRepository _rosterTypeRepository;
