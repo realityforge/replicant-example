@@ -18,6 +18,7 @@ import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
+import org.realityforge.replicant.server.ee.ReplicantContextHolder;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.replicant.server.transport.PacketQueue;
@@ -101,6 +102,7 @@ public class SubscriptionServiceEJB
     if ( 0 != messages.size() )
     {
       final String requestID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
+      ReplicantContextHolder.put( ReplicantContext.REQUEST_COMPLETE_KEY, "0" );
       session.getQueue().addPacket( requestID, null, messages );
     }
   }
