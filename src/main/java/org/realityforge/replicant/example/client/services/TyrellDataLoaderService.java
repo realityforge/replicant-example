@@ -30,7 +30,7 @@ import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorC
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService<TyrellClientSession>
-  implements DataLoaderService, TyrellClientSessionContext
+  implements DataLoaderService
 {
   private static final int POLL_DURATION = 2000;
 
@@ -38,8 +38,6 @@ public class TyrellDataLoaderService
   private EventBus _eventBus;
   @Inject
   private GwtRpcSubscriptionService _subscriptionService;
-  @Inject
-  private CacheService _cacheService;
 
   private Timer _timer;
 
@@ -78,7 +76,7 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    setSession( new TyrellClientSession( sessionID, this ) );
+    setSession( new TyrellClientSession( sessionID, new Context() ) );
     startPolling();
     getSession().getSubscriptionManager().subscribeToMetaData();
   }
@@ -87,109 +85,6 @@ public class TyrellDataLoaderService
   public void disconnect()
   {
     stopPolling();
-  }
-
-  @Override
-  public CacheService getCacheService()
-  {
-    return _cacheService;
-  }
-
-  @Override
-  public void loadCachedContent( @Nonnull final String changeSet,
-                                 @Nonnull final Runnable runnable,
-                                 final boolean bulkChange )
-  {
-    enqueueOOB( changeSet, runnable, bulkChange );
-  }
-
-  @Override
-  public void remoteSubscribeToMetaData( @Nullable final String eTag,
-                                         @Nonnull final Runnable cacheCurrentAction,
-                                         @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
-    {
-      @Override
-      public void onSuccess( final Boolean result )
-      {
-        if ( result )
-        {
-          runnable.run();
-        }
-        else
-        {
-          cacheCurrentAction.run();
-        }
-      }
-    } );
-  }
-
-  @Override
-  public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.unsubscribeFromMetaData( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        runnable.run();
-      }
-    } );
-  }
-
-  @Override
-  public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.subscribeToRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        runnable.run();
-      }
-    } );
-  }
-
-  @Override
-  public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.unsubscribeFromRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        unloadRoster( id );
-        runnable.run();
-      }
-    } );
-  }
-
-  @Override
-  public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.subscribeToRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        runnable.run();
-      }
-    } );
-  }
-
-  @Override
-  public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
-  {
-    _subscriptionService.unsubscribeFromRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        unloadRosters();
-        runnable.run();
-      }
-    } );
   }
 
   @Override
@@ -330,6 +225,113 @@ public class TyrellDataLoaderService
             return false;
           }
           return _incrementalDataLoadInProgress;
+        }
+      } );
+    }
+  }
+
+  class Context
+    implements TyrellClientSessionContext
+  {
+    @Override
+    public CacheService getCacheService()
+    {
+      return TyrellDataLoaderService.this.getCacheService();
+    }
+
+    @Override
+    public void loadCachedContent( @Nonnull final String changeSet,
+                                   @Nonnull final Runnable runnable,
+                                   final boolean bulkChange )
+    {
+      enqueueOOB( changeSet, runnable, bulkChange );
+    }
+
+    @Override
+    public void remoteSubscribeToMetaData( @Nullable final String eTag,
+                                           @Nonnull final Runnable cacheCurrentAction,
+                                           @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
+      {
+        @Override
+        public void onSuccess( final Boolean result )
+        {
+          if ( result )
+          {
+            runnable.run();
+          }
+          else
+          {
+            cacheCurrentAction.run();
+          }
+        }
+      } );
+    }
+
+    @Override
+    public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.unsubscribeFromMetaData( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.subscribeToRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.unsubscribeFromRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          unloadRoster( id );
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.subscribeToRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.unsubscribeFromRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          unloadRosters();
+          runnable.run();
         }
       } );
     }
