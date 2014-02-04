@@ -96,8 +96,16 @@ public class TyrellDataLoaderService
   }
 
   @Override
+  public void loadCachedContent( @Nonnull final String changeSet,
+                                 @Nonnull final Runnable runnable,
+                                 final boolean bulkChange )
+  {
+    enqueueOOB( changeSet, runnable, bulkChange );
+  }
+
+  @Override
   public void remoteSubscribeToMetaData( @Nullable final String eTag,
-                                         @Nullable final String content,
+                                         @Nonnull final Runnable cacheCurrentAction,
                                          @Nonnull final Runnable runnable )
   {
     _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
@@ -105,7 +113,14 @@ public class TyrellDataLoaderService
       @Override
       public void onSuccess( final Boolean result )
       {
-        runnable.run();
+        if ( result )
+        {
+          runnable.run();
+        }
+        else
+        {
+          cacheCurrentAction.run();
+        }
       }
     } );
   }
