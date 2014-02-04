@@ -14,13 +14,15 @@ import com.google.web.bindery.event.shared.EventBus;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
+import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.client.transport.ClientSession;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
-import org.realityforge.replicant.example.client.entity.TyrellRemoteSubscriptionManager;
+import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
@@ -28,7 +30,7 @@ import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorC
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService<TyrellClientSession>
-  implements DataLoaderService, TyrellRemoteSubscriptionManager
+  implements DataLoaderService, TyrellClientSessionContext
 {
   private static final int POLL_DURATION = 2000;
 
@@ -36,6 +38,8 @@ public class TyrellDataLoaderService
   private EventBus _eventBus;
   @Inject
   private GwtRpcSubscriptionService _subscriptionService;
+  @Inject
+  private CacheService _cacheService;
 
   private Timer _timer;
 
@@ -86,7 +90,15 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  public void remoteSubscribeToMetaData( @Nonnull final Runnable runnable )
+  public CacheService getCacheService()
+  {
+    return _cacheService;
+  }
+
+  @Override
+  public void remoteSubscribeToMetaData( @Nullable final String eTag,
+                                         @Nullable final String content,
+                                         @Nonnull final Runnable runnable )
   {
     _subscriptionService.subscribeToMetaData( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
     {

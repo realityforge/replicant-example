@@ -5,6 +5,8 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.name.Names;
 import com.google.web.bindery.event.shared.EventBus;
 import com.google.web.bindery.event.shared.SimpleEventBus;
+import org.realityforge.replicant.client.transport.CacheService;
+import org.realityforge.replicant.client.transport.gwt.LocalCacheService;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 import org.realityforge.replicant.example.client.services.TyrellDataLoaderService;
@@ -17,6 +19,7 @@ public class BasicModule
   {
     bindNamedService( "GLOBAL", AsyncCallback.class, GlobalAsyncCallback.class );
     bind( DataLoaderService.class ).to( TyrellDataLoaderService.class ).asEagerSingleton();
+    bind( CacheService.class ).to( LocalCacheService.class ).asEagerSingleton();
     bind( EventBus.class ).to( SimpleEventBus.class ).asEagerSingleton();
   }
 

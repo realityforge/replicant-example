@@ -81,7 +81,10 @@ public class SubscriptionServiceEJB
     if ( null != packet )
     {
       return JsonEncoder.
-        encodeChangeSetFromEntityMessages( packet.getSequence(), packet.getRequestID(), packet.getChanges() );
+        encodeChangeSetFromEntityMessages( packet.getSequence(),
+                                           packet.getRequestID(),
+                                           packet.getETag(),
+                                           packet.getChanges() );
     }
     else
     {
@@ -105,7 +108,7 @@ public class SubscriptionServiceEJB
     if ( 0 != messages.size() )
     {
       final String jobID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
-      session.getQueue().addPacket( jobID, messages );
+      session.getQueue().addPacket( jobID, null, messages );
     }
   }
 
