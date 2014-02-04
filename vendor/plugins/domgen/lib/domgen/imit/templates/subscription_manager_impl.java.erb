@@ -40,19 +40,20 @@ public class <%= repository.imit.subscription_manager_impl_name %>
       subscribeTo<%= subscribe_method %>Graph( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.key) %><%= param_value %> );
     if( null != entry )
     {
-<% if graph.cacheable? -%>
-      final org.realityforge.replicant.client.transport.CacheEntry cacheEntry = _context.getCacheService().lookup( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.key) %>.name() );
-      final String eTag = null != cacheEntry ? cacheEntry.getETag() : null;
-      final String content = null != cacheEntry ? cacheEntry.getContent() : null;
-<% end -%>
-      _context.remoteSubscribeTo<%= graph.key %>( <%= param_cache_value %><%= param_early_value %>new Runnable()
+      final Runnable runnable = new Runnable()
       {
         @Override
         public void run()
         {
           entry.markAsPresent();
         }
-      } );
+      };
+<% if graph.cacheable? -%>
+      final org.realityforge.replicant.client.transport.CacheEntry cacheEntry = _context.getCacheService().lookup( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.key) %>.name() );
+      final String eTag = null != cacheEntry ? cacheEntry.getETag() : null;
+      final String content = null != cacheEntry ? cacheEntry.getContent() : null;
+<% end -%>
+      _context.remoteSubscribeTo<%= graph.key %>( <%= param_cache_value %><%= param_early_value %>runnable );
     }
   }
 
