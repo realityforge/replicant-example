@@ -251,6 +251,7 @@ public class SimpleUI
     _create.setEnabled( false );
     _update.setEnabled( false );
     _input.setEnabled( false );
+    _downloadAll.setEnabled( false );
     _tree.clear();
     _disconnect.setEnabled( false );
   }
