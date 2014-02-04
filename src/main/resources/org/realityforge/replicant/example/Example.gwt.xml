@@ -10,6 +10,9 @@
 
   <entry-point class='org.realityforge.replicant.example.client.Example'/>
 
+  <!-- Compile a single permutation for all platforms -->
+  <collapse-all-properties/>
+
   <source path='client'/>
   <source path='shared'/>
 
