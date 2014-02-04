@@ -77,8 +77,10 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToMetaData) do |m|
-        m.string(:ClientID, 50)
+        m.text(:ClientID)
+        m.text(:ETag, :nullable => true)
         m.exception(:BadSession)
+        m.returns(:boolean)
       end
       s.method(:UnsubscribeFromMetaData) do |m|
         m.string(:ClientID, 50)

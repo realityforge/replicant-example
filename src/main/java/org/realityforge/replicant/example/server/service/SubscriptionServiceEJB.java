@@ -44,13 +44,6 @@ public class SubscriptionServiceEJB
   private TransactionSynchronizationRegistry _registry;
 
   @Override
-  public void subscribeToMetaData( @Nonnull final String clientID )
-    throws BadSessionException
-  {
-    super.subscribeToMetaData( clientID, null );
-  }
-
-  @Override
   protected String getMetaDataCacheKey()
   {
     // Return a constant as we know that it will never be changed except with a new release

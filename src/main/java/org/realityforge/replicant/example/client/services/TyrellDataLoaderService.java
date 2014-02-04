@@ -100,10 +100,10 @@ public class TyrellDataLoaderService
                                          @Nullable final String content,
                                          @Nonnull final Runnable runnable )
   {
-    _subscriptionService.subscribeToMetaData( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
     {
       @Override
-      public void onSuccess( final Void result )
+      public void onSuccess( final Boolean result )
       {
         runnable.run();
       }
