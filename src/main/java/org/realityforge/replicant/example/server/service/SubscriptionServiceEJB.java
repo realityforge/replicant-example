@@ -100,8 +100,8 @@ public class SubscriptionServiceEJB
     }
     if ( 0 != messages.size() )
     {
-      final String jobID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
-      session.getQueue().addPacket( jobID, null, messages );
+      final String requestID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
+      session.getQueue().addPacket( requestID, null, messages );
     }
   }
 
