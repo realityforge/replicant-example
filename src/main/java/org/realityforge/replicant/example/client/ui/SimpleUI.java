@@ -177,7 +177,7 @@ public class SimpleUI
   private void doDeleteRoster( final Roster roster )
   {
     _rosterService.removeRoster( roster.getID() );
-    if( _selectedRoster == roster )
+    if ( _selectedRoster == roster )
     {
       onSelect( null );
     }
@@ -359,7 +359,7 @@ public class SimpleUI
   private void doDeleteShift( final Shift shift )
   {
     _rosterService.removeShift( shift.getID() );
-    if( _selectedShift == shift )
+    if ( _selectedShift == shift )
     {
       onSelect( null );
     }
