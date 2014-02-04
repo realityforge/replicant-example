@@ -37,7 +37,3 @@ artifacts:
   gwt_cache_filter: org.realityforge.gwt.cache-filter:gwt-cache-filter:jar:0.3
 
   mockito: org.mockito:mockito-all:jar:1.9.5
-
-  # Jersey MVC implementation. Used as part of the login process..
-  jersey_mvc: org.glassfish.jersey.ext:jersey-mvc:jar:2.5
-  jersey_mvc_jsp: org.glassfish.jersey.ext:jersey-mvc-jsp:jar:2.5
