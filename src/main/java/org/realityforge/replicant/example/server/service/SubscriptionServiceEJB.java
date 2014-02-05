@@ -5,12 +5,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.annotation.Resource;
 import javax.ejb.Local;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
-import javax.transaction.TransactionSynchronizationRegistry;
 import org.realityforge.replicant.example.server.entity.AbstractTyrellSessionManager;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellSession;
@@ -18,10 +16,8 @@ import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
-import org.realityforge.replicant.server.ee.ReplicantContextHolder;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.Packet;
-import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
@@ -39,9 +35,6 @@ public class SubscriptionServiceEJB
 
   @Inject
   private RosterRepository _rosterRepository;
-
-  @Resource
-  private TransactionSynchronizationRegistry _registry;
 
   @Override
   protected String getMetaDataCacheKey()
@@ -97,9 +90,7 @@ public class SubscriptionServiceEJB
     }
     if ( 0 != messages.size() )
     {
-      final String requestID = (String) _registry.getResource( ReplicantContext.REQUEST_ID_KEY );
-      ReplicantContextHolder.put( ReplicantContext.REQUEST_COMPLETE_KEY, "0" );
-      session.getQueue().addPacket( requestID, null, messages );
+      sendPacket( session, null, messages );
     }
   }
 
