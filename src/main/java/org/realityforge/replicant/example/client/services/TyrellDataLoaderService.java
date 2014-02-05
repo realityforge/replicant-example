@@ -81,6 +81,7 @@ public class TyrellDataLoaderService
   public void disconnect()
   {
     stopPolling();
+    setSession( null );
   }
 
   @Override
