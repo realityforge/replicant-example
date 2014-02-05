@@ -1,7 +1,6 @@
 package org.realityforge.replicant.example.client.services;
 
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
@@ -39,9 +38,7 @@ public class TyrellDataLoaderService
   private GwtRpcSubscriptionService _subscriptionService;
 
   private Timer _timer;
-
   private boolean _inPoll;
-  private boolean _incrementalDataLoadInProgress;
 
   @Override
   public void connect()
@@ -193,30 +190,10 @@ public class TyrellDataLoaderService
     }
   }
 
-  protected void scheduleDataLoad()
+  @Override
+  protected void progressDataLoadFailure( @Nonnull final Exception e )
   {
-    if ( !_incrementalDataLoadInProgress )
-    {
-      _incrementalDataLoadInProgress = true;
-      Scheduler.get().scheduleIncremental( new Scheduler.RepeatingCommand()
-      {
-        @Override
-        public boolean execute()
-        {
-          try
-          {
-            _incrementalDataLoadInProgress = progressDataLoad();
-          }
-          catch ( final Exception e )
-          {
-            handleSystemFailure( e, "Failed to progress data load" );
-            _incrementalDataLoadInProgress = false;
-            return false;
-          }
-          return _incrementalDataLoadInProgress;
-        }
-      } );
-    }
+    handleSystemFailure( e, "Failed to progress data load" );
   }
 
   class Context
