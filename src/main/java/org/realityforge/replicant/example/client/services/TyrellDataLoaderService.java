@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
-import org.realityforge.replicant.client.transport.ClientSession;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
@@ -91,16 +90,6 @@ public class TyrellDataLoaderService
   public void downloadAll()
   {
     _subscriptionService.downloadAll( getSessionID() );
-  }
-
-  private String getSessionID()
-  {
-    final ClientSession session = getSession();
-    if ( null == session )
-    {
-      throw new IllegalStateException( "Missing session" );
-    }
-    return session.getSessionID();
   }
 
   private void unloadRoster( final int rosterID )
