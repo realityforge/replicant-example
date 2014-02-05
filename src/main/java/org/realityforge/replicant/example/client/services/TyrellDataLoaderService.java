@@ -124,9 +124,10 @@ public class TyrellDataLoaderService
     }
 
     _inPoll = true;
+    final TyrellClientSession session = getSession();
     _subscriptionService.
-      poll( getSessionID(),
-            getLastKnownChangeSet(),
+      poll( session.getSessionID(),
+            session.getLastRxSequence(),
             new TyrellGwtRpcAsyncCallback<String>()
             {
               @Override
