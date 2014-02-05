@@ -62,7 +62,7 @@ public abstract class <%= repository.imit.session_manager_name %>
       final <%= repository.imit.qualified_session_name %> session = getSession( sessionID );
       if( null != session )
       {
-        accumulator.addEntityMessages( session, messages );
+        accumulator.addEntityMessages( session, sessionMessages );
       }
     }
     finally
