@@ -22,7 +22,8 @@ public abstract class <%= repository.imit.session_manager_name %>
   @Override
   public boolean saveEntityMessages( @javax.annotation.Nullable final String sessionID,
                                      @javax.annotation.Nullable final String requestID,
-                                     @javax.annotation.Nonnull final java.util.Collection<org.realityforge.replicant.server.EntityMessage> messages )
+                                     @javax.annotation.Nonnull final java.util.Collection<org.realityforge.replicant.server.EntityMessage> messages,
+                                     @javax.annotation.Nonnull final java.util.Collection<org.realityforge.replicant.server.EntityMessage> sessionMessages )
   {
     //TODO: Rewrite this so that we add clients to indexes rather than searching through everyone for each change!
     getLock().readLock().lock();
@@ -61,6 +62,14 @@ public abstract class <%= repository.imit.session_manager_name %>
           }
         }
 <% end %>
+      }
+      for ( final <%= repository.imit.qualified_session_name %> session : values )
+      {
+        if ( session.getSessionID().equals( sessionID ) )
+        {
+          accumulator.addEntityMessages( session, sessionMessages );
+          break;
+        }
       }
     }
     finally
@@ -151,13 +160,13 @@ public abstract class <%= repository.imit.session_manager_name %>
       if( null == cacheKey || !cacheKey.equals( _cached<%= graph.key %>Key ) )
       {
         messages.addAll( _cached<%= graph.key %>Messages );
-<% end -%>
         final String requestID = (String) _registry.getResource( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_ID_KEY );
         org.realityforge.replicant.server.ee.ReplicantContextHolder.put( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_KEY, "0" );
         session.getQueue().addPacket( requestID, <%= graph.cacheable? ? "_cached#{graph.key}Key" : "null" %>, messages );
-<% if graph.cacheable? -%>
         return true;
       }
+<% else -%>
+      org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionEntityMessageSet().mergeAll( messages );
 <% end -%>
     }
 <% if graph.cacheable? -%>
