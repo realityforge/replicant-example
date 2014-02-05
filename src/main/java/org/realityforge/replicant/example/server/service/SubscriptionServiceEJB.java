@@ -1,6 +1,5 @@
 package org.realityforge.replicant.example.server.service;
 
-import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
@@ -14,8 +13,9 @@ import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.TyrellSession;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
-import org.realityforge.replicant.server.EntityMessage;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
+import org.realityforge.replicant.server.EntityMessageSet;
+import org.realityforge.replicant.server.ee.EntityMessageCacheUtil;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.SessionManager;
@@ -78,8 +78,8 @@ public class SubscriptionServiceEJB
   @Override
   public void downloadAll( @Nonnull final String clientID )
   {
+    final EntityMessageSet messages = EntityMessageCacheUtil.getSessionEntityMessageSet();
     final TyrellSession session = ensureSession( clientID );
-    final LinkedList<EntityMessage> messages = new LinkedList<>();
     for ( final Roster roster : _rosterRepository.findAll() )
     {
       if ( !session.isRosterInteresting( roster.getID() ) )
@@ -88,20 +88,16 @@ public class SubscriptionServiceEJB
         getEncoder().encodeRoster( messages, roster );
       }
     }
-    if ( 0 != messages.size() )
-    {
-      sendPacket( session, null, messages );
-    }
   }
 
   @Override
-  protected void collectMetaData( @Nonnull final LinkedList<EntityMessage> messages )
+  protected void collectMetaData( @Nonnull final EntityMessageSet messages )
   {
     getEncoder().encodeObjects( messages, _rosterTypeRepository.findAll() );
   }
 
   @Override
-  protected void collectRosterList( @Nonnull final LinkedList<EntityMessage> messages )
+  protected void collectRosterList( @Nonnull final EntityMessageSet messages )
   {
     for ( final Roster roster : _rosterRepository.findAll() )
     {
