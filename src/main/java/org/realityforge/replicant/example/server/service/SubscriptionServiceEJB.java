@@ -25,7 +25,7 @@ import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local( { EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class } )
+@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends AbstractTyrellSessionManager
   implements SubscriptionService
@@ -53,7 +53,7 @@ public class SubscriptionServiceEJB
   /**
    * Remove idle session changes every 30 seconds.
    */
-  @Schedule( second = "30", minute = "*", hour = "*", persistent = false )
+  @Schedule(second = "30", minute = "*", hour = "*", persistent = false)
   public void removeIdleSessions()
   {
     final int removedSessions = removeIdleSessions( MAX_IDLE_TIME );
