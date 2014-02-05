@@ -72,16 +72,22 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    setSession( new TyrellClientSession( sessionID, new Context() ) );
-    startPolling();
-    getSession().getSubscriptionManager().subscribeToMetaData();
+    setSession( new TyrellClientSession( sessionID, new Context() ), new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        startPolling();
+        getSession().getSubscriptionManager().subscribeToMetaData();
+      }
+    } );
   }
 
   @Override
   public void disconnect()
   {
     stopPolling();
-    setSession( null );
+    setSession( null, null );
   }
 
   @Override
