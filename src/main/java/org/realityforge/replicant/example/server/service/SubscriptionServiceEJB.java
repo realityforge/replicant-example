@@ -21,7 +21,6 @@ import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.ee.ReplicantContextHolder;
 import org.realityforge.replicant.server.json.JsonEncoder;
 import org.realityforge.replicant.server.transport.Packet;
-import org.realityforge.replicant.server.transport.PacketQueue;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 import org.realityforge.ssf.SessionManager;
 
@@ -68,10 +67,7 @@ public class SubscriptionServiceEJB
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
   {
-    final TyrellSession session = ensureSession( clientID );
-    final PacketQueue queue = session.getQueue();
-    queue.ack( lastSequenceAcked );
-    final Packet packet = queue.nextPacketToProcess();
+    final Packet packet = poll( ensureSession( clientID ), lastSequenceAcked );
     if ( null != packet )
     {
       return JsonEncoder.
