@@ -2,6 +2,7 @@ require 'buildr/git_auto_version'
 require 'buildr/top_level_generate_dir'
 
 GWT_DEPS = [:gwt_datatypes,
+            :gwt_webpoller,
             :google_guice,
             :google_guice_assistedinject,
             :aopalliance,
