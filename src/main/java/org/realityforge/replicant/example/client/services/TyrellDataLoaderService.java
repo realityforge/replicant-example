@@ -6,7 +6,6 @@ import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
-import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
@@ -15,6 +14,10 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
+import org.realityforge.gwt.webpoller.client.WebPoller;
+import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
+import org.realityforge.gwt.webpoller.client.event.MessageEvent;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.entity.Roster;
@@ -30,24 +33,58 @@ public class TyrellDataLoaderService
   extends GwtDataLoaderService<TyrellClientSession>
   implements DataLoaderService
 {
-  private static final int POLL_DURATION = 2000;
-
   @Inject
   private EventBus _eventBus;
   @Inject
   private GwtRpcSubscriptionService _subscriptionService;
 
-  private Timer _timer;
-  private boolean _inPoll;
+  private final WebPoller _webPoller = WebPoller.newWebPoller();
+
+  class ReplicantRequestFactory
+    extends AbstractHttpRequestFactory
+  {
+    @Override
+    protected RequestBuilder getRequestBuilder()
+    {
+      final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, getPollURL() );
+      rb.setHeader( ReplicantContext.SESSION_ID_HEADER, getSessionID() );
+      return rb;
+    }
+  }
+
+  public TyrellDataLoaderService()
+  {
+    registerListeners();
+  }
+
+  private void registerListeners()
+  {
+    _webPoller.addMessageHandler( new MessageEvent.Handler()
+    {
+      @Override
+      public void onMessageEvent( @Nonnull final MessageEvent event )
+      {
+        handlePollSuccess( event.getData() );
+      }
+    } );
+    _webPoller.addErrorHandler( new ErrorEvent.Handler()
+    {
+      @Override
+      public void onErrorEvent( @Nonnull final ErrorEvent event )
+      {
+        handleSystemFailure( event.getException(), "Failed to poll" );
+      }
+    } );
+  }
 
   @Override
   public void connect()
   {
     final String url = GWT.getHostPageBaseURL() + "api/auth/token";
-    final RequestBuilder builder = new RequestBuilder( RequestBuilder.GET, url );
+    final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, url );
     try
     {
-      builder.sendRequest( "", new RequestCallback()
+      rb.sendRequest( "", new RequestCallback()
       {
         @Override
         public void onResponseReceived( final Request request, final Response response )
@@ -122,48 +159,16 @@ public class TyrellDataLoaderService
     }
   }
 
-  private void poll()
+  private String getPollURL()
   {
-    if ( _inPoll )
-    {
-      return;
-    }
-
-    _inPoll = true;
+    final String moduleBaseURL = GWT.getModuleBaseURL();
+    final String moduleName = GWT.getModuleName();
     final TyrellClientSession session = getSession();
 
-    final String baseURL = GWT.getHostPageBaseURL() + "api/replicant";
-    final String url = baseURL + "?rx=" + session.getLastRxSequence();
-    final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, url );
-    rb.setHeader( ReplicantContext.SESSION_ID_HEADER, session.getSessionID() );
-    try
-    {
+    final String contextURL = moduleBaseURL.substring( 0, moduleBaseURL.length() - moduleName.length() - 1 );
+    final String suffix = "?rx=" + session.getLastRxSequence();
 
-      rb.sendRequest( "", new RequestCallback()
-      {
-        @Override
-        public void onResponseReceived( final Request request, final Response response )
-        {
-          _inPoll = false;
-          final String rawJsonData = response.getText();
-          if ( Response.SC_OK == response.getStatusCode() && 0 != rawJsonData.length() )
-          {
-            handlePollSuccess( rawJsonData );
-          }
-        }
-
-        @Override
-        public void onError( final Request request, final Throwable exception )
-        {
-          _inPoll = false;
-          handleSystemFailure( exception, "Failed to poll" );
-        }
-      } );
-    }
-    catch ( final RequestException e )
-    {
-      LOG.log( Level.SEVERE, "Error initiating poll", e );
-    }
+    return contextURL + "api/replicant" + suffix;
   }
 
   final void handlePollSuccess( final String rawJsonData )
@@ -188,24 +193,16 @@ public class TyrellDataLoaderService
   private void startPolling()
   {
     stopPolling();
-    _timer = new Timer()
-    {
-      @Override
-      public void run()
-      {
-        poll();
-      }
-    };
-
-    _timer.scheduleRepeating( POLL_DURATION );
+    _webPoller.setRequestFactory( new ReplicantRequestFactory() );
+    _webPoller.setLongPoll( true );
+    _webPoller.start();
   }
 
   private void stopPolling()
   {
-    if ( null != _timer )
+    if ( _webPoller.isActive() )
     {
-      _timer.cancel();
-      _timer = null;
+      _webPoller.stop();
     }
   }
 
