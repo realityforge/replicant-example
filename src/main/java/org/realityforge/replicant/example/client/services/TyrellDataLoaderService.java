@@ -24,7 +24,7 @@ import org.realityforge.replicant.example.client.entity.TyrellClientSessionConte
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
-import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncErrorCallback;
+import org.realityforge.replicant.shared.transport.ReplicantContext;
 
 public class TyrellDataLoaderService
   extends GwtDataLoaderService<TyrellClientSession>
@@ -131,28 +131,39 @@ public class TyrellDataLoaderService
 
     _inPoll = true;
     final TyrellClientSession session = getSession();
-    _subscriptionService.
-      poll( session.getSessionID(),
-            session.getLastRxSequence(),
-            new TyrellGwtRpcAsyncCallback<String>()
-            {
-              @Override
-              public void onSuccess( final String rawJsonData )
-              {
-                _inPoll = false;
-                handlePollSuccess( rawJsonData );
-              }
-            },
-            new TyrellGwtRpcAsyncErrorCallback()
-            {
-              @Override
-              public void onFailure( final Throwable caught )
-              {
-                _inPoll = false;
-                handleSystemFailure( caught, "Failed to poll" );
-              }
-            }
-      );
+
+    final String baseURL = GWT.getHostPageBaseURL() + "api/replicant";
+    final String url = baseURL + "?rx=" + session.getLastRxSequence();
+    final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, url );
+    rb.setHeader( ReplicantContext.SESSION_ID_HEADER, session.getSessionID() );
+    try
+    {
+
+      rb.sendRequest( "", new RequestCallback()
+      {
+        @Override
+        public void onResponseReceived( final Request request, final Response response )
+        {
+          _inPoll = false;
+          final String rawJsonData = response.getText();
+          if ( Response.SC_OK == response.getStatusCode() && 0 != rawJsonData.length() )
+          {
+            handlePollSuccess( rawJsonData );
+          }
+        }
+
+        @Override
+        public void onError( final Request request, final Throwable exception )
+        {
+          _inPoll = false;
+          handleSystemFailure( exception, "Failed to poll" );
+        }
+      } );
+    }
+    catch ( final RequestException e )
+    {
+      LOG.log( Level.SEVERE, "Error initiating poll", e );
+    }
   }
 
   final void handlePollSuccess( final String rawJsonData )

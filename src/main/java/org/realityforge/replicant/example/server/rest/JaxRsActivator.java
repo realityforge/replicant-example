@@ -15,6 +15,7 @@ public class JaxRsActivator
     final Set<Class<?>> classes = new HashSet<Class<?>>();
     classes.addAll( super.getClasses() );
     classes.add( AuthenticationService.class );
+    classes.add( ReplicantResource.class );
     return classes;
   }
 }
