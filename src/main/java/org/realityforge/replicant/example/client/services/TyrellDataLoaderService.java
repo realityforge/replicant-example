@@ -180,6 +180,19 @@ public class TyrellDataLoaderService
         LOG.severe( "Received data from poll: " + rawJsonData );
       }
       enqueueDataLoad( rawJsonData );
+      if ( !_webPoller.isPaused() )
+      {
+        _webPoller.pause();
+      }
+    }
+  }
+
+  @Override
+  protected void onDataLoadComplete( final boolean bulkLoad, @Nullable final String requestID )
+  {
+    if ( _webPoller.isPaused() )
+    {
+      _webPoller.resume();
     }
   }
 
