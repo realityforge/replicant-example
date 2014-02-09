@@ -1,6 +1,7 @@
 package org.realityforge.replicant.example.server.service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -56,6 +57,7 @@ public class RosterServiceEJB
   {
     final Shift shift = new Shift( roster );
     shift.setName( name );
+    shift.setStartOn( new Date() );
     _shiftRepository.persist( shift );
     return shift;
   }

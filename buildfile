@@ -1,15 +1,14 @@
 require 'buildr/git_auto_version'
 require 'buildr/top_level_generate_dir'
 
-GWT_DEPS = [:gwt_datatypes,
-            :gwt_webpoller,
+GWT_DEPS = [:gwt_webpoller,
             :google_guice,
             :google_guice_assistedinject,
             :aopalliance,
             :gwt_gin,
             :javax_validation_sources]
 PROVIDED_DEPS = [:gwt_websockets, :javax_annotation, :javax_javaee] + GWT_DEPS
-COMPILE_DEPS = [:gwt_user, :replicant, :jackson_core, :jackson_mapper, :simple_session_filter, :gwt_cache_filter]
+COMPILE_DEPS = [:gwt_user, :replicant, :jackson_core, :jackson_mapper, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes]
 PACKAGE_DEPS = COMPILE_DEPS
 
 desc 'A simple application demonstrating the use of the replicant library'
