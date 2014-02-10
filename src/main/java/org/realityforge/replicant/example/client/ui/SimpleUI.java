@@ -4,6 +4,8 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.event.logical.shared.SelectionHandler;
+import com.google.gwt.i18n.shared.DateTimeFormat;
+import com.google.gwt.i18n.shared.DateTimeFormat.PredefinedFormat;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -343,7 +345,8 @@ public class SimpleUI
   private Widget createShiftWidget( final Shift shift )
   {
     final HorizontalPanel panel = new HorizontalPanel();
-    panel.add( new Label( shift.getName() ) );
+    final DateTimeFormat dtf = DateTimeFormat.getFormat( PredefinedFormat.DATE_TIME_FULL );
+    panel.add( new Label( shift.getName() + " - Started At " + dtf.format( shift.getStartAt() ) ) );
     final Button delete = new Button( "X" );
     delete.addClickHandler( new ClickHandler()
     {
