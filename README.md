@@ -16,4 +16,3 @@ TODO
 * Rework AbstractTyrellSessionManager so that SubscriptionServiceEJB need not extend it.
 * Rework subscription so that they can include attributes to help in routing decisions, and add extensions to allow custom code to perform routing.
 * Experiment with css styling of gwt widgets.
-* Encode DateTime over wire.
