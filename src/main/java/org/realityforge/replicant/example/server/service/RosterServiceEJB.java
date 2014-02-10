@@ -58,6 +58,7 @@ public class RosterServiceEJB
     final Shift shift = new Shift( roster );
     shift.setName( name );
     shift.setStartOn( new Date() );
+    shift.setStartAt( new Date() );
     _shiftRepository.persist( shift );
     return shift;
   }

@@ -34,6 +34,7 @@ Domgen.repository(:Tyrell) do |repository|
       t.reference(:Roster, :immutable => true, :"inverse.traversable" => true)
       t.string(:Name, 50)
       t.date(:StartOn)
+      t.datetime(:StartAt)
     end
 
     data_module.entity(:Position) do |t|
