@@ -42,7 +42,7 @@ public class SimpleUI
   private final Button _update;
   private final Button _connect;
   private final Button _disconnect;
-  private final Map<Object, TreeItem> _viewMap = new HashMap<>();
+  private final Map<Object, TreeItem> _viewMap = new HashMap<Object, TreeItem>();
   private final Label _selected;
   private final TextBox _input;
   private final DataLoaderService _dataLoaderService;

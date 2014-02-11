@@ -15,8 +15,8 @@ desc 'A simple application demonstrating the use of the replicant library'
 define 'replicant-example' do
   project.group = 'org.realityforge.replicant.example'
 
-  compile.options.source = '1.7'
-  compile.options.target = '1.7'
+  compile.options.source = '1.6'
+  compile.options.target = '1.6'
   compile.options.lint = 'all'
 
   Domgen::GenerateTask.new(:Tyrell,

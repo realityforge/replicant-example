@@ -144,7 +144,7 @@ public class TyrellDataLoaderService
 
   private void unloadRoster( final Roster roster )
   {
-    for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
+    for ( final Shift shift : new ArrayList<Shift>( roster.getShifts() ) )
     {
       getRepository().deregisterEntity( Shift.class, shift.getID() );
     }

@@ -38,7 +38,7 @@ public class RosterServiceEJB
   @Override
   public void removeRoster( @Nonnull final Roster roster )
   {
-    for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
+    for ( final Shift shift : new ArrayList<Shift>( roster.getShifts() ) )
     {
       removeShift( shift );
     }
