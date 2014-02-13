@@ -34,7 +34,7 @@ Domgen.repository(:Tyrell) do |repository|
       t.integer(:ID, :primary_key => true)
       t.reference(:Roster, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:RosterList])
       t.string(:Name, 50)
-      t.datetime(:StartAt)
+      t.datetime(:StartAt, :"imit.filter_in_graphs" => [:ShiftList])
       t.imit.replicate(:Shift, :instance)
     end
 

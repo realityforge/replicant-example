@@ -1,5 +1,6 @@
 package org.realityforge.replicant.example.server.service;
 
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
@@ -113,5 +114,20 @@ public class SubscriptionServiceEJB
   protected void collectRosterList( @Nonnull final EntityMessageSet messages )
   {
     getEncoder().encodeObjects( messages, _rosterRepository.findAll() );
+  }
+
+  @Override
+  protected boolean isShiftListInteresting( final TyrellSession session,
+                                            final Integer rosterID,
+                                            @Nonnull final Date shiftStartAt )
+  {
+    return true;
+  }
+
+  @Nonnull
+  @Override
+  protected TyrellSession newSessionInfo()
+  {
+    return super.newSessionInfo();
   }
 }
