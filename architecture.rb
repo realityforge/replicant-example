@@ -10,8 +10,9 @@ Domgen.repository(:Tyrell) do |repository|
   repository.java.base_package = 'org.realityforge.replicant.example'
 
   repository.imit.graph(:MetaData, :cacheable => true)
-  repository.imit.graph(:Roster)
   repository.imit.graph(:RosterList)
+  repository.imit.graph(:ShiftList)
+  repository.imit.graph(:Shift)
 
   repository.data_module(:Tyrell) do |data_module|
 
@@ -25,21 +26,21 @@ Domgen.repository(:Tyrell) do |repository|
       t.integer(:ID, :primary_key => true)
       t.reference(:RosterType, :immutable => true)
       t.string(:Name, 100)
-      t.imit.replicate(:Roster, :instance)
       t.imit.replicate(:RosterList, :type)
+      t.imit.replicate(:ShiftList, :instance)
     end
 
     data_module.entity(:Shift) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Roster, :immutable => true, :"inverse.traversable" => true)
+      t.reference(:Roster, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:RosterList])
       t.string(:Name, 50)
-      t.date(:StartOn)
       t.datetime(:StartAt)
+      t.imit.replicate(:Shift, :instance)
     end
 
     data_module.entity(:Position) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Shift, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:RosterList])
+      t.reference(:Shift, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:ShiftList])
       t.string(:Name, 50)
     end
 
@@ -75,6 +76,18 @@ Domgen.repository(:Tyrell) do |repository|
         m.reference(:Shift)
         m.text(:Name)
       end
+      s.method(:CreatePosition) do |m|
+        m.reference(:Shift)
+        m.text(:Name)
+        m.returns(:reference, :referenced_entity => :Position)
+      end
+      s.method(:RemovePosition) do |m|
+        m.reference(:Position)
+      end
+      s.method(:SetPositionName) do |m|
+        m.reference(:Position)
+        m.text(:Name)
+      end
     end
 
     data_module.exception(:BadSession, "ejb.rollback" => false)
@@ -95,14 +108,14 @@ Domgen.repository(:Tyrell) do |repository|
         m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
-      s.method(:SubscribeToRoster) do |m|
+      s.method(:SubscribeToShift) do |m|
         m.string(:ClientID, 50)
-        m.reference(:Roster)
+        m.reference(:Shift)
         m.exception(:BadSession)
       end
-      s.method(:UnsubscribeFromRoster) do |m|
+      s.method(:UnsubscribeFromShift) do |m|
         m.string(:ClientID, 50)
-        m.reference(:Roster)
+        m.reference(:Shift)
         m.exception(:BadSession)
       end
       s.method(:SubscribeToRosterList) do |m|
@@ -111,6 +124,16 @@ Domgen.repository(:Tyrell) do |repository|
       end
       s.method(:UnsubscribeFromRosterList) do |m|
         m.string(:ClientID, 50)
+        m.exception(:BadSession)
+      end
+      s.method(:SubscribeToShiftList) do |m|
+        m.string(:ClientID, 50)
+        m.reference(:Roster)
+        m.exception(:BadSession)
+      end
+      s.method(:UnsubscribeFromShiftList) do |m|
+        m.string(:ClientID, 50)
+        m.reference(:Roster)
         m.exception(:BadSession)
       end
       s.method(:Poll) do |m|

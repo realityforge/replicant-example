@@ -3,6 +3,7 @@ package org.realityforge.replicant.example.client.ui;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.i18n.shared.DateTimeFormat;
 import com.google.gwt.i18n.shared.DateTimeFormat.PredefinedFormat;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -10,17 +11,20 @@ import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Tree;
 import com.google.gwt.user.client.ui.TreeItem;
 import com.google.gwt.user.client.ui.Widget;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 
@@ -45,8 +49,11 @@ public class RosterUI
   Label _rosterName;
   @UiField
   Tree _tree;
+  @UiField
+  FlexTable _rosterData;
 
   private Roster _roster;
+  private Shift _shift;
 
   private final ApplicationController _controller;
 
@@ -54,6 +61,16 @@ public class RosterUI
   {
     _controller = controller;
     initWidget( UI_BINDER.createAndBindUi( this ) );
+  }
+
+  @UiHandler( "_tree" )
+  void onSelection( final SelectionEvent<TreeItem> event )
+  {
+    final Object model = event.getSelectedItem().getUserObject();
+    if ( model instanceof Shift )
+    {
+      _controller.selectShift( (Shift) model );
+    }
   }
 
   @UiHandler( "_disconnect" )
@@ -77,17 +94,40 @@ public class RosterUI
       _viewMap.clear();
       _controller.getBroker().purgeChangeListener( this );
       _rosterName.setText( "" );
+      _controller.selectShift( null );
     }
     _roster = roster;
     if ( null != _roster )
     {
-      _rosterName.setText( "Roster: " + _roster.getName() );
+      setRosterLabel( _roster );
       final TreeItem rosterNode = addRoster( _roster );
       for ( final Shift shift : _roster.getShifts() )
       {
         addShift( rosterNode, shift );
       }
-      _controller.getBroker().addChangeListener( _roster, this );
+      _controller.getBroker().addChangeListener( this );
+    }
+  }
+
+  public void setShift( final Shift shift )
+  {
+    LOG.warning( "setShift(" + shift + ")" );
+    _shift = shift;
+    rebuildRosterData();
+  }
+
+  private void rebuildRosterData()
+  {
+    _rosterData.removeAllRows();
+    if ( null != _shift )
+    {
+      final List<Position> positions = _shift.getPositions();
+      final int size = positions.size();
+      for ( int i = 0; i < size; i++ )
+      {
+        final Position position = positions.get( i );
+        _rosterData.setText( i, 0, position.getName() );
+      }
     }
   }
 
@@ -138,6 +178,7 @@ public class RosterUI
     if ( entity instanceof Roster )
     {
       final Roster roster = (Roster) entity;
+      setRosterLabel( roster );
       final TreeItem treeItem = _viewMap.get( roster );
       if ( null != treeItem )
       {
@@ -153,6 +194,50 @@ public class RosterUI
         treeItem.setWidget( createShiftWidget( shift ) );
       }
     }
+    else if ( entity instanceof Position )
+    {
+      final Position position = (Position) entity;
+      final TreeItem treeItem = _viewMap.get( position );
+      if ( null != treeItem )
+      {
+        treeItem.setWidget( createPositionWidget( position ) );
+      }
+      rebuildRosterData();
+    }
+  }
+
+  private void addPosition( final TreeItem parent, final Position position )
+  {
+    final TreeItem treeItem = parent.addItem( createPositionWidget( position ) );
+    treeItem.setUserObject( position );
+    _viewMap.put( position, treeItem );
+  }
+
+  private Widget createPositionWidget( final Position position )
+  {
+    final HorizontalPanel panel = new HorizontalPanel();
+    panel.add( new Label( position.getName() ) );
+    final Button delete = new Button( "X" );
+    delete.addClickHandler( new ClickHandler()
+    {
+      @Override
+      public void onClick( final ClickEvent event )
+      {
+        doDeletePosition( position );
+      }
+    } );
+    panel.add( delete );
+    return panel;
+  }
+
+  private void doDeletePosition( final Position position )
+  {
+    _controller.removePosition( position );
+  }
+
+  private void setRosterLabel( final Roster roster )
+  {
+    _rosterName.setText( "Roster: " + roster.getName() );
   }
 
   @Override
@@ -171,6 +256,16 @@ public class RosterUI
         addShift( parent, shift );
       }
     }
+    else if ( object instanceof Shift && value instanceof Position )
+    {
+      final Shift shift = (Shift) object;
+      final Position position = (Position) value;
+      final TreeItem parent = _viewMap.get( shift );
+      if ( null != parent )
+      {
+        addPosition( parent, position );
+      }
+    }
   }
 
   @Override
@@ -179,15 +274,22 @@ public class RosterUI
     LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
     final Object value = event.getValue();
     final Object object = event.getObject();
-    if ( object instanceof Roster && value instanceof Shift )
+    if (
+      ( object instanceof Roster && value instanceof Shift ) ||
+      ( object instanceof Shift && value instanceof Position )
+      )
     {
-      final Shift shift = (Shift) value;
-      final TreeItem treeItem = _viewMap.remove( shift );
+      final TreeItem treeItem = _viewMap.remove( value );
       if ( null != treeItem )
       {
         treeItem.remove();
       }
+      if ( value instanceof Position )
+      {
+        rebuildRosterData();
+      }
     }
+
   }
 
   private void addShift( final TreeItem parent, final Shift shift )
@@ -195,13 +297,17 @@ public class RosterUI
     final TreeItem treeItem = parent.addItem( createShiftWidget( shift ) );
     treeItem.setUserObject( shift );
     _viewMap.put( shift, treeItem );
+    for ( final Position position : shift.getPositions() )
+    {
+      addPosition( treeItem, position );
+    }
   }
 
   private Widget createShiftWidget( final Shift shift )
   {
     final HorizontalPanel panel = new HorizontalPanel();
-    final DateTimeFormat dtf = DateTimeFormat.getFormat( PredefinedFormat.DATE_TIME_FULL );
-    panel.add( new Label( shift.getName() + " - Started At " + dtf.format( shift.getStartAt() ) ) );
+    final DateTimeFormat dtf = DateTimeFormat.getFormat( PredefinedFormat.DATE_TIME_SHORT );
+    panel.add( new Label( dtf.format( shift.getStartAt() ) + " - " + shift.getName() ) );
     final Button delete = new Button( "X" );
     delete.addClickHandler( new ClickHandler()
     {

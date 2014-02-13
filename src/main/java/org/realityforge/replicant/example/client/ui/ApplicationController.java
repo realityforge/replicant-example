@@ -12,6 +12,7 @@ import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.client.EntityRepository;
+import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
@@ -37,6 +38,7 @@ public class ApplicationController
   private final SimplePanel _mainPanel;
   private final EventBus _eventBus;
   private Roster _currentRoster;
+  private Shift _currentShift;
 
   @Inject
   public ApplicationController( final GwtRpcRosterService rosterService,
@@ -102,22 +104,49 @@ public class ApplicationController
 
   public void selectRoster( @Nullable final Roster roster )
   {
-    final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
-    if ( _currentRoster != roster && null != _currentRoster )
+    if ( _currentRoster == roster )
     {
-      subscriptionManager.unsubscribeFromRoster( _currentRoster.getID() );
+      return;
+    }
+    final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
+    if ( null != _currentRoster )
+    {
+      subscriptionManager.unsubscribeFromShiftList( _currentRoster.getID() );
     }
     _currentRoster = roster;
     if ( null != _currentRoster )
     {
-      subscriptionManager.subscribeToRoster( roster.getID() );
-      _rosterUI.setRoster( roster );
+      subscriptionManager.subscribeToShiftList( roster.getID() );
+      _rosterUI.setRoster( _currentRoster );
       goToRosterAtivity();
     }
     else
     {
       _rosterUI.setRoster( null );
       goToRosterListActivity();
+    }
+  }
+
+  public void selectShift( @Nullable final Shift shift )
+  {
+    if( _currentShift == shift )
+    {
+      return;
+    }
+    final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
+    if ( null != _currentShift )
+    {
+      subscriptionManager.unsubscribeFromShift( _currentShift.getID() );
+    }
+    _currentShift = shift;
+    if ( null != _currentShift )
+    {
+      subscriptionManager.subscribeToShift( _currentShift.getID() );
+      _rosterUI.setShift( _currentShift );
+    }
+    else
+    {
+      _rosterUI.setShift( null );
     }
   }
 
@@ -203,5 +232,10 @@ public class ApplicationController
     _dataLoaderService.disconnect();
     _loginUI.resetState();
     gotoLoginActivity();
+  }
+
+  public void removePosition( final Position position )
+  {
+    _rosterService.removePosition( position.getID() );
   }
 }

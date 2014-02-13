@@ -5,14 +5,16 @@ import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import org.realityforge.replicant.example.server.entity.Position;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.RosterType;
 import org.realityforge.replicant.example.server.entity.Shift;
+import org.realityforge.replicant.example.server.entity.dao.PositionRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
-@Stateless(name = RosterService.EJB_NAME)
+@Stateless( name = RosterService.EJB_NAME )
 public class RosterServiceEJB
   implements RosterService
 {
@@ -24,6 +26,9 @@ public class RosterServiceEJB
 
   @EJB
   private ShiftRepository _shiftRepository;
+
+  @EJB
+  private PositionRepository _positionRepository;
 
   @Override
   @Nonnull
@@ -57,7 +62,6 @@ public class RosterServiceEJB
   {
     final Shift shift = new Shift( roster );
     shift.setName( name );
-    shift.setStartOn( new Date() );
     shift.setStartAt( new Date() );
     _shiftRepository.persist( shift );
     return shift;
@@ -73,5 +77,27 @@ public class RosterServiceEJB
   public void setShiftName( @Nonnull final Shift shift, @Nonnull final String name )
   {
     shift.setName( name );
+  }
+
+  @Override
+  @Nonnull
+  public Position createPosition( @Nonnull final Shift shift, @Nonnull final String name )
+  {
+    final Position position = new Position( shift );
+    position.setName( name );
+    _positionRepository.persist( position );
+    return position;
+  }
+
+  @Override
+  public void removePosition( @Nonnull final Position position )
+  {
+    _positionRepository.remove( position );
+  }
+
+  @Override
+  public void setPositionName( @Nonnull final Position position, @Nonnull final String name )
+  {
+    position.setName( name );
   }
 }

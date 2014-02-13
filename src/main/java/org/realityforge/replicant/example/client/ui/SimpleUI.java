@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
@@ -50,6 +51,7 @@ public class SimpleUI
   private final Button _downloadAll;
   private Roster _selectedRoster;
   private Shift _selectedShift;
+  private Position _selectedPosition;
 
   @Inject
   public SimpleUI( final ApplicationController applicationController,
@@ -192,6 +194,7 @@ public class SimpleUI
   {
     _selectedRoster = null;
     _selectedShift = null;
+    _selectedPosition = null;
     if ( userObject instanceof Roster )
     {
       _selectedRoster = (Roster) userObject;
@@ -204,6 +207,14 @@ public class SimpleUI
     {
       _selectedShift = (Shift) userObject;
       _selected.setText( "Selected Shift: " + _selectedShift.getName() );
+      _create.setText( "Create Position" );
+      _create.setEnabled( true );
+      _update.setEnabled( true );
+    }
+    else if ( userObject instanceof Position )
+    {
+      _selectedPosition = (Position) userObject;
+      _selected.setText( "Selected Position: " + _selectedPosition.getName() );
       _create.setEnabled( false );
       _update.setEnabled( true );
     }
@@ -221,16 +232,20 @@ public class SimpleUI
     {
       _rosterService.setRosterName( _selectedRoster.getID(), _input.getValue() );
     }
-    else
+    else if ( null != _selectedShift )
     {
       _rosterService.setShiftName( _selectedShift.getID(), _input.getValue() );
+    }
+    else
+    {
+      _rosterService.setPositionName( _selectedPosition.getID(), _input.getValue() );
     }
     _input.setValue( "" );
   }
 
   private void onCreate()
   {
-    if ( null == _selectedRoster )
+    if ( null == _selectedRoster && null == _selectedShift )
     {
       final int rosterType = 1;
       _rosterService.createRoster( rosterType, _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
@@ -238,13 +253,24 @@ public class SimpleUI
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.getSession().getSubscriptionManager().subscribeToRoster( result );
+          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShiftList( result );
+        }
+      } );
+    }
+    else if ( null != _selectedRoster && null == _selectedPosition )
+    {
+      _rosterService.createShift( _selectedRoster.getID(), _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+      {
+        @Override
+        public void onSuccess( final Integer result )
+        {
+          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShift( result );
         }
       } );
     }
     else
     {
-      _rosterService.createShift( _selectedRoster.getID(), _input.getValue() );
+      _rosterService.createPosition( _selectedShift.getID(), _input.getValue() );
     }
     _input.setValue( "" );
   }
@@ -318,6 +344,15 @@ public class SimpleUI
         treeItem.setWidget( createShiftWidget( shift ) );
       }
     }
+    else if ( entity instanceof Position )
+    {
+      final Position position = (Position) entity;
+      final TreeItem treeItem = _viewMap.get( position );
+      if ( null != treeItem )
+      {
+        treeItem.setWidget( createPositionWidget( position ) );
+      }
+    }
   }
 
   @Override
@@ -343,6 +378,10 @@ public class SimpleUI
     final TreeItem treeItem = parent.addItem( createShiftWidget( shift ) );
     treeItem.setUserObject( shift );
     _viewMap.put( shift, treeItem );
+    for ( final Position position : shift.getPositions() )
+    {
+      addPosition( treeItem, position );
+    }
   }
 
   private Widget createShiftWidget( final Shift shift )
@@ -372,6 +411,39 @@ public class SimpleUI
     }
   }
 
+  private void addPosition( final TreeItem parent, final Position position )
+  {
+    final TreeItem treeItem = parent.addItem( createPositionWidget( position ) );
+    treeItem.setUserObject( position );
+    _viewMap.put( position, treeItem );
+  }
+
+  private Widget createPositionWidget( final Position position )
+  {
+    final HorizontalPanel panel = new HorizontalPanel();
+    panel.add( new Label( position.getName() ) );
+    final Button delete = new Button( "X" );
+    delete.addClickHandler( new ClickHandler()
+    {
+      @Override
+      public void onClick( final ClickEvent event )
+      {
+        doDeletePosition( position );
+      }
+    } );
+    panel.add( delete );
+    return panel;
+  }
+
+  private void doDeletePosition( final Position position )
+  {
+    _rosterService.removePosition( position.getID() );
+    if ( _selectedPosition == position )
+    {
+      onSelect( null );
+    }
+  }
+
   @Override
   public void relatedRemoved( final EntityChangeEvent event )
   {
@@ -382,6 +454,15 @@ public class SimpleUI
     {
       final Shift shift = (Shift) value;
       final TreeItem treeItem = _viewMap.remove( shift );
+      if ( null != treeItem )
+      {
+        treeItem.remove();
+      }
+    }
+    else if ( object instanceof Shift && value instanceof Position )
+    {
+      final Position position = (Position) value;
+      final TreeItem treeItem = _viewMap.remove( position );
       if ( null != treeItem )
       {
         treeItem.remove();

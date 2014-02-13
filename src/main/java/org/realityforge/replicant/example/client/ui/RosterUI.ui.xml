@@ -9,7 +9,7 @@
             <g:Tree ui:field="_tree"/>
           </td>
           <td>
-
+            <g:FlexTable ui:field="_rosterData"/>
           </td>
         </tr>
       </table>

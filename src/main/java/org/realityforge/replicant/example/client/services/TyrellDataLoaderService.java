@@ -20,6 +20,7 @@ import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
 import org.realityforge.gwt.webpoller.client.event.MessageEvent;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
+import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
@@ -148,9 +149,37 @@ public class TyrellDataLoaderService
   {
     for ( final Shift shift : new ArrayList<Shift>( roster.getShifts() ) )
     {
-      getRepository().deregisterEntity( Shift.class, shift.getID() );
+      unloadShift( shift );
     }
     getRepository().deregisterEntity( Roster.class, roster.getID() );
+  }
+
+  private void unloadShift( final int shiftID )
+  {
+    final Shift shift = getRepository().findByID( Shift.class, shiftID );
+    if ( null != shift )
+    {
+      unloadShift( shift );
+    }
+  }
+
+  private void unloadShift( final Shift shift )
+  {
+    unloadPositions( shift );
+    getRepository().deregisterEntity( Shift.class, shift.getID() );
+  }
+
+  private void unloadPositions( final Shift shift )
+  {
+    for ( final Position position : new ArrayList<Position>( shift.getPositions() ) )
+    {
+      unloadPosition( position );
+    }
+  }
+
+  private void unloadPosition( final Position position )
+  {
+    getRepository().deregisterEntity( Position.class, position.getID() );
   }
 
   private void unloadRosters()
@@ -285,9 +314,9 @@ public class TyrellDataLoaderService
     }
 
     @Override
-    public void remoteSubscribeToRoster( final int id, @Nonnull final Runnable runnable )
+    public void remoteSubscribeToShift( final int id, @Nonnull final Runnable runnable )
     {
-      _subscriptionService.subscribeToRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      _subscriptionService.subscribeToShift( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
       {
         @Override
         public void onSuccess( final Void result )
@@ -298,14 +327,14 @@ public class TyrellDataLoaderService
     }
 
     @Override
-    public void remoteUnsubscribeFromRoster( final int id, @Nonnull final Runnable runnable )
+    public void remoteUnsubscribeFromShift( final int id, @Nonnull final Runnable runnable )
     {
-      _subscriptionService.unsubscribeFromRoster( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      _subscriptionService.unsubscribeFromShift( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
       {
         @Override
         public void onSuccess( final Void result )
         {
-          unloadRoster( id );
+          unloadPositions( getRepository().findByID( Shift.class, id ) );
           runnable.run();
         }
       } );
@@ -333,6 +362,32 @@ public class TyrellDataLoaderService
         public void onSuccess( final Void result )
         {
           unloadRosters();
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteSubscribeToShiftList( final int id, @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.subscribeToShiftList( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
+          runnable.run();
+        }
+      } );
+    }
+
+    @Override
+    public void remoteUnsubscribeFromShiftList( final int id, @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.unsubscribeFromShiftList( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      {
+        @Override
+        public void onSuccess( final Void result )
+        {
           runnable.run();
         }
       } );

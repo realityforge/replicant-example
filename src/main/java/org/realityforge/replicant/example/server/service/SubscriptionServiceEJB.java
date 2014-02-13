@@ -10,9 +10,11 @@ import javax.ejb.Singleton;
 import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.AbstractTyrellSessionManager;
 import org.realityforge.replicant.example.server.entity.Roster;
+import org.realityforge.replicant.example.server.entity.Shift;
 import org.realityforge.replicant.example.server.entity.TyrellSession;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
+import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.EntityMessageSet;
 import org.realityforge.replicant.server.ee.EntityMessageCacheUtil;
@@ -35,6 +37,9 @@ public class SubscriptionServiceEJB
 
   @Inject
   private RosterRepository _rosterRepository;
+
+  @Inject
+  private ShiftRepository _shiftRepository;
 
   @Override
   protected String getMetaDataCacheKey()
@@ -82,10 +87,18 @@ public class SubscriptionServiceEJB
     final TyrellSession session = ensureSession( clientID );
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      if ( !session.isRosterInteresting( roster.getID() ) )
+      if ( !session.isShiftListInteresting( roster.getID() ) )
       {
-        session.registerInterestInRoster( roster.getID() );
-        getEncoder().encodeRoster( messages, roster );
+        session.registerInterestInShiftList( roster.getID() );
+        getEncoder().encodeShiftList( messages, roster );
+      }
+    }
+    for ( final Shift shift : _shiftRepository.findAll() )
+    {
+      if ( !session.isShiftInteresting( shift.getID() ) )
+      {
+        session.registerInterestInShift( shift.getID() );
+        getEncoder().encodeShift( messages, shift );
       }
     }
   }
@@ -99,9 +112,6 @@ public class SubscriptionServiceEJB
   @Override
   protected void collectRosterList( @Nonnull final EntityMessageSet messages )
   {
-    for ( final Roster roster : _rosterRepository.findAll() )
-    {
-      getEncoder().encodeRoster( messages, roster );
-    }
+    getEncoder().encodeObjects( messages, _rosterRepository.findAll() );
   }
 }
