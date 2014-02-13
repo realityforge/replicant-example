@@ -65,7 +65,7 @@ public class RosterUI
     initWidget( UI_BINDER.createAndBindUi( this ) );
   }
 
-  @UiHandler( "_tree" )
+  @UiHandler("_tree")
   void onSelection( final SelectionEvent<TreeItem> event )
   {
     final Object model = event.getSelectedItem().getUserObject();
@@ -75,13 +75,13 @@ public class RosterUI
     }
   }
 
-  @UiHandler( "_disconnect" )
+  @UiHandler("_disconnect")
   void handleRosterNameChange( final ClickEvent event )
   {
     _controller.disconnect();
   }
 
-  @UiHandler( "_delete" )
+  @UiHandler("_delete")
   void onDeleteRoster( final ClickEvent event )
   {
     _controller.doDeleteRoster( _roster );
