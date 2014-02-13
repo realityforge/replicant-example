@@ -2,14 +2,21 @@
              xmlns:g='urn:import:com.google.gwt.user.client.ui'>
   <g:HTMLPanel>
     <div>
-      <h1><g:Label ui:field="_rosterName"/></h1>
-      <table>
+      <h1>
+        <g:Label ui:field="_rosterName"/>
+      </h1>
+      <table style="width: 100%">
         <tr>
           <td>
             <g:Tree ui:field="_tree"/>
           </td>
-          <td>
-            <g:FlexTable ui:field="_rosterData"/>
+          <td style="width: 100%">
+            <div style="padding:1em; background-color: grey; windth: 100%;">
+              <h5>
+                <g:Label ui:field="_shiftName"/>
+              </h5>
+              <g:FlexTable ui:field="_rosterData" />
+            </div>
           </td>
         </tr>
       </table>

@@ -51,6 +51,8 @@ public class RosterUI
   Tree _tree;
   @UiField
   FlexTable _rosterData;
+  @UiField
+  Label _shiftName;
 
   private Roster _roster;
   private Shift _shift;
@@ -113,6 +115,7 @@ public class RosterUI
   {
     LOG.warning( "setShift(" + shift + ")" );
     _shift = shift;
+    _shiftName.setText( null != _shift ? _shift.getName() : "" );
     rebuildRosterData();
   }
 
