@@ -43,6 +43,8 @@ Domgen.repository(:Tyrell) do |repository|
       t.string(:Name, 50)
     end
 
+    data_module.message(:SessionEstablished)
+
     data_module.message(:SystemError) do |m|
       m.text(:Message)
       m.parameter(:Throwable, "java.lang.Throwable", :nullable => true)

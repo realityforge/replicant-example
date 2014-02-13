@@ -52,7 +52,8 @@ public class SimpleUI
   private Shift _selectedShift;
 
   @Inject
-  public SimpleUI( final EntityChangeBroker broker,
+  public SimpleUI( final ApplicationController applicationController,
+                   final EntityChangeBroker broker,
                    final DataLoaderService dataLoaderService,
                    final GwtRpcRosterService rosterService )
   {
@@ -133,6 +134,8 @@ public class SimpleUI
 
     panel.add( control );
     panel.add( _tree );
+
+    panel.add( applicationController );
 
     _tree.addSelectionHandler( new SelectionHandler<TreeItem>()
     {

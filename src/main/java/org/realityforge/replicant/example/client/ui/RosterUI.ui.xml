@@ -1,0 +1,25 @@
+<ui:UiBinder xmlns:ui='urn:ui:com.google.gwt.uibinder'
+             xmlns:g='urn:import:com.google.gwt.user.client.ui'>
+  <g:HTMLPanel>
+    <div>
+      <h1><g:Label ui:field="_rosterName"/></h1>
+      <table>
+        <tr>
+          <td>
+            <g:Tree ui:field="_tree"/>
+          </td>
+          <td>
+
+          </td>
+        </tr>
+      </table>
+      <div>
+        <g:Button text="Delete Roster" ui:field="_delete"/>
+      </div>
+      <div>
+        <g:Button text="Disconnect" ui:field="_disconnect"/>
+      </div>
+    </div>
+  </g:HTMLPanel>
+
+</ui:UiBinder>

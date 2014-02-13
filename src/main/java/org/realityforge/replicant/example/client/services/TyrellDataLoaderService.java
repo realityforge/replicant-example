@@ -24,6 +24,7 @@ import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
+import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
@@ -116,6 +117,7 @@ public class TyrellDataLoaderService
       {
         startPolling();
         getSession().getSubscriptionManager().subscribeToMetaData();
+        _eventBus.fireEvent( new SessionEstablishedEvent() );
       }
     } );
   }
@@ -213,10 +215,15 @@ public class TyrellDataLoaderService
 
   private void stopPolling()
   {
-    if ( _webPoller.isActive() )
+    if ( isConnected() )
     {
       _webPoller.stop();
     }
+  }
+
+  public boolean isConnected()
+  {
+    return _webPoller.isActive();
   }
 
   @Override
