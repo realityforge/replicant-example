@@ -371,6 +371,16 @@ public class SimpleUI
         addShift( parent, shift );
       }
     }
+    else if ( object instanceof Shift && value instanceof Position )
+    {
+      final Shift shift = (Shift) object;
+      final Position position = (Position) value;
+      final TreeItem parent = _viewMap.get( shift );
+      if ( null != parent )
+      {
+        addPosition( parent, position );
+      }
+    }
   }
 
   private void addShift( final TreeItem parent, final Shift shift )
