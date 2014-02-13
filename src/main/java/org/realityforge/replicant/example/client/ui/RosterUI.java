@@ -268,6 +268,10 @@ public class RosterUI
       {
         addPosition( parent, position );
       }
+      if ( shift == _shift )
+      {
+        rebuildRosterData();
+      }
     }
   }
 
