@@ -15,6 +15,11 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:Shift)
 
   repository.data_module(:Tyrell) do |data_module|
+    data_module.struct(:RosterSubscriptionDTO) do |s|
+      s.date(:StartOn)
+      s.integer(:NumberOfDays)
+    end
+    repository.imit.graph_by_name(:ShiftList).filter(:struct, :referenced_struct => :"Tyrell.RosterSubscriptionDTO")
 
     data_module.entity(:RosterType) do |t|
       t.integer(:ID, :primary_key => true)
@@ -129,6 +134,13 @@ Domgen.repository(:Tyrell) do |repository|
       s.method(:SubscribeToShiftList) do |m|
         m.string(:ClientID, 50)
         m.reference(:Roster)
+        m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)
+        m.exception(:BadSession)
+      end
+      s.method(:UpdateSubscriptionToShiftList) do |m|
+        m.string(:ClientID, 50)
+        m.reference(:Roster)
+        m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)
         m.exception(:BadSession)
       end
       s.method(:UnsubscribeFromShiftList) do |m|

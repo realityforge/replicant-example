@@ -9,6 +9,7 @@ import javax.ejb.Local;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import org.realityforge.replicant.example.server.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.server.entity.AbstractTyrellSessionManager;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.Shift;
@@ -90,7 +91,7 @@ public class SubscriptionServiceEJB
     {
       if ( !session.isShiftListInteresting( roster.getID() ) )
       {
-        session.registerInterestInShiftList( roster.getID() );
+        session.registerInterestInShiftList( roster.getID(), new RosterSubscriptionDTO( new Date(), 7 ) );
         getEncoder().encodeShiftList( messages, roster );
       }
     }
@@ -122,6 +123,17 @@ public class SubscriptionServiceEJB
                                             @Nonnull final Date shiftStartAt )
   {
     return true;
+  }
+
+  @Override
+  public void updateSubscriptionToShiftList( @Nonnull final String clientID,
+                                             @Nonnull final Roster roster,
+                                             @Nonnull final RosterSubscriptionDTO rosterSubscriptionDTO )
+    throws BadSessionException
+  {
+    final TyrellSession session = ensureSession( clientID );
+    final RosterSubscriptionDTO existing = session.getInterestedInShiftList().get( roster.getID() );
+    session.updateInterestInShiftList( roster.getID(), rosterSubscriptionDTO );
   }
 
   @Nonnull

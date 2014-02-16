@@ -16,14 +16,18 @@ import com.google.gwt.user.client.ui.Tree;
 import com.google.gwt.user.client.ui.TreeItem;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
+import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTOFactory;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
@@ -253,7 +257,8 @@ public class SimpleUI
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShiftList( result );
+      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
+          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShiftList( result, filter );
         }
       } );
     }

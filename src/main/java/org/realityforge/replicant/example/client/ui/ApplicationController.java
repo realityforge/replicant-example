@@ -4,14 +4,18 @@ import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.web.bindery.event.shared.EventBus;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.client.EntityRepository;
+import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
+import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTOFactory;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
@@ -116,7 +120,8 @@ public class ApplicationController
     _currentRoster = roster;
     if ( null != _currentRoster )
     {
-      subscriptionManager.subscribeToShiftList( roster.getID() );
+      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
+      subscriptionManager.subscribeToShiftList( roster.getID(), filter );
       _rosterUI.setRoster( _currentRoster );
       goToRosterAtivity();
     }

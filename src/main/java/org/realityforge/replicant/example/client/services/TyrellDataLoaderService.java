@@ -20,6 +20,7 @@ import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
 import org.realityforge.gwt.webpoller.client.event.MessageEvent;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
+import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
@@ -31,6 +32,10 @@ import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionServi
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
+
+/**
+ * TODO: Rework the generated to accept arbitrary parameters subscriptionManager
+ */
 public class TyrellDataLoaderService
   extends GwtDataLoaderService<TyrellClientSession>
   implements DataLoaderService
@@ -368,9 +373,11 @@ public class TyrellDataLoaderService
     }
 
     @Override
-    public void remoteSubscribeToShiftList( final int id, @Nonnull final Runnable runnable )
+    public void remoteSubscribeToShiftList( final int id,
+                                            @Nonnull final RosterSubscriptionDTO filter,
+                                            @Nonnull final Runnable runnable )
     {
-      _subscriptionService.subscribeToShiftList( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      _subscriptionService.subscribeToShiftList( getSessionID(), id, filter, new TyrellGwtRpcAsyncCallback<Void>()
       {
         @Override
         public void onSuccess( final Void result )
@@ -391,6 +398,22 @@ public class TyrellDataLoaderService
           runnable.run();
         }
       } );
+    }
+
+    @Override
+    public void remoteUpdateShiftListSubscription( final int id,
+                                                   @Nonnull final RosterSubscriptionDTO filter,
+                                                   @Nonnull final Runnable runnable )
+    {
+      _subscriptionService.updateSubscriptionToShiftList( getSessionID(), id, filter,
+                                                          new TyrellGwtRpcAsyncCallback<Void>()
+                                                          {
+                                                            @Override
+                                                            public void onSuccess( final Void result )
+                                                            {
+                                                              runnable.run();
+                                                            }
+                                                          } );
     }
   }
 }
