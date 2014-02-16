@@ -120,6 +120,7 @@ public class SubscriptionServiceEJB
   @Override
   protected boolean isShiftListInteresting( final TyrellSession session,
                                             final Integer rosterID,
+                                            @Nonnull final RosterSubscriptionDTO filter,
                                             @Nonnull final Date shiftStartAt )
   {
     return true;
