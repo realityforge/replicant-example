@@ -122,7 +122,7 @@ public class TyrellDataLoaderService
       public void run()
       {
         startPolling();
-        getSession().getSubscriptionManager().subscribeToMetaData();
+        getSession().getSubscriptionManager().subscribeToMetaData( null );
         _eventBus.fireEvent( new SessionEstablishedEvent() );
       }
     } );

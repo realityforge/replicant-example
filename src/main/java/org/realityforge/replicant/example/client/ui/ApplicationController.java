@@ -7,6 +7,7 @@ import com.google.web.bindery.event.shared.EventBus;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.gwt.datatypes.client.date.RDate;
@@ -21,7 +22,6 @@ import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
-import org.realityforge.replicant.example.client.event.SessionEstablishedEventHandler;
 import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
@@ -62,13 +62,13 @@ public class ApplicationController
     _mainPanel = new SimplePanel();
     gotoLoginActivity();
     broker.addChangeListener( this );
-    _eventBus.addHandler( SessionEstablishedEvent.TYPE, new SessionEstablishedEventHandler()
+    _eventBus.addHandler( SessionEstablishedEvent.TYPE, new SessionEstablishedEvent.Handler()
     {
       @Override
-      public void onSessionEstablished( final SessionEstablishedEvent event )
+      public void onSessionEstablished( @Nonnull final SessionEstablishedEvent event )
       {
         goToRosterListActivity();
-        _dataLoaderService.getSession().getSubscriptionManager().subscribeToRosterList();
+        _dataLoaderService.getSession().getSubscriptionManager().subscribeToRosterList( null );
       }
     } );
   }
@@ -115,13 +115,13 @@ public class ApplicationController
     final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
     if ( null != _currentRoster )
     {
-      subscriptionManager.unsubscribeFromShiftList( _currentRoster.getID() );
+      subscriptionManager.unsubscribeFromShiftList( _currentRoster.getID(), null );
     }
     _currentRoster = roster;
     if ( null != _currentRoster )
     {
       final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
-      subscriptionManager.subscribeToShiftList( roster.getID(), filter );
+      subscriptionManager.subscribeToShiftList( roster.getID(), filter, null );
       _rosterUI.setRoster( _currentRoster );
       goToRosterAtivity();
     }
@@ -141,12 +141,12 @@ public class ApplicationController
     final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
     if ( null != _currentShift )
     {
-      subscriptionManager.unsubscribeFromShift( _currentShift.getID() );
+      subscriptionManager.unsubscribeFromShift( _currentShift.getID(), null );
     }
     _currentShift = shift;
     if ( null != _currentShift )
     {
-      subscriptionManager.subscribeToShift( _currentShift.getID() );
+      subscriptionManager.subscribeToShift( _currentShift.getID(), null );
       _rosterUI.setShift( _currentShift );
     }
     else
