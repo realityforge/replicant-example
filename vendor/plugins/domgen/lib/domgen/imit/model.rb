@@ -61,6 +61,14 @@ module Domgen
         @filter_in_graphs || []
       end
 
+      def include_edges
+        @include_edges ||= []
+      end
+
+      def include_edges=(include_edges)
+        @include_edges = include_edges
+      end
+
       include Domgen::Java::ImitJavaCharacteristic
 
       protected
@@ -264,28 +272,28 @@ module Domgen
       end
 
       def type_roots
-        raise "type_roots invoked for graph #{key} when instance based" if instance_root?
+        raise "type_roots invoked for graph #{name} when instance based" if instance_root?
         @type_roots
       end
 
       def type_roots=(type_roots)
-        raise "Attempted to assign type_roots #{type_roots.inspect} for graph #{key} when instance based on #{@instance_root.inspect}" if instance_root?
+        raise "Attempted to assign type_roots #{type_roots.inspect} for graph #{name} when instance based on #{@instance_root.inspect}" if instance_root?
         @type_roots = type_roots
       end
 
       def instance_root
-        raise "instance_root invoked for graph #{key} when not instance based" if 0 != @type_roots.size
+        raise "instance_root invoked for graph #{name} when not instance based" if 0 != @type_roots.size
         @instance_root
       end
 
       def instance_root=(instance_root)
-        raise "Attempted to assign instance_root to #{instance_root.inspect} for graph #{key} when not instance based (type_roots=#{@type_roots.inspect})" if 0 != @type_roots.size
+        raise "Attempted to assign instance_root to #{instance_root.inspect} for graph #{name} when not instance based (type_roots=#{@type_roots.inspect})" if 0 != @type_roots.size
         @instance_root = instance_root
       end
 
       # Return the list of entities reachable in instance graph
       def reachable_entities
-        raise "reachable_entities invoked for graph #{key} when not instance based" if 0 != @type_roots.size
+        raise "reachable_entities invoked for graph #{name} when not instance based" if 0 != @type_roots.size
         @reachable_entities ||= []
       end
 
@@ -558,14 +566,21 @@ module Domgen
           end
         end
         repository.imit.graphs.select { |graph| graph.instance_root? }.each do |graph|
-          entity_list = [repository.data_modules[0].entity_by_name(graph.instance_root)]
+          entity_list = [repository.entity_by_name(graph.instance_root)]
           while entity_list.size > 0
             entity = entity_list.pop
-            graph.reachable_entities << entity.qualified_name.to_s
-            entity.referencing_attributes.each do |a|
-              if a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && !a.inverse.imit.exclude_edges.include?(graph.name)
-                a.inverse.imit.replication_edges = a.inverse.imit.replication_edges + [graph.name]
-                entity_list << a.entity unless graph.reachable_entities.include?(a.entity.qualified_name.to_s)
+            if !graph.reachable_entities.include?(entity.qualified_name.to_s)
+              graph.reachable_entities << entity.qualified_name.to_s
+              entity.referencing_attributes.each do |a|
+                if a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && !a.inverse.imit.exclude_edges.include?(graph.name)
+                  a.inverse.imit.replication_edges = a.inverse.imit.replication_edges + [graph.name]
+                  entity_list << a.entity unless graph.reachable_entities.include?(a.entity.qualified_name.to_s)
+                end
+              end
+              entity.attributes.each do |a|
+                if a.reference? && a.imit? && a.inverse.imit.traversable? && a.imit.client_side? && a.referenced_entity.imit? && a.imit.include_edges.include?(graph.name)
+                  entity_list << a.referenced_entity unless graph.reachable_entities.include?(a.referenced_entity.qualified_name.to_s)
+                end
               end
             end
           end

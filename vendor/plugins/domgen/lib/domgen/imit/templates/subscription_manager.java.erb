@@ -9,9 +9,9 @@ public interface <%= repository.imit.subscription_manager_name %>
   param = ''
   if graph.instance_root?
     # Names are fully qualified so take any random data module
-    entity = repository.data_modules[0].entity_by_name(graph.instance_root)
+    entity = repository.entity_by_name(graph.instance_root)
     type = entity.primary_key.imit.primitive_java_type
-    param = "#{type} id"
+    param = "#{type} #{Domgen::Naming.camelize(entity.name)}#{entity.primary_key.name}"
   end
   update_param = param.dup
   if graph.filter_parameter
@@ -21,11 +21,18 @@ public interface <%= repository.imit.subscription_manager_name %>
     filter_param = "#{java_type} filter"
     update_param = "#{update_param}#{filter_param}"
   end
+  suffix = "@javax.annotation.Nullable Runnable runnable"
 %>
-  void subscribeTo<%= graph.name %>(<%= update_param %>);
+  boolean isSubscribedTo<%= graph.name %>(<%= param %>);
 
-  void unsubscribeFrom<%= graph.name %>(<%= param %>);
+  void subscribeTo<%= graph.name %>(<%= update_param %><%= update_param.size > 0 ? ", #{suffix}" : suffix %>);
+
+  void unsubscribeFrom<%= graph.name %>(<%= param %><%= param.size > 0 ? ", #{suffix}" : suffix %>);
+
+<% if graph.instance_root? -%>
+  java.util.Map<Object, org.realityforge.replicant.client.transport.SubscriptionEntry<<%= repository.imit.qualified_graph_enum_name %>>> get<%= graph.name %>Subscriptions();
+<% end -%>
 <% if graph.filter_parameter %>
-  void update<%= graph.name %>Subscription(<%= update_param %>);
+  void update<%= graph.name %>Subscription(<%= update_param %><%= update_param.size > 0 ? ", #{suffix}" : suffix %>);
 <% end %>
 <% end %>}

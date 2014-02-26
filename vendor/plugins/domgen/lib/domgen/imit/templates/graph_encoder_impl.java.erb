@@ -15,7 +15,7 @@ public class <%= repository.imit.graph_encoder_impl_name %>
 
 <%
   repository.imit.graphs.select{|graph| graph.instance_root? }.each do |graph|
-    entity = repository.data_modules[0].entity_by_name(graph.instance_root)
+    entity = repository.entity_by_name(graph.instance_root)
 %>
   @Override
   public void encode<%= graph.name %>( @javax.annotation.Nonnull final org.realityforge.replicant.server.EntityMessageSet messages, @javax.annotation.Nonnull final <%= entity.jpa.qualified_name %> object )
@@ -24,7 +24,7 @@ public class <%= repository.imit.graph_encoder_impl_name %>
   }
 
 <%
-  graph.reachable_entities.collect{|n|repository.data_modules[0].entity_by_name(n)}.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
+  graph.reachable_entities.collect{|n|repository.entity_by_name(n)}.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
     outgoing_links = entity.referencing_attributes.select{|a| a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && a.inverse.imit.replication_edges.include?(graph.name)}
 -%>
   private void _encode<%= graph.name %>_<%= entity.name %>( @javax.annotation.Nonnull final org.realityforge.replicant.server.EntityMessageSet messages, @javax.annotation.Nonnull final <%= entity.jpa.qualified_name %> object )
@@ -46,6 +46,18 @@ public class <%= repository.imit.graph_encoder_impl_name %>
         <% if a.inverse.multiplicity == :zero_or_one %>if( null != o )<% end %>
         {
           _encode<%= graph.name %>_<%= a.entity.name %>( messages, o );
+        }
+      }
+<%
+      end
+    end
+    entity.attributes.each do |a|
+      if a.reference? && a.imit? && a.inverse.imit.traversable? && a.imit.client_side? && a.referenced_entity.imit? && a.imit.include_edges.include?(graph.name) %>
+      {
+        final <%= a.referenced_entity.jpa.qualified_name %> o = object.get<%= a.name %>();
+        <% if a.nullable? %>if( null != o )<% end %>
+        {
+          _encode<%= graph.name %>_<%= a.referenced_entity.name %>( messages, o );
         }
       }
 <%
