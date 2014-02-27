@@ -9,7 +9,6 @@ import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -18,12 +17,10 @@ import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
 import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
 import org.realityforge.gwt.webpoller.client.event.MessageEvent;
+import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.entity.Position;
-import org.realityforge.replicant.example.client.entity.Roster;
-import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
@@ -141,60 +138,6 @@ public class TyrellDataLoaderService
     _subscriptionService.downloadAll( getSessionID() );
   }
 
-  private void unloadRoster( final int rosterID )
-  {
-    final Roster roster = getRepository().findByID( Roster.class, rosterID );
-    if ( null != roster )
-    {
-      unloadRoster( roster );
-    }
-  }
-
-  private void unloadRoster( final Roster roster )
-  {
-    for ( final Shift shift : new ArrayList<Shift>( roster.getShifts() ) )
-    {
-      unloadShift( shift );
-    }
-    getRepository().deregisterEntity( Roster.class, roster.getID() );
-  }
-
-  private void unloadShift( final int shiftID )
-  {
-    final Shift shift = getRepository().findByID( Shift.class, shiftID );
-    if ( null != shift )
-    {
-      unloadShift( shift );
-    }
-  }
-
-  private void unloadShift( final Shift shift )
-  {
-    unloadPositions( shift );
-    getRepository().deregisterEntity( Shift.class, shift.getID() );
-  }
-
-  private void unloadPositions( final Shift shift )
-  {
-    for ( final Position position : new ArrayList<Position>( shift.getPositions() ) )
-    {
-      unloadPosition( position );
-    }
-  }
-
-  private void unloadPosition( final Position position )
-  {
-    getRepository().deregisterEntity( Position.class, position.getID() );
-  }
-
-  private void unloadRosters()
-  {
-    for ( final Roster roster : getRepository().findAll( Roster.class ) )
-    {
-      unloadRoster( roster );
-    }
-  }
-
   private String getPollURL()
   {
     final String moduleBaseURL = GWT.getModuleBaseURL();
@@ -270,6 +213,12 @@ public class TyrellDataLoaderService
     implements TyrellClientSessionContext
   {
     @Override
+    public EntityRepository getRepository()
+    {
+      return TyrellDataLoaderService.this.getRepository();
+    }
+
+    @Override
     public CacheService getCacheService()
     {
       return TyrellDataLoaderService.this.getCacheService();
@@ -339,7 +288,6 @@ public class TyrellDataLoaderService
         @Override
         public void onSuccess( final Void result )
         {
-          unloadPositions( getRepository().findByID( Shift.class, id ) );
           runnable.run();
         }
       } );
@@ -366,7 +314,6 @@ public class TyrellDataLoaderService
         @Override
         public void onSuccess( final Void result )
         {
-          unloadRosters();
           runnable.run();
         }
       } );
