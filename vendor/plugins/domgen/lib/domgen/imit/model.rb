@@ -61,6 +61,16 @@ module Domgen
         @filter_in_graphs || []
       end
 
+      # TODO: Remove this ugly hack as soon as we can calculate whether an entitiy
+      # is shared between multiple graph instances
+      def traverse_during_unload?
+        @traverse_during_unload.nil? ? true : @traverse_during_unload
+      end
+
+      def traverse_during_unload=(traverse_during_unload)
+        @traverse_during_unload = !!traverse_during_unload
+      end
+
       def include_edges
         @include_edges ||= []
       end
@@ -263,7 +273,6 @@ module Domgen
       end
 
       def cacheable=(cacheable)
-        # TODO: Make sure it is false for instance based, or parameterizable
         @cacheable = cacheable
       end
 
@@ -304,6 +313,23 @@ module Domgen
 
       def filter_parameter
         @filter
+      end
+
+      def post_verify
+        if cacheable? && (filter_parameter || instance_root?)
+          raise "Cacheable graphs are not supported for instance based or filterable graphs"
+        end
+        if !instance_root?
+          type_roots.each do |root|
+            entity = application.repository.entity_by_name(root)
+            if entity.imit.associated_instance_root_graphs.size > 0
+              raise "Entity #{root} is part of type graph #{name} and is also part of instance graphs #{entity.imit.associated_instance_root_graphs.collect{|g| g.name}.inspect} which is not allowed."
+            end
+            if entity.imit.associated_type_graphs.size > 1
+              raise "Entity #{root} is part of type graph #{name} and is also part of other type graphs #{entity.imit.associated_type_graphs.collect{|g| g.name}.delete_if{|g| g == name}.inspect} which is not allowed."
+            end
+          end
+        end
       end
     end
 
@@ -423,6 +449,14 @@ module Domgen
 
       def qualified_session_manager_name
         "#{encoder_package}.#{session_manager_name}"
+      end
+
+      def server_session_context_name
+        "#{repository.name}SessionContext"
+      end
+
+      def qualified_server_session_context_name
+        "#{encoder_package}.#{server_session_context_name}"
       end
 
       def router_interface_name
@@ -578,13 +612,14 @@ module Domgen
                 end
               end
               entity.attributes.each do |a|
-                if a.reference? && a.imit? && a.inverse.imit.traversable? && a.imit.client_side? && a.referenced_entity.imit? && a.imit.include_edges.include?(graph.name)
+                if a.reference? && a.imit? && a.imit.client_side? && a.referenced_entity.imit? && a.imit.include_edges.include?(graph.name)
                   entity_list << a.referenced_entity unless graph.reachable_entities.include?(a.referenced_entity.qualified_name.to_s)
                 end
               end
             end
           end
         end
+        repository.imit.graphs.each {|g| g.post_verify}
       end
 
       private
