@@ -1,6 +1,7 @@
 package org.realityforge.replicant.example.server.service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
@@ -14,6 +15,7 @@ import org.realityforge.replicant.example.server.entity.AbstractTyrellSessionMan
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.Shift;
 import org.realityforge.replicant.example.server.entity.TyrellSession;
+import org.realityforge.replicant.example.server.entity.TyrellSessionContext;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
@@ -25,10 +27,10 @@ import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local({ EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
+@Local({ TyrellSessionContext.class, EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends AbstractTyrellSessionManager
-  implements SubscriptionService
+  implements SubscriptionService, TyrellSessionContext
 {
   private static final Logger LOG = Logger.getLogger( SubscriptionServiceEJB.class.getName() );
 
@@ -42,13 +44,6 @@ public class SubscriptionServiceEJB
 
   @Inject
   private ShiftRepository _shiftRepository;
-
-  @Override
-  protected String getMetaDataCacheKey()
-  {
-    // Return a constant as we know that it will never be changed except with a new release
-    return "MyConstant";
-  }
 
   /**
    * Remove idle session changes every 30 seconds.
@@ -91,8 +86,9 @@ public class SubscriptionServiceEJB
     {
       if ( !session.isShiftListInteresting( roster.getID() ) )
       {
-        session.registerInterestInShiftList( roster.getID(), new RosterSubscriptionDTO( new Date(), 7 ) );
-        getEncoder().encodeShiftList( messages, roster );
+        final RosterSubscriptionDTO filter = new RosterSubscriptionDTO( new Date(), 7 );
+        session.registerInterestInShiftList( roster.getID(), filter );
+        getEncoder().encodeShiftList( messages, roster, filter );
       }
     }
     for ( final Shift shift : _shiftRepository.findAll() )
@@ -106,22 +102,43 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  protected void collectMetaData( @Nonnull final EntityMessageSet messages )
+  public String getMetaDataCacheKey()
+  {
+    // Return a constant as we know that it will never be changed except with a new release
+    return "MyConstant";
+  }
+
+  @Override
+  protected TyrellSessionContext getContext()
+  {
+    return this;
+  }
+
+  @Override
+  @Nonnull
+  public List<Shift> getShiftsInShiftListGraph( @Nonnull final Roster object,
+                                                @Nonnull final RosterSubscriptionDTO filter )
+  {
+    return object.getShifts();
+  }
+
+  @Override
+  public void collectMetaData( @Nonnull final EntityMessageSet messages )
   {
     getEncoder().encodeObjects( messages, _rosterTypeRepository.findAll() );
   }
 
   @Override
-  protected void collectRosterList( @Nonnull final EntityMessageSet messages )
+  public void collectRosterList( @Nonnull final EntityMessageSet messages )
   {
     getEncoder().encodeObjects( messages, _rosterRepository.findAll() );
   }
 
   @Override
-  protected boolean isShiftListInteresting( final TyrellSession session,
-                                            final Integer rosterID,
-                                            @Nonnull final RosterSubscriptionDTO filter,
-                                            @Nonnull final Date shiftStartAt )
+  public boolean isShiftListInteresting( @Nonnull final TyrellSession session,
+                                         @Nonnull final Integer rosterID,
+                                         @Nonnull final RosterSubscriptionDTO filter,
+                                         @Nonnull final Date shiftStartAt )
   {
     return true;
   }
