@@ -9,7 +9,7 @@ import org.realityforge.replicant.client.EntityRepository;
 public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
 <%= entity.extends ?
   "    extends #{entity.data_module.entity_by_name(entity.extends).imit.qualified_name}\n" :
-  "    implements org.realityforge.replicant.client.Linkable" %>
+  "    implements org.realityforge.replicant.client.Linkable, org.realityforge.replicant.client.Verifiable" %>
 {
   public static final String TYPE_KEY = "<%= entity.qualified_name %>";
 <% if !entity.abstract? %>
@@ -51,21 +51,21 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     <%= entity.extends.nil? ? "_repository = repository;\n    _broker = broker" : "super( repository, broker )" %>;
   }
 <% entity.declared_attributes.select{|attribute| attribute.abstract? && attribute.imit? && attribute.imit.client_side?}.each do |attribute|
-%>  public abstract <%= annotated_type(attribute, :imit) %> get<%= attribute.imit.name %>();
+%>  public abstract <%= annotated_type(attribute, :imit) %> <%= getter_prefix(attribute) %><%= attribute.imit.name %>();
 <% if attribute.attribute_type == :reference
-  %>  abstract <%= attribute.imit.java_type(:transport) %> get<%= attribute.imit.name(:transport) %>();
+  %>  abstract <%= attribute.imit.java_type(:transport) %> <%= getter_prefix(attribute) %><%= attribute.imit.name(:transport) %>();
 <% end %>
     abstract void set<%= attribute.imit.name(:transport) %>( <%= attribute.imit.java_type(:transport) %> value );
 <% end %>
 <% entity.declared_attributes.select{|attribute| !attribute.abstract? && attribute.imit? && attribute.imit.client_side?}.each do |attribute|
-%>  public <%= annotated_type(attribute, :imit) %> get<%= attribute.imit.name %>()
+%>  public <%= annotated_type(attribute, :imit) %> <%= getter_prefix(attribute) %><%= attribute.imit.name %>()
   {
     <% if !attribute.primary_key? %>check<%= attribute.reference? ? "Linked" : "Validity" %>();<% end %>
     return _<%= attribute.imit.name %>;
   }
 <% if attribute.attribute_type == :reference
 %>
-  final <%= attribute.imit.java_type(:transport) %> get<%= attribute.imit.name(:transport) %>()
+  final <%= attribute.imit.java_type(:transport) %> <%= getter_prefix(attribute) %><%= attribute.imit.name(:transport) %>()
   {
     return _<%= attribute.referencing_link_name %>;
   }
@@ -105,7 +105,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
 %>
   <%= description_javadoc_for(attribute) %>
   @javax.annotation.Nonnull
-  public final java.util.List<<%= type %>> get<%= plural_name %>()
+  public final java.util.List<<%= type %>> <%= getter_prefix(attribute) %><%= plural_name %>()
   {
     return java.util.Collections.unmodifiableList( safeGet<%= plural_name %>() );
   }
@@ -143,7 +143,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     return <%= plural_name %>;
   }
 <% else %>
-  public final <%= nullability_annotation(attribute.inverse.multiplicity != :one)  %> <%= type %> get<%= name %>()
+  public final <%= nullability_annotation(attribute.inverse.multiplicity != :one)  %> <%= type %> <%= getter_prefix(attribute) %><%= name %>()
   {
     return <%= name %>;
   }
@@ -162,6 +162,56 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
   }
 <% end %>
 <% end %>
+
+  public void verifySelf()
+    throws Exception
+  {
+    checkValidity();
+    final <%= entity.imit.name %> r = _repository.findByID( <%= entity.imit.name %>.class, <%= getter_prefix(entity.primary_key) %><%= entity.primary_key.name %>() );
+    if( r != this )
+    {
+      throw new IllegalStateException( "Registered entity does not match current entity Registered: " + r + " Current: " + this );
+    }
+<% entity.declared_attributes.select{ |a| a.imit? && a.reference? && a.imit.client_side? && a.inverse.traversable? }.
+      each do |attribute| %>
+    if( null != _<%= attribute.imit.name %> )
+    {
+      _<%= attribute.imit.name %>.verifySelf();
+    }
+<% end %>
+  }
+
+  @Override
+  public void verify()
+    throws Exception
+  {
+<% if entity.extends.nil? %>
+    verifySelf();
+<% else %>
+    super.verify();
+<% end -%>
+<%
+entity.imit.referencing_client_side_attributes.each do |attribute|
+  if attribute.inverse.multiplicity == :many
+%>
+    if( null != <%= Domgen::Naming.pluralize(attribute.inverse.name) %> )
+    {
+      for( final <%= attribute.entity.imit.qualified_name %> o : <%= Domgen::Naming.pluralize(attribute.inverse.name) %> )
+      {
+        o.verify();
+      }
+    }
+<% else %>
+    if( null != <%= attribute.inverse.name %> )
+    {
+      <%= attribute.inverse.name %>.verify();
+    }
+<%
+  end
+ end
+%>
+  }
+
   public void invalidate()
   {
 <% if entity.extends.nil?
@@ -175,6 +225,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     }
 <% end
 %>    _broker.entityRemoved( this );
+    delink();
     _repository = null;
     _broker = null;
 <% else
@@ -236,6 +287,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     return _created;
   }
 
+  @Override
   public final boolean isValid()
   {
     return null != _repository;
@@ -258,6 +310,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     }
   }
 
+  @Override
   public final void link()
   {
     checkValidity();
@@ -278,7 +331,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     }
   }
 
-  public final void delink()
+  private void delink()
   {
     checkValidity();
     _delinking = true;
@@ -291,6 +344,12 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     {
       _delinking = false;
     }
+  }
+
+  @Override
+  public final boolean isLinked()
+  {
+    return _linked;
   }
 <% end %>
 
@@ -308,15 +367,30 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.imit.name %>
     }
     else
     {
-      final <%= entity.jpa.name%> that = (<%= entity.jpa.name %>) o;
-      return <%=  !entity.primary_key.imit.primitive? ? "null != get#{entity.primary_key.imit.name}() && get#{entity.primary_key.imit.name}().equals( that.get#{entity.primary_key.imit.name}() )" : "get#{entity.primary_key.imit.name }() == that.get#{entity.primary_key.imit.name }()" %>;
+      final <%= entity.jpa.name %> that = (<%= entity.jpa.name %>) o;
+      return <%=  !entity.primary_key.imit.primitive? ? "null != #{getter_prefix(entity.primary_key)}#{entity.primary_key.imit.name}() && #{getter_prefix(entity.primary_key)}#{entity.primary_key.imit.name}().equals( that.get#{entity.primary_key.imit.name}() )" : "#{getter_prefix(entity.primary_key)}#{entity.primary_key.name }() == that.#{getter_prefix(entity.primary_key)}#{entity.primary_key.name }()" %>;
     }
   }
 
   @Override
   public int hashCode()
   {
-    return <%=  !entity.primary_key.imit.primitive? ? "null != get#{entity.primary_key.imit.name }() ? get#{entity.primary_key.imit.name }().hashCode() : System.identityHashCode( this )" : "get#{entity.primary_key.imit.name }()" %>;
+    return <%=  !entity.primary_key.imit.primitive? ? "null != #{getter_prefix(entity.primary_key)}#{entity.primary_key.imit.name }() ? #{getter_prefix(entity.primary_key)}#{entity.primary_key.imit.name }().hashCode() : System.identityHashCode( this )" : "#{getter_prefix(entity.primary_key)}#{entity.primary_key.name }()" %>;
   }
-<% end %>
+
+  @Override
+  public String toString()
+  {
+    return "<%= entity.qualified_name %>[" + <%=
+      entity.attributes.select{ |a| a.imit? && a.imit.client_side? }.collect do |a|
+      value = "#{getter_prefix(a)}#{a.imit.name.to_s}()"
+      if a.reference?
+        suffix = ".#{getter_prefix(a.referenced_entity.primary_key)}#{a.referenced_entity.primary_key.name}()"
+        value = "(null != #{value} ? #{value}#{suffix} : #{value})"
+      end
+  "\"#{a.name}=\" + #{value}"
+      end.join(" + \", \" + ")
+    %> + "]";
+  }
+<% end -%>
 }
