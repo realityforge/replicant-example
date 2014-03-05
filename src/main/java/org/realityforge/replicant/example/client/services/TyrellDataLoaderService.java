@@ -22,7 +22,6 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.entity.TyrellClientSession;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
