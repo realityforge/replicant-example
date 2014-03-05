@@ -370,11 +370,4 @@ public class TyrellDataLoaderService
                                                           } );
     }
   }
-
-  @Override
-  protected boolean shouldValidateOnLoad()
-  {
-    final ReplicantConfig config = GWT.create( ReplicantConfig.class );
-    return config.shouldValidateRepositoryOnLoad();
-  }
 }

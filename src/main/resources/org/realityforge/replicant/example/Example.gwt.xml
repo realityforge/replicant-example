@@ -5,15 +5,11 @@
   <inherits name="org.realityforge.gwt.websockets.WebSockets"/>
   <inherits name="org.realityforge.replicant.Replicant"/>
   <inherits name="org.realityforge.gwt.datatypes.Datatypes"/>
-  <inherits name="org.realityforge.gwt.propertysource.PropertySource"/>
   <inherits name="com.google.gwt.inject.Inject"/>
   <inherits name="org.realityforge.gwt.webpoller.WebPoller"/>
   <add-linker name="xsiframe"/>
 
   <entry-point class='org.realityforge.replicant.example.client.Example'/>
-
-  <define-property name="replicant.shouldValidateRepositoryOnLoad" values="true,false" />
-  <set-property name="replicant.shouldValidateRepositoryOnLoad" value="false"/>
 
   <source path='client'/>
   <source path='shared'/>
