@@ -39,3 +39,5 @@ artifacts:
   gwt_webpoller: org.realityforge.gwt.webpoller:gwt-webpoller:jar:0.4
 
   mockito: org.mockito:mockito-all:jar:1.9.5
+
+  gwt_property_source: org.realityforge.gwt.property-source:gwt-property-source:jar:0.2

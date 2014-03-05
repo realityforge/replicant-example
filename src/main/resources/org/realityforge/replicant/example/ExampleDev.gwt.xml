@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='example'>
+  <inherits name="org.realityforge.replicant.example.Example"/>
+
+  <collapse-all-properties/>
+  <set-property name="replicant.shouldValidateRepositoryOnLoad" value="true"/>
+
+  <set-property name="gwt.logging.enabled" value="TRUE"/>
+</module>

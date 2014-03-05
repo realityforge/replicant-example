@@ -2,6 +2,7 @@ require 'buildr/git_auto_version'
 require 'buildr/top_level_generate_dir'
 
 GWT_DEPS = [:gwt_webpoller,
+            :gwt_property_source,
             :google_guice,
             :google_guice_assistedinject,
             :aopalliance,
@@ -41,7 +42,8 @@ define 'replicant-example' do
 
   clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
 
-  iml.add_gwt_facet({'org.realityforge.replicant.example.Example' => true},
+  iml.add_gwt_facet({'org.realityforge.replicant.example.ExampleDev' => true,
+                    'org.realityforge.replicant.example.Example' => false},
                     :settings => {:compilerMaxHeapSize => '1024'},
                     :gwt_dev_artifact => :gwt_dev)
 
