@@ -17,6 +17,7 @@ import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
 import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
 import org.realityforge.gwt.webpoller.client.event.MessageEvent;
+import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
@@ -212,6 +213,13 @@ public class TyrellDataLoaderService
   class Context
     implements TyrellClientSessionContext
   {
+
+    @Override
+    public EntityChangeBroker getEntityChangeBroker()
+    {
+      return TyrellDataLoaderService.this.getChangeBroker();
+    }
+
     @Override
     public EntityRepository getRepository()
     {

@@ -154,6 +154,14 @@ public class SubscriptionServiceEJB
     session.updateInterestInShiftList( roster.getID(), rosterSubscriptionDTO );
   }
 
+  @Override
+  public void collectForFilterChangeShiftList( @Nonnull final EntityMessageSet messages,
+                                               @Nonnull final Roster entity,
+                                               @Nonnull final RosterSubscriptionDTO original,
+                                               @Nonnull final RosterSubscriptionDTO filter )
+  {
+  }
+
   @Nonnull
   @Override
   protected TyrellSession newSessionInfo()
