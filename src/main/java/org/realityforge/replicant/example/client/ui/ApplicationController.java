@@ -20,7 +20,6 @@ import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
-import org.realityforge.replicant.example.client.entity.TyrellSubscriptionManager;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;

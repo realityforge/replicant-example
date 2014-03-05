@@ -24,6 +24,7 @@ import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.entity.TyrellClientSession;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
+import org.realityforge.replicant.example.client.entity.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
@@ -34,7 +35,7 @@ import org.realityforge.replicant.shared.transport.ReplicantContext;
  * TODO: Rework the generated to accept arbitrary parameters subscriptionManager
  */
 public class TyrellDataLoaderService
-  extends GwtDataLoaderService<TyrellClientSession>
+  extends GwtDataLoaderService<TyrellClientSessionImpl>
   implements DataLoaderService
 {
   @Inject
@@ -113,7 +114,7 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    setSession( new TyrellClientSession( sessionID, new Context() ), new Runnable()
+    setSession( new TyrellClientSessionImpl( sessionID, new Context() ), new Runnable()
     {
       @Override
       public void run()
@@ -142,7 +143,7 @@ public class TyrellDataLoaderService
   {
     final String moduleBaseURL = GWT.getModuleBaseURL();
     final String moduleName = GWT.getModuleName();
-    final TyrellClientSession session = getSession();
+    final TyrellClientSessionImpl session = getSession();
 
     final String contextURL = moduleBaseURL.substring( 0, moduleBaseURL.length() - moduleName.length() - 1 );
     final String suffix = "?rx=" + session.getLastRxSequence();

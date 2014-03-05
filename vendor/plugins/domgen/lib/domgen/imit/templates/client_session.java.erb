@@ -5,7 +5,7 @@ import org.realityforge.replicant.client.transport.SubscriptionEntry;
 
 public class <%= repository.imit.client_session_name %>
   extends org.realityforge.replicant.client.transport.ClientSession<<%= repository.imit.qualified_graph_enum_name %>>
-  implements <%= repository.imit.subscription_manager_name %>
+  implements <%= repository.imit.qualified_client_session_interface_name %>
 {
   private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger( <%= repository.imit.client_session_name %>.class.getName() );
 
