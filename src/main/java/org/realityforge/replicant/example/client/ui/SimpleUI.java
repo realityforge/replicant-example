@@ -258,7 +258,7 @@ public class SimpleUI
         public void onSuccess( final Integer result )
         {
       final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
-          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShiftList( result, filter, null );
+          _dataLoaderService.getSession().subscribeToShiftList( result, filter, null );
         }
       } );
     }
@@ -269,7 +269,7 @@ public class SimpleUI
         @Override
         public void onSuccess( final Integer result )
         {
-          _dataLoaderService.getSession().getSubscriptionManager().subscribeToShift( result, null );
+          _dataLoaderService.getSession().subscribeToShift( result, null );
         }
       } );
     }

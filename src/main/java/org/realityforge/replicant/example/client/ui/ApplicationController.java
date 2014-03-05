@@ -68,7 +68,7 @@ public class ApplicationController
       public void onSessionEstablished( @Nonnull final SessionEstablishedEvent event )
       {
         goToRosterListActivity();
-        _dataLoaderService.getSession().getSubscriptionManager().subscribeToRosterList( null );
+        _dataLoaderService.getSession().subscribeToRosterList( null );
       }
     } );
   }
@@ -112,16 +112,15 @@ public class ApplicationController
     {
       return;
     }
-    final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
     if ( null != _currentRoster )
     {
-      subscriptionManager.unsubscribeFromShiftList( _currentRoster.getID(), null );
+      _dataLoaderService.getSession().unsubscribeFromShiftList( _currentRoster.getID(), null );
     }
     _currentRoster = roster;
     if ( null != _currentRoster )
     {
       final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
-      subscriptionManager.subscribeToShiftList( roster.getID(), filter, null );
+      _dataLoaderService.getSession().subscribeToShiftList( roster.getID(), filter, null );
       _rosterUI.setRoster( _currentRoster );
       goToRosterAtivity();
     }
@@ -138,15 +137,14 @@ public class ApplicationController
     {
       return;
     }
-    final TyrellSubscriptionManager subscriptionManager = _dataLoaderService.getSession().getSubscriptionManager();
     if ( null != _currentShift )
     {
-      subscriptionManager.unsubscribeFromShift( _currentShift.getID(), null );
+      _dataLoaderService.getSession().unsubscribeFromShift( _currentShift.getID(), null );
     }
     _currentShift = shift;
     if ( null != _currentShift )
     {
-      subscriptionManager.subscribeToShift( _currentShift.getID(), null );
+      _dataLoaderService.getSession().subscribeToShift( _currentShift.getID(), null );
       _rosterUI.setShift( _currentShift );
     }
     else

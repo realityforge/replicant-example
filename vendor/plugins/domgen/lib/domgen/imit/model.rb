@@ -523,14 +523,6 @@ module Domgen
         "#{entity_package}.#{client_session_context_name}"
       end
 
-      def subscription_manager_impl_name
-        "#{repository.name}SubscriptionManagerImpl"
-      end
-
-      def qualified_subscription_manager_impl_name
-        "#{entity_package}.#{subscription_manager_impl_name}"
-      end
-
       def change_recorder_name
         "#{repository.name}ChangeRecorder"
       end

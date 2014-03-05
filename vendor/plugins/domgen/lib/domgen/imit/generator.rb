@@ -49,11 +49,6 @@ Domgen.template_set(:imit_entity) do |template_set|
                         Domgen::Generator::Imit::HELPERS)
   template_set.template(Domgen::Generator::Imit::FACETS,
                         :repository,
-                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/subscription_manager_impl.java.erb",
-                        'main/java/#{repository.imit.qualified_subscription_manager_impl_name.gsub(".","/")}.java',
-                        Domgen::Generator::Imit::HELPERS)
-  template_set.template(Domgen::Generator::Imit::FACETS,
-                        :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_mapper.java.erb",
                         'main/java/#{repository.imit.qualified_change_mapper_name.gsub(".","/")}.java',
                         Domgen::Generator::Imit::HELPERS)
