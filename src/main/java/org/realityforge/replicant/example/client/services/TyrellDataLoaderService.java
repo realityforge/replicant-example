@@ -30,7 +30,6 @@ import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionServi
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
-
 /**
  * TODO: Rework the generated to accept arbitrary parameters subscriptionManager
  */
