@@ -10,6 +10,7 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -17,13 +18,16 @@ import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
 import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
 import org.realityforge.gwt.webpoller.client.event.MessageEvent;
+import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.entity.TyrellClientSessionContext;
+import org.realityforge.replicant.example.client.entity.Roster;
+import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionImpl;
+import org.realityforge.replicant.example.client.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
@@ -34,13 +38,11 @@ import org.realityforge.replicant.shared.transport.ReplicantContext;
  * TODO: Rework the generated to accept arbitrary parameters subscriptionManager
  */
 public class TyrellDataLoaderService
-  extends GwtDataLoaderService<TyrellClientSessionImpl>
+  extends GwtDataLoaderService<TyrellClientSessionImpl, TyrellReplicationGraph>
   implements DataLoaderService
 {
-  @Inject
-  private EventBus _eventBus;
-  @Inject
-  private GwtRpcSubscriptionService _subscriptionService;
+  private final EventBus _eventBus;
+  private final GwtRpcSubscriptionService _subscriptionService;
 
   private final WebPoller _webPoller = WebPoller.newWebPoller();
 
@@ -56,10 +58,22 @@ public class TyrellDataLoaderService
     }
   }
 
-  public TyrellDataLoaderService()
+  @Inject
+  public TyrellDataLoaderService( final ChangeMapper changeMapper,
+                                  final EntityChangeBroker changeBroker,
+                                  final EntityRepository repository,
+                                  final CacheService cacheService,
+                                  final EventBus eventBus,
+                                  final GwtRpcSubscriptionService subscriptionService )
   {
+    super( changeMapper, changeBroker, repository, cacheService );
+    _eventBus = eventBus;
+    _subscriptionService = subscriptionService;
     registerListeners();
   }
+
+
+
 
   private void registerListeners()
   {
@@ -113,16 +127,24 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    setSession( new TyrellClientSessionImpl( sessionID, new Context() ), new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        startPolling();
-        getSession().subscribeToMetaData( null );
-        _eventBus.fireEvent( new SessionEstablishedEvent() );
-      }
-    } );
+    setSession( new TyrellClientSessionImpl( this, sessionID, getRepository(), getChangeBroker() ),
+                new Runnable()
+                {
+                  @Override
+                  public void run()
+                  {
+                    getSession().subscribeToMetaData( new Runnable()
+                    {
+                      @Override
+                      public void run()
+                      {
+                        _eventBus.fireEvent( new SessionEstablishedEvent() );
+                      }
+                    } );
+                  }
+                } );
+    scheduleDataLoad();
+    startPolling();
   }
 
   @Override
@@ -158,7 +180,7 @@ public class TyrellDataLoaderService
       {
         LOG.severe( "Received data from poll: " + rawJsonData );
       }
-      enqueueDataLoad( rawJsonData );
+      getSession().enqueueDataLoad( rawJsonData );
       if ( !_webPoller.isPaused() )
       {
         _webPoller.pause();
@@ -209,165 +231,150 @@ public class TyrellDataLoaderService
     handleSystemFailure( e, "Failed to progress data load" );
   }
 
-  class Context
-    implements TyrellClientSessionContext
+  @Override
+  protected void updateGraph( @Nonnull final TyrellReplicationGraph graph,
+                              @Nullable final Object id,
+                              @Nullable final Object filterParameter,
+                              @Nullable final Object originalFilterParameter )
   {
 
-    @Override
-    public EntityChangeBroker getEntityChangeBroker()
-    {
-      return TyrellDataLoaderService.this.getChangeBroker();
-    }
+  }
 
-    @Override
-    public EntityRepository getRepository()
+  @Override
+  protected void subscribeToGraph( @Nonnull final TyrellReplicationGraph graph,
+                                   @Nullable final Object id,
+                                   @Nullable final Object filterParameter,
+                                   @Nullable final String eTag,
+                                   @Nullable final Runnable cacheAction,
+                                   @Nonnull final Runnable completionAction )
+  {
+    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
     {
-      return TyrellDataLoaderService.this.getRepository();
-    }
-
-    @Override
-    public CacheService getCacheService()
+      @Override
+      public void onSuccess( final Void result )
+      {
+        completionAction.run();
+      }
+    };
+    if ( TyrellReplicationGraph.SHIFT == graph )
     {
-      return TyrellDataLoaderService.this.getCacheService();
+      _subscriptionService.subscribeToShift( getSessionID(), (Integer) id, callback );
     }
-
-    @Override
-    public void loadCachedContent( @Nonnull final String changeSet,
-                                   @Nonnull final Runnable runnable,
-                                   final boolean bulkChange )
+    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
     {
-      enqueueOOB( changeSet, runnable, bulkChange );
+      _subscriptionService.subscribeToRosterList( getSessionID(), callback );
     }
-
-    @Override
-    public void remoteSubscribeToMetaData( @Nullable final String eTag,
-                                           @Nonnull final Runnable cacheCurrentAction,
-                                           @Nonnull final Runnable runnable )
+    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
+    {
+      _subscriptionService.subscribeToShiftList( getSessionID(),
+                                                 (Integer) id,
+                                                 (RosterSubscriptionDTO) filterParameter,
+                                                 callback );
+    }
+    else if ( TyrellReplicationGraph.META_DATA == graph )
     {
       _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
       {
         @Override
         public void onSuccess( final Boolean result )
         {
+          Logger.getLogger("X").warning( "subscribeToMetaData REZ = " + result );
           if ( result )
           {
-            runnable.run();
+            completionAction.run();
           }
           else
           {
-            cacheCurrentAction.run();
+            if ( null != cacheAction )
+            {
+              cacheAction.run();
+            }
           }
         }
       } );
     }
+  }
 
-    @Override
-    public void remoteUnsubscribeFromMetaData( @Nonnull final Runnable runnable )
+  @Override
+  protected void unsubscribeFromGraph( @Nonnull final TyrellReplicationGraph graph,
+                                       @Nullable final Object id,
+                                       @Nonnull final Runnable completionAction )
+  {
+    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
     {
-      _subscriptionService.unsubscribeFromMetaData( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+      @Override
+      public void onSuccess( final Void result )
       {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
-    }
-
-    @Override
-    public void remoteSubscribeToShift( final int id, @Nonnull final Runnable runnable )
+        completionAction.run();
+      }
+    };
+    if ( TyrellReplicationGraph.SHIFT == graph )
     {
-      _subscriptionService.subscribeToShift( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      _subscriptionService.unsubscribeFromShift( getSessionID(), (Integer) id, callback );
+    }
+    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
+    {
+      _subscriptionService.unsubscribeFromRosterList( getSessionID(), callback );
+    }
+    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
+    {
+      _subscriptionService.unsubscribeFromShiftList( getSessionID(), (Integer) id, callback );
+    }
+    else if ( TyrellReplicationGraph.META_DATA == graph )
+    {
+      _subscriptionService.unsubscribeFromMetaData( getSessionID(), callback );
+    }
+  }
+
+  @Override
+  protected void unloadGraph( @Nonnull final TyrellReplicationGraph graph, @Nullable final Object id )
+  {
+    if ( TyrellReplicationGraph.SHIFT == graph )
+    {
+      final Shift shift = getRepository().findByID( Shift.class, id );
+      if ( null != shift )
       {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
+        getSession().unloadShift( shift );
+      }
     }
-
-    @Override
-    public void remoteUnsubscribeFromShift( final int id, @Nonnull final Runnable runnable )
+    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
     {
-      _subscriptionService.unsubscribeFromShift( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
+      getSession().unloadRosterList();
+    }
+    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
+    {
+      final Roster roster = getRepository().findByID( Roster.class, id );
+      if ( null != roster )
       {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
+        getSession().unloadShiftList( roster );
+      }
     }
-
-    @Override
-    public void remoteSubscribeToRosterList( @Nonnull final Runnable runnable )
+    else if ( TyrellReplicationGraph.META_DATA == graph )
     {
-      _subscriptionService.subscribeToRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
+      getSession().unloadMetaData();
+    }
+  }
+
+  @Override
+  protected void updateSubscription( @Nonnull final TyrellReplicationGraph graph,
+                                     @Nullable final Object id,
+                                     @Nullable final Object filterParameter,
+                                     @Nonnull final Runnable completionAction )
+  {
+    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
+    {
+      @Override
+      public void onSuccess( final Void result )
       {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
-    }
-
-    @Override
-    public void remoteUnsubscribeFromRosterList( @Nonnull final Runnable runnable )
+        completionAction.run();
+      }
+    };
+    if ( TyrellReplicationGraph.SHIFT_LIST == graph )
     {
-      _subscriptionService.unsubscribeFromRosterList( getSessionID(), new TyrellGwtRpcAsyncCallback<Void>()
-      {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
-    }
-
-    @Override
-    public void remoteSubscribeToShiftList( final int id,
-                                            @Nonnull final RosterSubscriptionDTO filter,
-                                            @Nonnull final Runnable runnable )
-    {
-      _subscriptionService.subscribeToShiftList( getSessionID(), id, filter, new TyrellGwtRpcAsyncCallback<Void>()
-      {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
-    }
-
-    @Override
-    public void remoteUnsubscribeFromShiftList( final int id, @Nonnull final Runnable runnable )
-    {
-      _subscriptionService.unsubscribeFromShiftList( getSessionID(), id, new TyrellGwtRpcAsyncCallback<Void>()
-      {
-        @Override
-        public void onSuccess( final Void result )
-        {
-          runnable.run();
-        }
-      } );
-    }
-
-    @Override
-    public void remoteUpdateShiftListSubscription( final int id,
-                                                   @Nonnull final RosterSubscriptionDTO filter,
-                                                   @Nonnull final Runnable runnable )
-    {
-      _subscriptionService.updateSubscriptionToShiftList( getSessionID(), id, filter,
-                                                          new TyrellGwtRpcAsyncCallback<Void>()
-                                                          {
-                                                            @Override
-                                                            public void onSuccess( final Void result )
-                                                            {
-                                                              runnable.run();
-                                                            }
-                                                          } );
+      _subscriptionService.updateSubscriptionToShiftList( getSessionID(),
+                                                          (Integer) id,
+                                                          (RosterSubscriptionDTO) filterParameter,
+                                                          callback );
     }
   }
 }
