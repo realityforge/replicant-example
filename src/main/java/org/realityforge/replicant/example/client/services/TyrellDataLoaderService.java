@@ -225,7 +225,6 @@ public class TyrellDataLoaderService
                               @Nullable final Object filterParameter,
                               @Nullable final Object originalFilterParameter )
   {
-
   }
 
   @Override
