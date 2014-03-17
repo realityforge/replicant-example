@@ -69,14 +69,6 @@ public class TyrellDataLoaderService
     super( changeMapper, changeBroker, repository, cacheService );
     _eventBus = eventBus;
     _subscriptionService = subscriptionService;
-    registerListeners();
-  }
-
-
-
-
-  private void registerListeners()
-  {
     _webPoller.addMessageHandler( new MessageEvent.Handler()
     {
       @Override
