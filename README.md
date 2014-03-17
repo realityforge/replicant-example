@@ -14,4 +14,3 @@ TODO
 * Handle scenario where session goes away. Gracefully handle re-authentication etc.
 * Document how this all works together!
 * Rework AbstractTyrellSessionManager so that SubscriptionServiceEJB need not extend it.
-* Experiment with css styling of gwt widgets.
