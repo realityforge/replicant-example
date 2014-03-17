@@ -161,11 +161,4 @@ public class SubscriptionServiceEJB
                                                @Nonnull final RosterSubscriptionDTO filter )
   {
   }
-
-  @Nonnull
-  @Override
-  protected TyrellSession newSessionInfo()
-  {
-    return super.newSessionInfo();
-  }
 }
