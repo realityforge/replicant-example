@@ -138,7 +138,7 @@ public class SubscriptionServiceEJB
   public boolean isShiftListInteresting( @Nonnull final TyrellSession session,
                                          @Nonnull final Integer rosterID,
                                          @Nonnull final RosterSubscriptionDTO filter,
-                                         @Nonnull final Date shiftStartAt )
+                                         @Nullable final Date shiftStartAt )
   {
     return true;
   }
