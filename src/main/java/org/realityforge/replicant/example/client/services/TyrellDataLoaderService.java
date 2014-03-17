@@ -278,7 +278,6 @@ public class TyrellDataLoaderService
         @Override
         public void onSuccess( final Boolean result )
         {
-          Logger.getLogger("X").warning( "subscribeToMetaData REZ = " + result );
           if ( result )
           {
             completionAction.run();
