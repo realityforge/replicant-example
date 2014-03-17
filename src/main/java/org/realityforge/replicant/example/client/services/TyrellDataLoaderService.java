@@ -20,11 +20,9 @@ import org.realityforge.gwt.webpoller.client.event.MessageEvent;
 import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
-import org.realityforge.replicant.client.json.gwt.GwtDataLoaderService;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.entity.Roster;
-import org.realityforge.replicant.example.client.entity.Shift;
+import org.realityforge.replicant.example.client.entity.AbstractTyrellDataLoaderService;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
@@ -34,7 +32,7 @@ import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallba
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
 public class TyrellDataLoaderService
-  extends GwtDataLoaderService<TyrellClientSessionImpl, TyrellReplicationGraph>
+  extends AbstractTyrellDataLoaderService
   implements DataLoaderService
 {
   private final EventBus _eventBus;
@@ -309,35 +307,6 @@ public class TyrellDataLoaderService
     else if ( TyrellReplicationGraph.META_DATA == graph )
     {
       _subscriptionService.unsubscribeFromMetaData( getSessionID(), callback );
-    }
-  }
-
-  @Override
-  protected void unloadGraph( @Nonnull final TyrellReplicationGraph graph, @Nullable final Object id )
-  {
-    if ( TyrellReplicationGraph.SHIFT == graph )
-    {
-      final Shift shift = getRepository().findByID( Shift.class, id );
-      if ( null != shift )
-      {
-        getSession().unloadShift( shift );
-      }
-    }
-    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
-    {
-      getSession().unloadRosterList();
-    }
-    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
-    {
-      final Roster roster = getRepository().findByID( Roster.class, id );
-      if ( null != roster )
-      {
-        getSession().unloadShiftList( roster );
-      }
-    }
-    else if ( TyrellReplicationGraph.META_DATA == graph )
-    {
-      getSession().unloadMetaData();
     }
   }
 
