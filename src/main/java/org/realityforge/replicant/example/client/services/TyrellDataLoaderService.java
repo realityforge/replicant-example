@@ -9,14 +9,14 @@ import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
+import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
-import org.realityforge.gwt.webpoller.client.event.ErrorEvent;
-import org.realityforge.gwt.webpoller.client.event.MessageEvent;
+import org.realityforge.gwt.webpoller.client.WebPollerListenerAdapter;
 import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
@@ -63,20 +63,20 @@ public class TyrellDataLoaderService
     super( changeMapper, changeBroker, repository, cacheService );
     _eventBus = eventBus;
     _subscriptionService = subscriptionService;
-    _webPoller.addMessageHandler( new MessageEvent.Handler()
+    _webPoller.setListener( new WebPollerListenerAdapter()
     {
       @Override
-      public void onMessageEvent( @Nonnull final MessageEvent event )
+      public void onMessage( @Nonnull final WebPoller webPoller,
+                             @Nonnull final Map<String, String> context,
+                             @Nonnull final String data )
       {
-        handlePollSuccess( event.getData() );
+        handlePollSuccess( data );
       }
-    } );
-    _webPoller.addErrorHandler( new ErrorEvent.Handler()
-    {
+
       @Override
-      public void onErrorEvent( @Nonnull final ErrorEvent event )
+      public void onError( @Nonnull final WebPoller webPoller, @Nonnull final Throwable exception )
       {
-        handleSystemFailure( event.getException(), "Failed to poll" );
+        handleSystemFailure( exception, "Failed to poll" );
       }
     } );
   }
