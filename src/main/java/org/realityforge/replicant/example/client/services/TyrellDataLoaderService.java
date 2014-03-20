@@ -24,11 +24,11 @@ import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.entity.AbstractTyrellDataLoaderService;
 import org.realityforge.replicant.example.client.entity.TyrellClientSessionImpl;
-import org.realityforge.replicant.example.client.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
+import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
 public class TyrellDataLoaderService
