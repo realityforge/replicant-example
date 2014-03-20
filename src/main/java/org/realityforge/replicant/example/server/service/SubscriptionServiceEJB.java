@@ -19,10 +19,12 @@ import org.realityforge.replicant.example.server.entity.TyrellSessionContext;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
+import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.EntityMessageSet;
 import org.realityforge.replicant.server.ee.EntityMessageCacheUtil;
 import org.realityforge.replicant.server.json.JsonEncoder;
+import org.realityforge.replicant.server.transport.ChangeUtil;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.SessionManager;
 
@@ -80,7 +82,6 @@ public class SubscriptionServiceEJB
   @Override
   public void downloadAll( @Nonnull final String clientID )
   {
-    final EntityMessageSet messages = EntityMessageCacheUtil.getSessionEntityMessageSet();
     final TyrellSession session = ensureSession( clientID );
     for ( final Roster roster : _rosterRepository.findAll() )
     {
@@ -88,7 +89,12 @@ public class SubscriptionServiceEJB
       {
         final RosterSubscriptionDTO filter = new RosterSubscriptionDTO( new Date(), 7 );
         session.registerInterestInShiftList( roster.getID(), filter );
+        final EntityMessageSet messages = new EntityMessageSet();
         getEncoder().encodeShiftList( messages, roster, filter );
+        EntityMessageCacheUtil.getSessionChanges().
+          mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
+                                          TyrellReplicationGraph.SHIFT_LIST.getTransportID(),
+                                          roster.getID() ) );
       }
     }
     for ( final Shift shift : _shiftRepository.findAll() )
@@ -96,7 +102,12 @@ public class SubscriptionServiceEJB
       if ( !session.isShiftInteresting( shift.getID() ) )
       {
         session.registerInterestInShift( shift.getID() );
+        final EntityMessageSet messages = new EntityMessageSet();
         getEncoder().encodeShift( messages, shift );
+        EntityMessageCacheUtil.getSessionChanges().
+          mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
+                                        TyrellReplicationGraph.SHIFT.getTransportID(),
+                                        shift.getID() ) );
       }
     }
   }
