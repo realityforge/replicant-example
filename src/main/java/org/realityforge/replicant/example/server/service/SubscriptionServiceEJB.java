@@ -93,7 +93,7 @@ public class SubscriptionServiceEJB
         getEncoder().encodeShiftList( messages, roster, filter );
         EntityMessageCacheUtil.getSessionChanges().
           mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
-                                          TyrellReplicationGraph.SHIFT_LIST.getTransportID(),
+                                          TyrellReplicationGraph.SHIFT_LIST.ordinal(),
                                           roster.getID() ) );
       }
     }
@@ -106,7 +106,7 @@ public class SubscriptionServiceEJB
         getEncoder().encodeShift( messages, shift );
         EntityMessageCacheUtil.getSessionChanges().
           mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
-                                          TyrellReplicationGraph.SHIFT.getTransportID(),
+                                          TyrellReplicationGraph.SHIFT.ordinal(),
                                           shift.getID() ) );
       }
     }

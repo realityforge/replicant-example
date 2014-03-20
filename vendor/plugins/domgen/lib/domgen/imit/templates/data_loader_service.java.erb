@@ -8,25 +8,4 @@ public abstract class <%= repository.imit.data_loader_service_name %>
   {
     super( changeMapper, changeBroker, repository, cacheService );
   }
-
-  @Override
-  protected final void unloadGraph( @javax.annotation.Nonnull final <%= repository.imit.qualified_graph_enum_name %> graph, @javax.annotation.Nullable final Object id )
-  {
-    <% repository.imit.graphs.each do |graph| -%>if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %> == graph )
-    {
-<% if graph.instance_root? -%>
-      final <%= repository.entity_by_name(graph.instance_root).imit.qualified_name %> root = getRepository().findByID( <%= repository.entity_by_name(graph.instance_root).imit.qualified_name %>.class, id );
-      if ( null != root )
-      {
-        getSession().unload<%= graph.name %>( root );
-      }
-<% else -%>
-      getSession().unload<%= graph.name %>();
-<% end -%>
-    }
-    else <% end -%>
-    {
-      throw new IllegalStateException();
-    }
-  }
 }

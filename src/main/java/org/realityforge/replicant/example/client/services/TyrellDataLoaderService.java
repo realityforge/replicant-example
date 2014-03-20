@@ -206,6 +206,11 @@ public class TyrellDataLoaderService
     }
   }
 
+  @Override
+  protected void unloadGraph( @Nonnull final TyrellReplicationGraph graph, @Nullable final Object id )
+  {
+  }
+
   public boolean isConnected()
   {
     return _webPoller.isActive();

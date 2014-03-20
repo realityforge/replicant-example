@@ -13,18 +13,6 @@ public enum <%= repository.imit.graph_enum_name %>
    * <ul>
 DATA
    data += elements.collect{|e| "   * <li>#{e}</li>"}.join("\n")
-   data += "\n   * </ul>\n   */\n  #{Domgen::Naming.uppercase_constantize(g.name)}(#{g.transport_id})"
-  end.join(",\n") %>;
-
-  private final int _transportID;
-
-  private <%= repository.imit.graph_enum_name %>( final int transportID )
-  {
-    _transportID = transportID;
-  }
-
-  public int getTransportID()
-  {
-    return _transportID;
-  }
+   data += "\n   * </ul>\n   */\n  #{Domgen::Naming.uppercase_constantize(g.name)}"
+  end.join(",\n") %>
 }
