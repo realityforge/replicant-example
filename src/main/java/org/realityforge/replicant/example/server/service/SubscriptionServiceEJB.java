@@ -106,8 +106,8 @@ public class SubscriptionServiceEJB
         getEncoder().encodeShift( messages, shift );
         EntityMessageCacheUtil.getSessionChanges().
           mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
-                                        TyrellReplicationGraph.SHIFT.getTransportID(),
-                                        shift.getID() ) );
+                                          TyrellReplicationGraph.SHIFT.getTransportID(),
+                                          shift.getID() ) );
       }
     }
   }
