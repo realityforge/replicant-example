@@ -161,7 +161,6 @@ public class SubscriptionServiceEJB
     throws BadSessionException
   {
     final TyrellSession session = ensureSession( clientID );
-    final RosterSubscriptionDTO existing = session.getInterestedInShiftList().get( roster.getID() );
     session.updateInterestInShiftList( roster.getID(), rosterSubscriptionDTO );
   }
 
