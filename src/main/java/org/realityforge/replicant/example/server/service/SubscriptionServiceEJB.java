@@ -20,11 +20,11 @@ import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
+import org.realityforge.replicant.server.ChangeUtil;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.EntityMessageSet;
 import org.realityforge.replicant.server.ee.EntityMessageCacheUtil;
 import org.realityforge.replicant.server.json.JsonEncoder;
-import org.realityforge.replicant.server.transport.ChangeUtil;
 import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.SessionManager;
 
@@ -68,10 +68,10 @@ public class SubscriptionServiceEJB
     if ( null != packet )
     {
       return JsonEncoder.
-        encodeChangeSetFromEntityMessages( packet.getSequence(),
-                                           packet.getRequestID(),
-                                           packet.getETag(),
-                                           packet.getChanges() );
+        encodeChangeSet( packet.getSequence(),
+                         packet.getRequestID(),
+                         packet.getETag(),
+                         packet.getChangeSet() );
     }
     else
     {
