@@ -20,6 +20,7 @@ import org.realityforge.gwt.webpoller.client.WebPollerListenerAdapter;
 import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
+import org.realityforge.replicant.client.EntitySubscriptionManager;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.entity.AbstractTyrellDataLoaderService;
@@ -57,10 +58,11 @@ public class TyrellDataLoaderService
                                   final EntityChangeBroker changeBroker,
                                   final EntityRepository repository,
                                   final CacheService cacheService,
+                                  final EntitySubscriptionManager subscriptionManager,
                                   final EventBus eventBus,
                                   final GwtRpcSubscriptionService subscriptionService )
   {
-    super( changeMapper, changeBroker, repository, cacheService );
+    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager );
     _eventBus = eventBus;
     _subscriptionService = subscriptionService;
     _webPoller.setListener( new WebPollerListenerAdapter()
