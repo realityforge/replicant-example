@@ -64,4 +64,6 @@ define 'replicant-example' do
                                 :enable_ejb => true,
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
+
+  ipr.extra_modules << '../replicant/replicant.iml'
 end
