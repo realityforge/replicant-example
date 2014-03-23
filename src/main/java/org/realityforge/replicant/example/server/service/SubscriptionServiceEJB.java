@@ -47,6 +47,8 @@ public class SubscriptionServiceEJB
   @Inject
   private ShiftRepository _shiftRepository;
 
+  private String _cacheKey;
+
   /**
    * Remove idle session changes every 30 seconds.
    */
@@ -115,8 +117,14 @@ public class SubscriptionServiceEJB
   @Override
   public String getMetaDataCacheKey()
   {
-    // Return a constant as we know that it will never be changed except with a new release
-    return "MyConstant";
+    if( null == _cacheKey )
+    {
+      // Return a per-deploy constant as we know that it will
+      // never be changed, so it should only be re-downloaded
+      // after a deploy.
+      _cacheKey = "MyCache-" + System.currentTimeMillis();
+    }
+    return _cacheKey;
   }
 
   @Override
