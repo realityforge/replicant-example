@@ -87,30 +87,11 @@ public class SubscriptionServiceEJB
     final TyrellSession session = ensureSession( clientID );
     for ( final Roster roster : _rosterRepository.findAll() )
     {
-      if ( !session.isShiftListInteresting( roster.getID() ) )
-      {
-        final RosterSubscriptionDTO filter = new RosterSubscriptionDTO( new Date(), 7 );
-        session.registerInterestInShiftList( roster.getID(), filter );
-        final EntityMessageSet messages = new EntityMessageSet();
-        getEncoder().encodeShiftList( messages, roster, filter );
-        EntityMessageCacheUtil.getSessionChanges().
-          mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
-                                          TyrellReplicationGraph.SHIFT_LIST.ordinal(),
-                                          roster.getID() ) );
-      }
+      subscribeToShiftList( clientID, roster, new RosterSubscriptionDTO( new Date(), 7 ) );
     }
     for ( final Shift shift : _shiftRepository.findAll() )
     {
-      if ( !session.isShiftInteresting( shift.getID() ) )
-      {
-        session.registerInterestInShift( shift.getID() );
-        final EntityMessageSet messages = new EntityMessageSet();
-        getEncoder().encodeShift( messages, shift );
-        EntityMessageCacheUtil.getSessionChanges().
-          mergeAll( ChangeUtil.toChanges( messages.getEntityMessages(),
-                                          TyrellReplicationGraph.SHIFT.ordinal(),
-                                          shift.getID() ) );
-      }
+      subscribeToShift( clientID, shift );
     }
   }
 
