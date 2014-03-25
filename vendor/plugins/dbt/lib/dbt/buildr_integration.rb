@@ -17,13 +17,19 @@ class Dbt #nodoc
     def self.add_idea_data_sources_from_configuration_file(buildr_project = nil)
       return unless load_dbt_configuration_data
 
+      valid_environments = ['development', 'uat', 'training', 'production', 'staging', 'test', 'ci', 'import']
+
       Dbt.repository.configuration_keys.each do |config_key|
         database_key = nil
         environment_key = nil
         Dbt.repository.database_keys.each do |key|
-          if config_key =~ /^(#{key})_(.*)/ && (database_key.nil? || key.length > database_key.length)
-            database_key = key
-            environment_key = $2
+          pattern = Dbt::Config.default_database?(key) ? /([^_]+)/ : /^#{key}_(.*)/
+          if config_key =~ pattern
+            matched_valued = $1
+            if (database_key.nil? || key.length > database_key.length) && valid_environments.include?(matched_valued)
+              database_key = key
+              environment_key = matched_valued
+            end
           end
         end
         add_idea_data_source(database_key, environment_key, buildr_project) if database_key
@@ -45,8 +51,24 @@ class Dbt #nodoc
           return
         end
 
-      buildr_project = get_buildr_project(buildr_project)
-      add_idea_data_source_from_config(buildr_project, config)
+      add_idea_data_source_from_config(config, buildr_project)
+    end
+
+    def self.add_idea_data_source_from_config_key(config_key, buildr_project = nil)
+      unless load_dbt_configuration_data
+        info("Skipping addition of data source #{config_key} to idea due to missing configuration file.")
+        return
+      end
+
+      config =
+        begin
+          Dbt.repository.configuration_for_key(config_key)
+        rescue => e
+          info("Missing configuration #{config_key}, skipping addition of data source to idea. Cause: #{e}")
+          return
+        end
+
+      add_idea_data_source_from_config(config, buildr_project)
     end
 
     private
@@ -58,11 +80,13 @@ class Dbt #nodoc
       buildr_project
     end
 
-    def self.add_idea_data_source_from_config(buildr_project, config)
+    def self.add_idea_data_source_from_config(config, buildr_project = nil)
       name = config.key
       jdbc_url = config.build_jdbc_url
       username = config.username
       password = config.password
+
+      buildr_project = get_buildr_project(buildr_project)
 
       if config.is_a?(Dbt::MssqlDbConfig) || config.is_a?(Dbt::TinyTdsDbConfig)
         buildr_project.ipr.add_sql_server_data_source(name, :url => jdbc_url, :username => username, :password => password)
