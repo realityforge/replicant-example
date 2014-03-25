@@ -260,8 +260,6 @@ module Domgen
         super(application, options, &block)
       end
 
-      attr_accessor :transport_id
-
       attr_reader :application
 
       attr_reader :name
@@ -573,11 +571,6 @@ module Domgen
       end
 
       def post_verify
-        index = 0
-        repository.imit.graphs.each do |graph|
-          graph.transport_id = index
-          index += 1
-        end
         index = 0
         repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
           data_module.entities.each do |entity|
