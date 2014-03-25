@@ -208,11 +208,6 @@ public class TyrellDataLoaderService
     }
   }
 
-  @Override
-  protected void unloadGraph( @Nonnull final TyrellReplicationGraph graph, @Nullable final Object id )
-  {
-  }
-
   public boolean isConnected()
   {
     return _webPoller.isActive();
@@ -225,20 +220,12 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected void updateGraph( @Nonnull final TyrellReplicationGraph graph,
-                              @Nullable final Object id,
-                              @Nullable final Object filterParameter,
-                              @Nullable final Object originalFilterParameter )
-  {
-  }
-
-  @Override
-  protected void subscribeToGraph( @Nonnull final TyrellReplicationGraph graph,
-                                   @Nullable final Object id,
-                                   @Nullable final Object filterParameter,
-                                   @Nullable final String eTag,
-                                   @Nullable final Runnable cacheAction,
-                                   @Nonnull final Runnable completionAction )
+  protected void requestSubscribeToGraph( @Nonnull final TyrellReplicationGraph graph,
+                                          @Nullable final Object id,
+                                          @Nullable final Object filterParameter,
+                                          @Nullable final String eTag,
+                                          @Nullable final Runnable cacheAction,
+                                          @Nonnull final Runnable completionAction )
   {
     final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
     {
@@ -287,9 +274,9 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected void unsubscribeFromGraph( @Nonnull final TyrellReplicationGraph graph,
-                                       @Nullable final Object id,
-                                       @Nonnull final Runnable completionAction )
+  protected void requestUnsubscribeFromGraph( @Nonnull final TyrellReplicationGraph graph,
+                                              @Nullable final Object id,
+                                              @Nonnull final Runnable completionAction )
   {
     final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
     {
@@ -318,10 +305,10 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected void updateSubscription( @Nonnull final TyrellReplicationGraph graph,
-                                     @Nullable final Object id,
-                                     @Nullable final Object filterParameter,
-                                     @Nonnull final Runnable completionAction )
+  protected void requestUpdateSubscription( @Nonnull final TyrellReplicationGraph graph,
+                                            @Nullable final Object id,
+                                            @Nullable final Object filterParameter,
+                                            @Nonnull final Runnable completionAction )
   {
     final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
     {
