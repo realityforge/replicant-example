@@ -27,7 +27,7 @@ import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderSer
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
-import org.realityforge.replicant.example.client.service.GwtSubscriptionService;
+import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;

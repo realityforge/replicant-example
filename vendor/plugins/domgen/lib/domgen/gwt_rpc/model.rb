@@ -20,6 +20,10 @@ module Domgen
         service.data_module.gwt_rpc.client_service_package
       end
 
+      def internal_client_service_package
+        service.data_module.gwt_rpc.internal_client_service_package
+      end
+
       def shared_service_package
         service.data_module.gwt_rpc.shared_service_package
       end
@@ -37,7 +41,11 @@ module Domgen
       attr_writer :facade_prefix
 
       def facade_prefix
-        @facade_prefix || (service.imit? ? "Gwt" : "")
+        @facade_prefix || (outer_service? ? "" : "Gwt")
+      end
+
+      def outer_service?
+        !service.imit?
       end
 
       def use_autobean_structs?
@@ -57,7 +65,7 @@ module Domgen
       end
 
       def qualified_facade_service_name
-        "#{client_service_package}.#{facade_service_name}"
+        "#{outer_service? ? client_service_package : internal_client_service_package}.#{facade_service_name}"
       end
 
       def proxy_name
@@ -65,7 +73,7 @@ module Domgen
       end
 
       def qualified_proxy_name
-        "#{client_service_package}.#{proxy_name}"
+        "#{internal_client_service_package}.#{proxy_name}"
       end
 
       attr_writer :rpc_service_name
@@ -221,7 +229,7 @@ module Domgen
       end
 
       def qualified_async_callback_name
-        "#{client_service_package}.#{async_callback_name}"
+        "#{any_outer_service? ? client_service_package : internal_client_service_package}.#{async_callback_name}"
       end
 
       attr_writer :async_error_callback_name
@@ -231,7 +239,15 @@ module Domgen
       end
 
       def qualified_async_error_callback_name
-        "#{client_service_package}.#{async_error_callback_name}"
+        "#{any_outer_service? ? client_service_package : internal_client_service_package}.#{async_error_callback_name}"
+      end
+
+      def any_outer_service?
+        repository.data_modules.any? do |dm|
+          dm.gwt_rpc? && dm.services.any? do |s|
+            s.gwt_rpc? && s.gwt_rpc.outer_service?
+          end
+        end
       end
 
       attr_writer :mock_services_module_name
