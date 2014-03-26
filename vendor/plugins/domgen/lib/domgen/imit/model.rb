@@ -225,13 +225,13 @@ module Domgen
       attr_writer :encoder_package
 
       def encoder_package
-        @encoder_package || "#{data_module.repository.imit.encoder_package}.#{Domgen::Naming.underscore(data_module.name)}"
+        @encoder_package || resolve_package(:encoder_package)
       end
 
-      attr_writer :decoder_package
+      attr_writer :client_comm_package
 
-      def decoder_package
-        @decoder_package || "#{data_module.repository.imit.decoder_package}.#{Domgen::Naming.underscore(data_module.name)}"
+      def client_comm_package
+        @client_comm_package || resolve_package(:client_comm_package)
       end
 
       def mapper_name
@@ -240,14 +240,6 @@ module Domgen
 
       def qualified_mapper_name
         "#{client_entity_package}.#{mapper_name}"
-      end
-
-      def updater_name
-        "#{data_module.name}Updater"
-      end
-
-      def qualified_updater_name
-        "#{client_entity_package}.#{updater_name}"
       end
     end
 
@@ -394,10 +386,10 @@ module Domgen
         @encoder_package || repository.imit.server_entity_package
       end
 
-      attr_writer :decoder_package
+      attr_writer :client_comm_package
 
-      def decoder_package
-        @decoder_package || "#{repository.imit.client_package}.transport"
+      def client_comm_package
+        @client_comm_package || "#{client_package}.net"
       end
 
       def change_mapper_name
@@ -405,7 +397,7 @@ module Domgen
       end
 
       def qualified_change_mapper_name
-        "#{client_entity_package}.#{change_mapper_name}"
+        "#{client_comm_package}.#{change_mapper_name}"
       end
 
       def data_loader_service_name
@@ -413,7 +405,7 @@ module Domgen
       end
 
       def qualified_data_loader_service_name
-        "#{client_entity_package}.#{data_loader_service_name}"
+        "#{client_comm_package}.#{data_loader_service_name}"
       end
 
       def client_session_name
@@ -421,7 +413,15 @@ module Domgen
       end
 
       def qualified_client_session_name
-        "#{client_entity_package}.#{client_session_name}"
+        "#{client_comm_package}.#{client_session_name}"
+      end
+
+      def client_session_interface_name
+        "#{repository.name}ClientSession"
+      end
+
+      def qualified_client_session_interface_name
+        "#{client_comm_package}.#{client_session_interface_name}"
       end
 
       def graph_enum_name
@@ -502,14 +502,6 @@ module Domgen
 
       def qualified_graph_encoder_name
         "#{encoder_package}.#{graph_encoder_name}"
-      end
-
-      def client_session_interface_name
-        "#{repository.name}ClientSession"
-      end
-
-      def qualified_client_session_interface_name
-        "#{client_entity_package}.#{client_session_interface_name}"
       end
 
       def change_recorder_name
