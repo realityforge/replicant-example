@@ -19,10 +19,11 @@ import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTOFactory;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
+import org.realityforge.replicant.example.client.entity.RosterType;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
-import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
-import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
+import org.realityforge.replicant.example.client.service.RosterService;
+import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 
 public class ApplicationController
@@ -34,7 +35,7 @@ public class ApplicationController
   private final EntityRepository _repository;
   private final EntityChangeBroker _broker;
   private final DataLoaderService _dataLoaderService;
-  private final GwtRpcRosterService _rosterService;
+  private final RosterService _rosterService;
   private final LoginUI _loginUI;
   private final RosterListUI _rosterListUI;
   private final RosterUI _rosterUI;
@@ -44,7 +45,7 @@ public class ApplicationController
   private Shift _currentShift;
 
   @Inject
-  public ApplicationController( final GwtRpcRosterService rosterService,
+  public ApplicationController( final RosterService rosterService,
                                 final DataLoaderService dataLoaderService,
                                 final EntityRepository repository,
                                 final EntityChangeBroker broker,
@@ -72,6 +73,11 @@ public class ApplicationController
     } );
   }
 
+  protected RosterType getRosterType()
+  {
+    return _repository.getByID( RosterType.class, 1 );
+  }
+
   private void gotoLoginActivity()
   {
     _mainPanel.setWidget( _loginUI );
@@ -93,14 +99,14 @@ public class ApplicationController
     return _mainPanel;
   }
 
-  public void createAndSelectRoster( final int rosterType, final String rosterName )
+  public void createAndSelectRoster( final RosterType rosterType, final String rosterName )
   {
-    _rosterService.createRoster( rosterType, rosterName, new TyrellGwtRpcAsyncCallback<Integer>()
+    _rosterService.createRoster( rosterType , rosterName, new TyrellAsyncCallback<Roster>()
     {
       @Override
-      public void onSuccess( final Integer result )
+      public void onSuccess( final Roster result )
       {
-        selectRoster( _repository.findByID( Roster.class, result ) );
+        selectRoster( result );
       }
     } );
   }
@@ -214,7 +220,7 @@ public class ApplicationController
 
   public void doDeleteRoster( final Roster roster )
   {
-    _rosterService.removeRoster( roster.getID(), new TyrellGwtRpcAsyncCallback<Void>()
+    _rosterService.removeRoster( roster, new TyrellAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -226,7 +232,7 @@ public class ApplicationController
 
   public void doDeleteShift( final Shift shift )
   {
-    _rosterService.removeShift( shift.getID() );
+    _rosterService.removeShift( shift );
   }
 
   public void disconnect()
@@ -238,6 +244,6 @@ public class ApplicationController
 
   public void removePosition( final Position position )
   {
-    _rosterService.removePosition( position.getID() );
+    _rosterService.removePosition( position );
   }
 }

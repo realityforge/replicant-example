@@ -31,7 +31,7 @@ import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
-import org.realityforge.replicant.example.client.service.GwtRpcRosterService;
+import org.realityforge.replicant.example.client.service.GwtRosterService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 
@@ -51,7 +51,7 @@ public class SimpleUI
   private final Label _selected;
   private final TextBox _input;
   private final DataLoaderService _dataLoaderService;
-  private final GwtRpcRosterService _rosterService;
+  private final GwtRosterService _rosterService;
   private final Button _downloadAll;
   private Roster _selectedRoster;
   private Shift _selectedShift;
@@ -61,7 +61,7 @@ public class SimpleUI
   public SimpleUI( final ApplicationController applicationController,
                    final EntityChangeBroker broker,
                    final DataLoaderService dataLoaderService,
-                   final GwtRpcRosterService rosterService )
+                   final GwtRosterService rosterService )
   {
     super();
 

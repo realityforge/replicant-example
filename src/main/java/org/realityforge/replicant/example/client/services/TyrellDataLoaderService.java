@@ -27,7 +27,7 @@ import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderSer
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
-import org.realityforge.replicant.example.client.service.GwtRpcSubscriptionService;
+import org.realityforge.replicant.example.client.service.GwtSubscriptionService;
 import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
@@ -37,7 +37,7 @@ public class TyrellDataLoaderService
   implements DataLoaderService
 {
   private final EventBus _eventBus;
-  private final GwtRpcSubscriptionService _subscriptionService;
+  private final GwtSubscriptionService _subscriptionService;
 
   private final WebPoller _webPoller = WebPoller.newWebPoller();
 
@@ -60,7 +60,7 @@ public class TyrellDataLoaderService
                                   final CacheService cacheService,
                                   final EntitySubscriptionManager subscriptionManager,
                                   final EventBus eventBus,
-                                  final GwtRpcSubscriptionService subscriptionService )
+                                  final GwtSubscriptionService subscriptionService )
   {
     super( changeMapper, changeBroker, repository, cacheService, subscriptionManager );
     _eventBus = eventBus;

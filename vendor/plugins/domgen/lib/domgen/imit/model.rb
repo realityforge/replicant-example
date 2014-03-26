@@ -127,11 +127,11 @@ module Domgen
       attr_writer :proxy_name
 
       def proxy_name
-        @proxy_name || "#{name}Proxy"
+        @proxy_name || "#{name}Impl"
       end
 
       def qualified_proxy_name
-        "#{service.data_module.imit.client_service_package}.#{proxy_name}"
+        "#{service.data_module.imit.internal_client_service_package}.#{proxy_name}"
       end
     end
 

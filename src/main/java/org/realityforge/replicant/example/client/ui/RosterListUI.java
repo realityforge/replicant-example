@@ -111,8 +111,7 @@ public class RosterListUI
   @UiHandler( "_create" )
   void createRoster( final ClickEvent event )
   {
-    final int rosterType = 1;
-    _controller.createAndSelectRoster( rosterType, _rosterName.getValue() );
+    _controller.createAndSelectRoster( _controller.getRosterType() , _rosterName.getValue() );
     disableControls();
   }
 
