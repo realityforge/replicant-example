@@ -8,7 +8,7 @@
       <!-- Explicitly indicate that all identifiers will be quoted. -->
       <delimited-identifiers/>
       <entity-listeners>
-        <entity-listener class="org.realityforge.replicant.example.server.entity.TyrellChangeRecorder"/>
+        <entity-listener class="org.realityforge.replicant.example.server.net.TyrellChangeRecorder"/>
       </entity-listeners>
     </persistence-unit-defaults>
   </persistence-unit-metadata>

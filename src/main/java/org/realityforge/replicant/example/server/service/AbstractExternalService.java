@@ -1,7 +1,7 @@
 package org.realityforge.replicant.example.server.service;
 
 import javax.interceptor.Interceptors;
-import org.realityforge.replicant.example.server.entity.TyrellReplicationInterceptor;
+import org.realityforge.replicant.example.server.net.TyrellReplicationInterceptor;
 import org.realityforge.replicant.server.ee.Replicate;
 
 /**
