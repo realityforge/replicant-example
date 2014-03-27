@@ -87,11 +87,13 @@ public abstract class <%= repository.imit.session_manager_name %>
         }
 <% end %>
       }
-      final <%= repository.imit.qualified_session_name %> session = getSession( sessionID );
-      if( null != session && null != sessionChanges )
       {
-        accumulator.addChanges( session, sessionChanges.getChanges() );
-        accumulator.addActions( session, sessionChanges.getChannelActions() );
+        final <%= repository.imit.qualified_session_name %> session = getSession( sessionID );
+        if( null != session && null != sessionChanges )
+        {
+          accumulator.addChanges( session, sessionChanges.getChanges() );
+          accumulator.addActions( session, sessionChanges.getChannelActions() );
+        }
       }
     }
     finally
