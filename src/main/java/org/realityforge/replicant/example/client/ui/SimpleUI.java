@@ -31,8 +31,8 @@ import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
+import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.service.internal.GwtRosterService;
-import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.client.services.DataLoaderService;
 
 public class SimpleUI
@@ -252,7 +252,7 @@ public class SimpleUI
     if ( null == _selectedRoster && null == _selectedShift )
     {
       final int rosterType = 1;
-      _rosterService.createRoster( rosterType, _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+      _rosterService.createRoster( rosterType, _input.getValue(), new TyrellAsyncCallback<Integer>()
       {
         @Override
         public void onSuccess( final Integer result )
@@ -264,7 +264,7 @@ public class SimpleUI
     }
     else if ( null != _selectedRoster && null == _selectedPosition )
     {
-      _rosterService.createShift( _selectedRoster.getID(), _input.getValue(), new TyrellGwtRpcAsyncCallback<Integer>()
+      _rosterService.createShift( _selectedRoster.getID(), _input.getValue(), new TyrellAsyncCallback<Integer>()
       {
         @Override
         public void onSuccess( final Integer result )

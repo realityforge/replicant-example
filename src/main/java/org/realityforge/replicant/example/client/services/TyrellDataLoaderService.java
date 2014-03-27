@@ -23,12 +23,12 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderService;
-import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
+import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderService;
+import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
+import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
-import org.realityforge.replicant.example.client.service.TyrellGwtRpcAsyncCallback;
 import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
@@ -227,7 +227,7 @@ public class TyrellDataLoaderService
                                           @Nullable final Runnable cacheAction,
                                           @Nonnull final Runnable completionAction )
   {
-    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
+    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -252,7 +252,7 @@ public class TyrellDataLoaderService
     }
     else if ( TyrellReplicationGraph.META_DATA == graph )
     {
-      _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellGwtRpcAsyncCallback<Boolean>()
+      _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellAsyncCallback<Boolean>()
       {
         @Override
         public void onSuccess( final Boolean result )
@@ -278,7 +278,7 @@ public class TyrellDataLoaderService
                                               @Nullable final Object id,
                                               @Nonnull final Runnable completionAction )
   {
-    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
+    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
@@ -310,7 +310,7 @@ public class TyrellDataLoaderService
                                             @Nullable final Object filterParameter,
                                             @Nonnull final Runnable completionAction )
   {
-    final TyrellGwtRpcAsyncCallback<Void> callback = new TyrellGwtRpcAsyncCallback<Void>()
+    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
     {
       @Override
       public void onSuccess( final Void result )
