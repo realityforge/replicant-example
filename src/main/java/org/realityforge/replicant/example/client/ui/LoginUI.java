@@ -33,7 +33,6 @@ public class LoginUI
   void resetState()
   {
     _connect.setEnabled( true );
-
   }
 
   @UiHandler( "_connect" )
