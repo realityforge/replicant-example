@@ -393,10 +393,6 @@ public class SimpleUI
     final TreeItem treeItem = parent.addItem( createShiftWidget( shift ) );
     treeItem.setUserObject( shift );
     _viewMap.put( shift, treeItem );
-    for ( final Position position : shift.getPositions() )
-    {
-      addPosition( treeItem, position );
-    }
   }
 
   private Widget createShiftWidget( final Shift shift )
