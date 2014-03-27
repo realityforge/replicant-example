@@ -115,17 +115,16 @@ public abstract class <%= repository.imit.session_manager_name %>
   param = ''
   param_value = ''
   register_method = "setInterestedIn#{graph.name}( true )"
-  deregister_method = "setInterestedIn#{graph.name}( false )"
   check_method = "isInterestedIn#{graph.name}()"
   pk_accessor = ''
+  instance_root = nil
   if graph.instance_root?
     # Names are fully qualified so take any random data module
-    entity = repository.entity_by_name(graph.instance_root)
-    param = ", @javax.annotation.Nonnull final #{entity.jpa.qualified_name} entity"
+    instance_root = repository.entity_by_name(graph.instance_root)
+    param = ", @javax.annotation.Nonnull final #{instance_root.jpa.qualified_name} entity"
     param_value = 'entity'
-    pk_accessor = "entity.#{getter_for(entity.primary_key)}"
+    pk_accessor = "entity.#{getter_for(instance_root.primary_key)}"
     register_method = "registerInterestIn#{graph.name}( #{pk_accessor}#{graph.filter_parameter.nil? ? '' : ", filter"} )"
-    deregister_method = "deregisterInterestIn#{graph.name}( #{pk_accessor} )"
     check_method = "is#{graph.name}Interesting( #{pk_accessor} )"
   end
   filter_param = ''
@@ -156,8 +155,7 @@ public abstract class <%= repository.imit.session_manager_name %>
       final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
       getEncoder().encode<%= graph.name %>( messages, entity<%= graph.filter_parameter.nil? ? '' : ", filter" %> );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
-      changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+      populateChangeSetFor<%= graph.name %>( session, <%= graph.instance_root? ? pk_accessor : 'null' %>, changeSet, messages );
 <% else -%>
 <% if graph.cacheable? -%>
     _lock<%= graph.name %>Cache.readLock().lock();
@@ -185,16 +183,14 @@ public abstract class <%= repository.imit.session_manager_name %>
       final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
       getContext().collectRosterList( messages );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
-      changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+      populateChangeSetFor<%= graph.name %>( session, <%= graph.instance_root? ? pk_accessor : 'null' %>, changeSet, messages );
 <% end -%>
 <% end -%>
 <% if graph.cacheable? -%>
       if( null == cacheKey || !cacheKey.equals( _cached<%= graph.name %>Key ) )
       {
         final org.realityforge.replicant.server.ChangeSet changeSet = new org.realityforge.replicant.server.ChangeSet();
-        changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( _cached<%= graph.name %>Messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-        changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+        populateChangeSetFor<%= graph.name %>( session, <%= graph.instance_root? ? pk_accessor : 'null' %>, changeSet, _cached<%= graph.name %>Messages );
         sendPacket( session, _cachedMetaDataKey, changeSet );
         return true;
       }
@@ -210,6 +206,13 @@ public abstract class <%= repository.imit.session_manager_name %>
     return false;
 <% end -%>
   }
+
+  private void populateChangeSetFor<%= graph.name %>( @javax.annotation.Nonnull final <%= repository.imit.qualified_session_name %> session, @javax.annotation.Nullable final java.io.Serializable subChannelID, @javax.annotation.Nonnull final org.realityforge.replicant.server.ChangeSet changeSet, final org.realityforge.replicant.server.EntityMessageSet messages )
+  {
+    changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), null == subChannelID ? 0 : subChannelID ) );
+    changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), subChannelID ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+  }
+
 <% if graph.filter_parameter -%>
   public void update<%= graph.name %>Subscription( @javax.annotation.Nonnull final String sessionID<%= update_param %> )
   {
