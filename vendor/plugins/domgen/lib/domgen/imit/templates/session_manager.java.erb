@@ -80,7 +80,7 @@ public abstract class <%= repository.imit.session_manager_name %>
               if( message.isDelete() && <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(instance_root.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(instance_root.name.to_s) %> == message.getTypeID() )
               {
                 session.deregisterInterestIn<%= graph.name %>( <%= graph.name %> );
-                accumulator.addAction( session, new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.name %>, org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+                accumulator.addAction( session, new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.name %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
               }
 <% end %>
             }
@@ -158,7 +158,7 @@ public abstract class <%= repository.imit.session_manager_name %>
       getEncoder().encode<%= graph.name %>( messages, entity<%= graph.filter_parameter.nil? ? '' : ", filter" %> );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
       changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %>, org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
 <% else -%>
 <% if graph.cacheable? -%>
     _lock<%= graph.name %>Cache.readLock().lock();
@@ -187,7 +187,7 @@ public abstract class <%= repository.imit.session_manager_name %>
       getContext().collectRosterList( messages );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
       changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %>, org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+      changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
 <% end -%>
 <% end -%>
 <% if graph.cacheable? -%>
@@ -195,7 +195,7 @@ public abstract class <%= repository.imit.session_manager_name %>
       {
         final org.realityforge.replicant.server.ChangeSet changeSet = new org.realityforge.replicant.server.ChangeSet();
         changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( _cached<%= graph.name %>Messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
-        changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %>, org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
+        changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.ADD ) );
         sendPacket( session, _cachedMetaDataKey, changeSet );
         return true;
       }
@@ -227,7 +227,7 @@ public abstract class <%= repository.imit.session_manager_name %>
     throws org.realityforge.replicant.server.transport.BadSessionException
   {
     ensureSession( sessionID ).<%= deregister_method %>;
-    org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().addAction( new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %>, org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+    org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
   }
 <% end %>
 }
