@@ -14,8 +14,11 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.Panel;
+import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Tree;
 import com.google.gwt.user.client.ui.TreeItem;
+import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 import java.util.HashMap;
 import java.util.List;
@@ -53,9 +56,28 @@ public class RosterUI
   FlexTable _rosterData;
   @UiField
   Label _shiftName;
+  @UiField
+  Panel _shiftPanel;
+  @UiField
+  TextBox _shiftNameEdit;
+  @UiField
+  TextBox _positionNameCreate;
+  @UiField
+  VerticalPanel _rosterPanel;
+  @UiField
+  TextBox _rosterNameEdit;
+  @UiField
+  TextBox _shiftNameCreate;
+  @UiField
+  VerticalPanel _positionPanel;
+  @UiField
+  TextBox _positionNameEdit;
+  @UiField
+  Button _downloadAll;
 
   private Roster _roster;
   private Shift _shift;
+  private Position _position;
 
   private final ApplicationController _controller;
 
@@ -69,19 +91,94 @@ public class RosterUI
   void onSelection( final SelectionEvent<TreeItem> event )
   {
     final Object model = event.getSelectedItem().getUserObject();
-    if ( model instanceof Shift )
+    if ( model instanceof Roster )
     {
-      _controller.selectShift( (Shift) model );
+      final Roster roster = (Roster) model;
+      _rosterNameEdit.setText( roster.getName() );
+      _shiftNameCreate.setText( null );
+
+      _rosterPanel.setVisible( true );
+      _shiftPanel.setVisible( false );
+      _positionPanel.setVisible( false );
+    }
+    else if ( model instanceof Shift )
+    {
+      final Shift shift = (Shift) model;
+      _controller.selectShift( shift );
+      _position = null;
+      _shiftNameEdit.setText( shift.getName() );
+      _positionNameCreate.setText( null );
+
+      _rosterPanel.setVisible( false );
+      _shiftPanel.setVisible( true );
+      _positionPanel.setVisible( false );
+    }
+    else if ( model instanceof Position )
+    {
+      final Position position = (Position) model;
+      _position = position;
+
+      _positionNameEdit.setText( position.getName() );
+
+      _rosterPanel.setVisible( false );
+      _shiftPanel.setVisible( true );
+      _positionPanel.setVisible( false );
+    }
+    else
+    {
+      _controller.selectShift( null );
+      _position = null;
+      _rosterPanel.setVisible( false );
+      _shiftPanel.setVisible( false );
+      _positionPanel.setVisible( false );
     }
   }
 
-  @UiHandler("_disconnect")
+  @UiHandler( "_updateRosterName" )
+  void setRosterName( final ClickEvent event )
+  {
+    _controller.setRosterName( _roster, _shiftNameEdit.getValue() );
+  }
+
+  @UiHandler( "_createShift" )
+  void createShift( final ClickEvent event )
+  {
+    _controller.createShift( _roster, _shiftNameCreate.getValue() );
+    _shiftNameCreate.setText( null );
+  }
+
+  @UiHandler( "_updateShiftName" )
+  void setShiftName( final ClickEvent event )
+  {
+    _controller.setShiftName( _shift, _shiftNameEdit.getValue() );
+  }
+
+  @UiHandler( "_createPosition" )
+  void createPosition( final ClickEvent event )
+  {
+    _controller.createPosition( _shift, _positionNameCreate.getValue() );
+    _positionNameCreate.setText( null );
+  }
+
+  @UiHandler( "_updatePositionName" )
+  void setPositionName( final ClickEvent event )
+  {
+    _controller.setPositionName( _position, _positionNameEdit.getValue() );
+  }
+
+  @UiHandler( "_downloadAll" )
+  void onDownloadAll( final ClickEvent event )
+  {
+    _controller.downloadAll();
+  }
+
+  @UiHandler( "_disconnect" )
   void handleRosterNameChange( final ClickEvent event )
   {
     _controller.disconnect();
   }
 
-  @UiHandler("_delete")
+  @UiHandler( "_delete" )
   void onDeleteRoster( final ClickEvent event )
   {
     _controller.doDeleteRoster( _roster );

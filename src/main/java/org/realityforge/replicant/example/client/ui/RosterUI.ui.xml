@@ -5,18 +5,61 @@
       <h1>
         <g:Label ui:field="_rosterName"/>
       </h1>
-      <table style="width: 100%">
+      <table style="width: 100%; margin: 0; padding: 0;" >
         <tr>
-          <td>
+          <td style="width: 30%; vertical-align: top;">
             <g:Tree ui:field="_tree"/>
           </td>
-          <td style="width: 100%">
-            <div style="padding:1em; background-color: grey; windth: 100%;">
+          <td style="width: 40%; vertical-align: top;">
+            <div style="background-color: grey; width: 100%;">
               <h5>
                 <g:Label ui:field="_shiftName"/>
               </h5>
               <g:FlexTable ui:field="_rosterData" />
             </div>
+          </td>
+          <td style="width: 30%; vertical-align: top;">
+            <g:VerticalPanel ui:field="_rosterPanel" visible="false">
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:Label>Roster Name</g:Label>
+                  <g:TextBox ui:field="_rosterNameEdit"/>
+                </g:HorizontalPanel>
+                <g:Button ui:field="_updateRosterName">Update Roster Name</g:Button>
+              </g:VerticalPanel>
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:Label>Shift Name</g:Label>
+                  <g:TextBox ui:field="_shiftNameCreate"/>
+                </g:HorizontalPanel>
+                <g:Button ui:field="_createShift">Create Shift</g:Button>
+              </g:VerticalPanel>
+            </g:VerticalPanel>
+            <g:VerticalPanel ui:field="_shiftPanel" visible="false">
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:Label>Shift Name</g:Label>
+                  <g:TextBox ui:field="_shiftNameEdit"/>
+                </g:HorizontalPanel>
+                <g:Button ui:field="_updateShiftName">Update Shift Name</g:Button>
+              </g:VerticalPanel>
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:Label>Position Name</g:Label>
+                  <g:TextBox ui:field="_positionNameCreate"/>
+                </g:HorizontalPanel>
+                <g:Button ui:field="_createPosition">Create Position</g:Button>
+              </g:VerticalPanel>
+            </g:VerticalPanel>
+            <g:VerticalPanel ui:field="_positionPanel" visible="false">
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:Label>Position Name</g:Label>
+                  <g:TextBox ui:field="_positionNameEdit"/>
+                </g:HorizontalPanel>
+                <g:Button ui:field="_updatePositionName">Update Position Name</g:Button>
+              </g:VerticalPanel>
+            </g:VerticalPanel>
           </td>
         </tr>
       </table>
@@ -24,7 +67,11 @@
         <g:Button text="Delete Roster" ui:field="_delete"/>
       </div>
       <div>
-        <g:Button text="Disconnect" ui:field="_disconnect"/>
+        <g:HorizontalPanel>
+          <g:Button text="Download All" ui:field="_downloadAll"/>
+          <g:Button text="Disconnect" ui:field="_disconnect"/>
+        </g:HorizontalPanel>
+
       </div>
     </div>
   </g:HTMLPanel>

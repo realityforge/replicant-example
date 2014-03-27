@@ -230,6 +230,36 @@ public class ApplicationController
     } );
   }
 
+  public void setRosterName( final Roster roster, final String name )
+  {
+    _rosterService.setRosterName( roster, name );
+  }
+
+  public void setShiftName( final Shift shift, final String name )
+  {
+    _rosterService.setShiftName( shift, name );
+  }
+
+  public void createShift( final Roster roster, final String name )
+  {
+    _rosterService.createShift( roster, name );
+  }
+
+  public void createPosition( final Shift shift, final String name )
+  {
+    _rosterService.createPosition( shift, name );
+  }
+
+  public void downloadAll()
+  {
+    _dataLoaderService.downloadAll();
+  }
+
+  public void setPositionName( final Position position, final String name )
+  {
+    _rosterService.setPositionName( position, name );
+  }
+
   public void doDeleteShift( final Shift shift )
   {
     _rosterService.removeShift( shift );
