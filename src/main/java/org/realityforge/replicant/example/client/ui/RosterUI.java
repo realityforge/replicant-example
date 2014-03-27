@@ -173,7 +173,7 @@ public class RosterUI
   }
 
   @UiHandler( "_disconnect" )
-  void handleRosterNameChange( final ClickEvent event )
+  void onDisconnect( final ClickEvent event )
   {
     _controller.disconnect();
   }
