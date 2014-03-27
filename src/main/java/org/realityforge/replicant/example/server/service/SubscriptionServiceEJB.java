@@ -81,7 +81,6 @@ public class SubscriptionServiceEJB
   @Override
   public void downloadAll( @Nonnull final String clientID )
   {
-    final TyrellSession session = ensureSession( clientID );
     for ( final Roster roster : _rosterRepository.findAll() )
     {
       subscribeToShiftList( clientID, roster, new RosterSubscriptionDTO( new Date(), 7 ) );
