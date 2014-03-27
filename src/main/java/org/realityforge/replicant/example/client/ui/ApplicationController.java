@@ -29,7 +29,7 @@ import org.realityforge.replicant.example.client.services.DataLoaderService;
 public class ApplicationController
   implements IsWidget, EntityChangeListener
 {
-  private static final Logger LOG = Logger.getLogger( SimpleUI.class.getName() );
+  private static final Logger LOG = Logger.getLogger( ApplicationController.class.getName() );
   private static final Level LOG_LEVEL = Level.FINE;
 
   private final EntityRepository _repository;
