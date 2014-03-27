@@ -137,7 +137,7 @@ public class RosterUI
   @UiHandler( "_updateRosterName" )
   void setRosterName( final ClickEvent event )
   {
-    _controller.setRosterName( _roster, _shiftNameEdit.getValue() );
+    _controller.setRosterName( _roster, _rosterNameEdit.getValue() );
   }
 
   @UiHandler( "_createShift" )
