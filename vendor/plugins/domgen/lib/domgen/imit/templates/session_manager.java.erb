@@ -116,7 +116,6 @@ public abstract class <%= repository.imit.session_manager_name %>
 
   param = ''
   param_value = ''
-  register_method = "setInterestedIn#{graph.name}( true )"
   check_method = "isInterestedIn#{graph.name}()"
   pk_accessor = ''
   instance_root = nil
@@ -126,7 +125,6 @@ public abstract class <%= repository.imit.session_manager_name %>
     param = ", @javax.annotation.Nonnull final #{instance_root.jpa.qualified_name} entity"
     param_value = 'entity'
     pk_accessor = "entity.#{getter_for(instance_root.primary_key)}"
-    register_method = "registerInterestIn#{graph.name}( #{pk_accessor}#{graph.filter_parameter.nil? ? '' : ", filter"} )"
     check_method = "is#{graph.name}Interesting( #{pk_accessor} )"
   end
   filter_param = ''
