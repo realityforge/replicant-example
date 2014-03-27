@@ -70,6 +70,10 @@ public class RosterServiceEJB
   @Override
   public void removeShift( @Nonnull final Shift shift )
   {
+    for ( final Position position : new ArrayList<Position>( shift.getPositions() ) )
+    {
+      removePosition( position );
+    }
     _shiftRepository.remove( shift );
   }
 
