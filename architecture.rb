@@ -13,6 +13,9 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:RosterList)
   repository.imit.graph(:ShiftList)
   repository.imit.graph(:Shift)
+  repository.imit.graph(:People)
+  repository.imit.graph(:Person)
+  repository.imit.graph(:PersonDetails)
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|
@@ -47,6 +50,26 @@ Domgen.repository(:Tyrell) do |repository|
       t.integer(:ID, :primary_key => true)
       t.reference(:Shift, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:ShiftList])
       t.string(:Name, 50)
+    end
+
+    data_module.entity(:Person) do |t|
+      t.integer(:ID, :primary_key => true)
+      t.string(:Name, 50)
+      t.imit.replicate(:People, :type)
+      t.imit.replicate(:Person, :instance)
+      t.imit.replicate(:PersonDetails, :instance)
+    end
+
+    data_module.entity(:Assignment) do |t|
+      t.integer(:ID, :primary_key => true)
+      t.reference(:Person, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:Person, :PersonDetails])
+      t.reference(:Position, :immutable => true, :"inverse.traversable" => true)
+    end
+
+    data_module.entity(:Contact) do |t|
+      t.integer(:ID, :primary_key => true)
+      t.reference(:Person, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:Person])
+      t.string(:Email, 50)
     end
 
     data_module.message(:SessionEstablished)

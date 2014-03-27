@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import org.realityforge.replicant.example.server.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.Shift;
+import org.realityforge.replicant.example.server.entity.dao.PersonRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
@@ -43,6 +44,9 @@ public class SubscriptionServiceEJB
 
   @Inject
   private ShiftRepository _shiftRepository;
+
+  @Inject
+  private PersonRepository _personRepository;
 
   private String _cacheKey;
 
@@ -128,6 +132,12 @@ public class SubscriptionServiceEJB
   public void collectRosterList( @Nonnull final EntityMessageSet messages )
   {
     getEncoder().encodeObjects( messages, _rosterRepository.findAll() );
+  }
+
+  @Override
+  public void collectPeople( @Nonnull final EntityMessageSet messages )
+  {
+    getEncoder().encodeObjects( messages, _personRepository.findAll() );
   }
 
   @Override
