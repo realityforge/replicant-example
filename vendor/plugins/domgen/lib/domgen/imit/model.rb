@@ -87,7 +87,9 @@ module Domgen
           target_graph = attribute.entity.data_module.repository.imit.graph_by_name(target_graph_key)
           prefix = "Link #{source_graph_key}=>#{target_graph_key} on #{attribute.qualified_name}"
           raise "#{prefix} must have an instance graph on the LHS" unless source_graph.instance_root?
+          raise "#{prefix} must have an non filtered graph on the LHS" unless source_graph.filter_parameter.nil?
           raise "#{prefix} must have an instance graph on the RHS" unless target_graph.instance_root?
+          raise "#{prefix} must have an non filtered graph on the RHS" unless target_graph.filter_parameter.nil?
           source_graph.links[attribute] = target_graph
         end
       end
