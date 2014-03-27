@@ -39,10 +39,11 @@ public abstract class <%= repository.imit.session_manager_name %>
   param = ''
   type = 'Boolean'
   check_method = "isInterestedIn#{graph.name}"
+  instance_root = nil
   if graph.instance_root?
     # Names are fully qualified so take any random data module
-    entity = repository.entity_by_name(graph.instance_root)
-    type = entity.primary_key.jpa.non_primitive_java_type
+    instance_root = repository.entity_by_name(graph.instance_root)
+    type = instance_root.primary_key.jpa.non_primitive_java_type
     param = " #{graph.name} "
     check_method = "is#{graph.name}Interesting"
   end
@@ -75,6 +76,13 @@ public abstract class <%= repository.imit.session_manager_name %>
             if ( session.<%= check_method %>(<%= param %> ) <%= extra_interest_filter %>)
             {
               accumulator.addChange( session, new org.realityforge.replicant.server.Change( message, <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? graph.name : 0 %> ) );
+<% if graph.instance_root? %>
+              if( message.isDelete() && <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(instance_root.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(instance_root.name.to_s) %> == message.getTypeID() )
+              {
+                session.deregisterInterestIn<%= graph.name %>( <%= graph.name %> );
+                accumulator.addAction( session, new org.realityforge.replicant.server.ChannelAction( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.name %>, org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+              }
+<% end %>
             }
           }
         }
