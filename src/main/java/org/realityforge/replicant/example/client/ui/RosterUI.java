@@ -121,8 +121,8 @@ public class RosterUI
       _positionNameEdit.setText( position.getName() );
 
       _rosterPanel.setVisible( false );
-      _shiftPanel.setVisible( true );
-      _positionPanel.setVisible( false );
+      _shiftPanel.setVisible( false );
+      _positionPanel.setVisible( true );
     }
     else
     {
