@@ -79,8 +79,7 @@ public abstract class <%= repository.imit.session_manager_name %>
 <% if graph.instance_root? %>
               if( message.isDelete() && <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(instance_root.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(instance_root.name.to_s) %> == message.getTypeID() )
               {
-                session.deregisterInterestIn<%= graph.name %>( <%= graph.name %> );
-                accumulator.addAction( session, new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.name %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+                doUnsubscribeFrom<%= graph.name %>( session<%= param.size > 0 ? ", #{param}" : "" %> );
               }
 <% end %>
             }
@@ -226,8 +225,23 @@ public abstract class <%= repository.imit.session_manager_name %>
   public void unsubscribeFrom<%= graph.name %>( @javax.annotation.Nonnull final String sessionID<%= param %> )
     throws org.realityforge.replicant.server.transport.BadSessionException
   {
-    ensureSession( sessionID ).<%= deregister_method %>;
-    org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+    final <%= repository.imit.qualified_session_name %> session = ensureSession( sessionID );
+    doUnsubscribeFrom<%= graph.name %>( session<%= pk_accessor.size == 0 ? '' : ", #{pk_accessor}" %> );
+  }
+
+  private void doUnsubscribeFrom<%= graph.name %>( @javax.annotation.Nonnull final <%= repository.imit.qualified_session_name %> session<%= graph.instance_root? ? ", #{repository.entity_by_name(graph.instance_root).primary_key.imit.java_type} id" : '' %> )
+  {
+<% if graph.instance_root? -%>
+    if ( session.is<%= graph.name %>Interesting( id ) )
+    {
+      session.deregisterInterestIn<%= graph.name %>( id );
+<% else -%>
+    if ( session.isInterestedIn<%= graph.name %>() )
+    {
+      session.setInterestedIn<%= graph.name %>( false );
+<% end -%>
+      org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? 'id' : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE ) );
+    }
   }
 <% end %>
 }
