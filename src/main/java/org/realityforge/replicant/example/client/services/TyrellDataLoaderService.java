@@ -29,7 +29,7 @@ import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderSer
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
-import org.realityforge.replicant.example.shared.entity.TyrellReplicationGraph;
+import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
 
 public class TyrellDataLoaderService
