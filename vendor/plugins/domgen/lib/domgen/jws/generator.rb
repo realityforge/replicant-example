@@ -17,7 +17,7 @@ module Domgen
     module JWS
       TEMPLATE_DIRECTORY = "#{File.dirname(__FILE__)}/templates"
       FACETS = [:jws]
-      HELPERS = [Domgen::Java::Helper, Domgen::JWS::Helper, Domgen::JAXB::Helper]
+      HELPERS = [Domgen::Java::Helper, Domgen::Xml::Helper, Domgen::JAXB::Helper]
     end
   end
 end
@@ -86,6 +86,25 @@ Domgen.template_set(:jws_jaxws_config) do |template_set|
                         Domgen::Generator::JWS::HELPERS)
 end
 
-Domgen.template_set(:jws_server => [:jws_server_boundary, :jws_server_service, :jws_wsdl_assets])
-Domgen.template_set(:jws_client => [:jws_wsdl_resources])
+Domgen.template_set(:jws_fakes) do |template_set|
+  template_set.template(Domgen::Generator::JWS::FACETS,
+                        :service,
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_implementation.java.erb",
+                        'main/java/#{service.jws.qualified_fake_implementation_name.gsub(".","/")}.java',
+                        Domgen::Generator::JWS::HELPERS)
+  template_set.template(Domgen::Generator::JWS::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_server.java.erb",
+                        'main/java/#{repository.jws.qualified_fake_server_name.gsub(".","/")}.java',
+                        Domgen::Generator::JWS::HELPERS)
+  template_set.template(Domgen::Generator::JWS::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_server_test.java.erb",
+                        'test/java/#{repository.jws.qualified_fake_server_test_name.gsub(".","/")}.java',
+                        Domgen::Generator::JWS::HELPERS)
+end
+
+Domgen.template_set(:jws_server => [:jws_server_boundary, :jws_server_service, :jws_wsdl_assets, :xml_xsd_assets])
+Domgen.template_set(:jws_fake_server => [:jws_fakes, :jws_server_service, :jws_wsdl_resources, :xml_xsd_resources])
+Domgen.template_set(:jws_client => [:jws_wsdl_resources, :xml_xsd_resources])
 Domgen.template_set(:jws => [:jws_server, :jws_client])

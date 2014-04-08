@@ -15,22 +15,12 @@
 module Domgen
   module JMX
     class JmxClass < Domgen.ParentedElement(:service)
-      attr_writer :service_name
+      include Domgen::Java::BaseJavaGenerator
 
-      def service_name
-        @service_name || "#{service.name}MXBean"
-      end
-
-      def qualified_service_name
-        "#{service.data_module.jmx.service_package}.#{service_name}"
-      end
+      java_artifact :service, :service, :server, :ee, '#{service.name}MXBean'
     end
 
     class JmxParameter < Domgen.ParentedElement(:parameter)
-      def name
-        Domgen::Naming.camelize(parameter.name)
-      end
-
       include Domgen::Java::EEJavaCharacteristic
 
       protected
@@ -41,9 +31,6 @@ module Domgen
     end
 
     class JmxMethod < Domgen.ParentedElement(:service)
-      def name
-        Domgen::Naming.camelize(service.name)
-      end
     end
 
     class JmxReturn < Domgen.ParentedElement(:result)
@@ -57,17 +44,9 @@ module Domgen
     end
 
     class JmxException < Domgen.ParentedElement(:exception)
-      def name
-        exception.name.to_s =~ /Exception$/ ? exception.name.to_s : "#{exception.name}Exception"
-      end
-
-      def qualified_name
-        "#{exception.data_module.jmx.data_type_package}.#{name}"
-      end
     end
 
     class JmxPackage < Domgen.ParentedElement(:data_module)
-      include Domgen::Java::EEJavaPackage
     end
 
     class JmxApplication < Domgen.ParentedElement(:repository)

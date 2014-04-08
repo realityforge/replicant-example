@@ -45,28 +45,14 @@ module Domgen
       @consumes = [:json, :xml]
       INIT
       include MediaTypeEnabled
-
-      attr_writer :service_name
-
-      def service_name
-        @service_name || "#{short_service_name}RestService"
-      end
+      include Domgen::Java::BaseJavaGenerator
 
       def short_service_name
         service.name.to_s =~ /^(.*)Service/ ? service.name.to_s[0..-7] : service.name
       end
 
-      def qualified_service_name
-        "#{service.data_module.jaxrs.service_package}.#{service_name}"
-      end
-
-      def boundary_name
-        "#{service_name}Impl"
-      end
-
-      def qualified_boundary_name
-        "#{service.data_module.jaxrs.service_package}.#{boundary_name}"
-      end
+      java_artifact :service, :service, :server, :ee, '#{short_service_name}RestService'
+      java_artifact :boundary, :service, :server, :ee, '#{service_name}Impl'
 
       attr_accessor :boundary_extends
 
@@ -76,7 +62,6 @@ module Domgen
         return @path unless @path.nil?
         return "/#{Domgen::Naming.underscore(short_service_name)}"
       end
-
     end
 
     class JaxRsParameter < Domgen.ParentedElement(:parameter)
@@ -160,21 +145,13 @@ module Domgen
     end
 
     class JaxRsException < Domgen.ParentedElement(:exception)
-      def name
-        exception.name.to_s =~ /Exception$/ ? exception.name.to_s : "#{exception.name}Exception"
-      end
-
-      def qualified_name
-        "#{exception.data_module.jaxrs.data_type_package}.#{name}"
-      end
     end
 
     class JaxRsPackage < Domgen.ParentedElement(:data_module)
-      include Domgen::Java::EEJavaPackage
     end
 
     class JaxRsApplication < Domgen.ParentedElement(:repository)
-      include Domgen::Java::ServerJavaApplication
+      include Domgen::Java::BaseJavaGenerator
 
       attr_writer :path
 
@@ -182,13 +159,7 @@ module Domgen
         @path || 'api'
       end
 
-      def abstract_application_name
-        "#{repository.name}JaxRsApplication"
-      end
-
-      def qualified_abstract_application_name
-        "#{repository.jaxrs.service_package}.#{abstract_application_name}"
-      end
+      java_artifact :abstract_application, :service, :server, :ee, '#{repository.name}JaxRsApplication'
     end
   end
 

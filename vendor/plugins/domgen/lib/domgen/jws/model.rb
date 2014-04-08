@@ -15,6 +15,7 @@
 module Domgen
   module JWS
     class JwsClass < Domgen.ParentedElement(:service)
+      include Domgen::Java::BaseJavaGenerator
 
       def boundary_ejb_name
         "#{service.data_module.repository.name}.#{service.data_module.name}.#{service.jws.java_service_name}"
@@ -53,38 +54,17 @@ module Domgen
       attr_writer :system_id
 
       def system_id
-        @system_id || "#{service.data_module.jws.namespace}/#{web_service_name}.wsdl"
+        @system_id || "#{namespace}.wsdl"
       end
 
       def namespace
-        @namespace || service.data_module.repository.jws.namespace
+        @namespace || "#{service.data_module.jws.namespace}/#{web_service_name}"
       end
 
-      attr_writer :service_name
-
-      def service_name
-        @service_name || "#{service.name}Service"
-      end
-
-      def qualified_service_name
-        "#{service.data_module.jws.service_package}.#{service_name}"
-      end
-
-      def java_service_name
-        "#{web_service_name}WS"
-      end
-
-      def qualified_java_service_name
-        "#{service.data_module.jws.service_package}.#{java_service_name}"
-      end
-
-      def boundary_implementation_name
-        "#{web_service_name}WSBoundaryEJB"
-      end
-
-      def qualified_boundary_implementation_name
-        "#{service.data_module.jws.service_package}.#{boundary_implementation_name}"
-      end
+      java_artifact :service, :service, :server, :ee, '#{service.name}Service'
+      java_artifact :java_service, :service, :server, :ee, '#{web_service_name}WS'
+      java_artifact :boundary_implementation, :service, :server, :ee, '#{web_service_name}WSBoundaryEJB'
+      java_artifact :fake_implementation, :service, :fake, :jws, 'Fake#{web_service_name}'
     end
 
     class JwsParameter < Domgen.ParentedElement(:parameter)
@@ -101,17 +81,31 @@ module Domgen
       end
     end
 
-    class JwsMethod < Domgen.ParentedElement(:service)
+    class JwsMethod < Domgen.ParentedElement(:method)
       def name
-        Domgen::Naming.camelize(service.name)
+        Domgen::Naming.camelize(method.name)
+      end
+
+      def input_action
+        "#{method.service.jws.namespace}/#{method.service.jws.web_service_name}/#{method.name}Request"
+      end
+
+      def output_action
+        "#{method.service.jws.namespace}/#{method.service.jws.web_service_name}/#{method.name}Response"
       end
     end
 
     class JwsPackage < Domgen.ParentedElement(:data_module)
-      include Domgen::Java::EEJavaPackage
+      include Domgen::Java::EEClientServerJavaPackage
 
       def namespace
         @namespace || "#{data_module.repository.jws.namespace}/#{data_module.name}"
+      end
+
+      attr_writer :fake_service_package
+
+      def fake_service_package
+        @fake_service_package || resolve_package(:fake_service_package, data_module.repository.jws)
       end
 
       attr_writer :url
@@ -122,6 +116,17 @@ module Domgen
     end
 
     class JwsApplication < Domgen.ParentedElement(:repository)
+      include Domgen::Java::BaseJavaGenerator
+
+      attr_writer :fake_service_package
+
+      def fake_service_package
+        @fake_service_package || "#{repository.java.base_package}.fake"
+      end
+
+      java_artifact :fake_server, :service, :fake, :jws, 'Fake#{repository.name}Server'
+      java_artifact :fake_server_test, :service, :fake, :jws, 'AbstractFake#{repository.name}ServerTest'
+
       attr_writer :service_name
 
       # The name of the service under which web services will be anchored
@@ -132,13 +137,7 @@ module Domgen
       attr_writer :namespace
 
       def namespace
-        @namespace || "#{base_namespace}/#{service_name}"
-      end
-
-      attr_writer :base_namespace
-
-      def base_namespace
-        @base_namespace || "http://example.com"
+        @namespace || "#{repository.xml.base_namespace}/#{service_name}"
       end
 
       attr_writer :url
@@ -160,26 +159,19 @@ module Domgen
     end
 
     class JwsException < Domgen.ParentedElement(:exception)
-      def name
-        "#{exception.name}_Exception"
-      end
+      include Domgen::Java::BaseJavaGenerator
 
-      def qualified_name
-        "#{exception.data_module.jws.service_package}.#{name}"
-      end
-
-      def fault_info_name
-        "#{exception.name}ExceptionInfo"
-      end
-
-      def qualified_fault_info_name
-        "#{exception.data_module.jws.service_package}.#{fault_info_name}"
-      end
+      java_artifact :fault_info, :service, :server, :ee, '#{exception.name}ExceptionInfo'
+      java_artifact :name, :service, :server, :ee, '#{exception.name}_Exception'
 
       attr_writer :namespace
 
       def namespace
-        @namespace || exception.data_module.repository.jws.namespace
+        @namespace || exception.data_module.jws.namespace
+      end
+
+      def fault_action(method)
+        "#{method.service.jws.namespace}/#{method.service.jws.web_service_name}/#{method.name}/Fault/#{exception.jws.name}"
       end
     end
   end

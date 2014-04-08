@@ -20,6 +20,10 @@ module Domgen
       FacetManager.facet_enabled?(facet_key, self)
     end
 
+    def facet(facet_key)
+      self.send(facet_key)
+    end
+
     def verify
       extension_point(:pre_verify)
       perform_verify
@@ -58,7 +62,7 @@ module Domgen
     end
 
     def all_enabled_facets
-      (enabled_facets + (self.respond_to?(:facet_parent) ? facet_parent.all_enabled_facets : [])).uniq - disabled_facets
+      (enabled_facets + (self.respond_to?(:parent) ? self.parent.all_enabled_facets : [])).uniq - disabled_facets
     end
   end
 
@@ -76,13 +80,7 @@ module Domgen
 
   def self.FacetedElement(parent_key)
     type = self.ParentedElement(parent_key, "self.activate_facets")
-    type.class_eval(<<-CODE)
-        def facet_parent
-          self.#{parent_key}
-        end
-
-        include Domgen::Faceted
-    CODE
+    type.send :include, Domgen::Faceted
     type
   end
 

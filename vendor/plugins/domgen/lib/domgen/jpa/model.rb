@@ -171,7 +171,7 @@ module Domgen
       end
     end
 
-    class BaseJpaField < Domgen.ParentedElement(:parent)
+    class BaseJpaField < Domgen.ParentedElement(:field_parent)
       def cascade
         @cascade || []
       end
@@ -222,7 +222,7 @@ module Domgen
       end
 
       def inverse
-        self.parent
+        self.field_parent
       end
 
       def traversable=(traversable)
@@ -251,7 +251,7 @@ module Domgen
       end
 
       def attribute
-        self.parent
+        self.field_parent
       end
 
       include Domgen::Java::EEJavaCharacteristic
@@ -280,6 +280,8 @@ module Domgen
     end
 
     class JpaClass < Domgen.ParentedElement(:entity)
+      include Domgen::Java::BaseJavaGenerator
+
       attr_writer :table_name
 
       def table_name
@@ -292,43 +294,10 @@ module Domgen
         @jpql_name || entity.qualified_name.gsub('.','_')
       end
 
-      attr_writer :name
-
-      def name
-        @name || entity.name
-      end
-
-      def qualified_name
-        "#{entity.data_module.jpa.entity_package}.#{name}"
-      end
-
-      def metamodel_name
-        "#{name}_"
-      end
-
-      def qualified_metamodel_name
-        "#{entity.data_module.jpa.entity_package}.#{metamodel_name}"
-      end
-
-      attr_writer :dao_service_name
-
-      def dao_service_name
-        @dao_service_name || "#{entity.name}Repository"
-      end
-
-      def qualified_dao_service_name
-        "#{entity.data_module.jpa.dao_package}.#{dao_service_name}"
-      end
-
-      attr_writer :dao_name
-
-      def dao_name
-        @dao_name || "#{dao_service_name}EJB"
-      end
-
-      def qualified_dao_name
-        "#{entity.data_module.jpa.dao_package}.#{dao_name}"
-      end
+      java_artifact :name, :entity, :server, :jpa, '#{entity.name}'
+      java_artifact :metamodel, :entity, :server, :jpa, '#{name}_'
+      java_artifact :dao_service, :entity, :server, :jpa, '#{name}Repository', :sub_package => 'dao'
+      java_artifact :dao, :entity, :server, :jpa, '#{dao_service_name}EJB', :sub_package => 'dao'
 
       attr_writer :cacheable
 
@@ -386,16 +355,16 @@ module Domgen
     end
 
     class JpaPackage < Domgen.ParentedElement(:data_module)
-      include Domgen::Java::EEJavaPackage
+      include Domgen::Java::EEClientServerJavaPackage
 
-      attr_writer :dao_package
-
-      def dao_package
-        @dao_package || "#{entity_package}.dao"
+      def server_dao_entity_package
+        "#{server_entity_package}.dao"
       end
     end
 
     class PersistenceUnit < Domgen.ParentedElement(:repository)
+      include Domgen::Java::BaseJavaGenerator
+      include Domgen::Java::JavaClientServerApplication
 
       def version
         @version || (repository.ee.version == '6' ? '2.0' : '2.1')
@@ -412,8 +381,6 @@ module Domgen
         @unit_name || repository.name
       end
 
-      include Domgen::Java::ServerJavaApplication
-
       attr_writer :properties
 
       def properties
@@ -425,23 +392,8 @@ module Domgen
         }
       end
 
-      def unit_descriptor_name
-        @eunit_descriptor_name || "#{repository.name}PersistenceUnit"
-      end
-
-      def qualified_unit_descriptor_name
-        "#{entity_package}.#{unit_descriptor_name}"
-      end
-
-      attr_writer :ejb_module_name
-
-      def ejb_module_name
-        @ejb_module_name || "#{repository.name}RepositoryModule"
-      end
-
-      def qualified_ejb_module_name
-        "#{package}.#{ejb_module_name}"
-      end
+      java_artifact :unit_descriptor, nil, :server, :jpa, '#{repository.name}PersistenceUnit'
+      java_artifact :ejb_module, nil, :server, :jpa, '#{repository.name}RepositoryModule'
 
       attr_writer :data_source
 
@@ -461,7 +413,6 @@ module Domgen
         return "org.eclipse.persistence.jpa.PersistenceProvider" if provider == :eclipselink
         return "org.hibernate.ejb.HibernatePersistence" if provider == :hibernate
         return nil if provider.nil?
-
       end
 
       def persistence_file_fragments

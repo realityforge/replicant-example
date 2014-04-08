@@ -27,6 +27,9 @@ module Domgen
     end
 
     class JaxbPackage < Domgen.ParentedElement(:repository)
+      include Domgen::Java::BaseJavaGenerator
+
+      java_artifact :marshalling_test, :data_type, :server, :ee, '#{repository.name}JaxbMarshallingTest'
     end
   end
 

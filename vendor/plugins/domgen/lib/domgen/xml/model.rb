@@ -22,8 +22,6 @@ module Domgen
       def name
         @name || Domgen::Naming.xmlize(#{parent_key}.name)
       end
-
-      attr_accessor :namespace
       RUBY
     end
 
@@ -65,10 +63,18 @@ module Domgen
         return candidate[0, candidate.size-3] if candidate =~ /-vo$/
         candidate
       end
+
+      def namespace
+        struct.data_module.xml.namespace
+      end
     end
 
     class XmlEnumeration < Domgen.ParentedElement(:enumeration)
       Domgen::XML.include_xml(self, :enumeration)
+
+      def namespace
+        enumeration.data_module.xml.namespace
+      end
     end
 
     class XmlParameter < Domgen.ParentedElement(:parameter)
@@ -77,10 +83,57 @@ module Domgen
 
     class XmlException < Domgen.ParentedElement(:exception)
       Domgen::XML.include_xml(self, :exception)
+
+      def namespace
+        exception.data_module.xml.namespace
+      end
     end
 
     class XmlExceptionParameter < Domgen.ParentedElement(:parameter)
       Domgen::XML.include_data_element_xml(self, :parameter)
+    end
+
+    class XmlPackage < Domgen.ParentedElement(:data_module)
+      Domgen::XML.include_xml(self, :data_module)
+
+      attr_writer :namespace
+
+      def namespace
+        @namespace || "#{data_module.repository.xml.namespace}/#{data_module.name}"
+      end
+
+      # xml prefix
+      def prefix
+        Domgen::Naming.underscore(data_module.name)
+      end
+
+      def schema_name
+        data_module.name
+      end
+
+      def xsd_name
+        "#{data_module.repository.name}/#{schema_name}.xsd"
+      end
+
+      def resource_xsd_name
+        "META-INF/xsd/#{xsd_name}"
+      end
+    end
+
+    class XmlApplication < Domgen.ParentedElement(:repository)
+      Domgen::XML.include_xml(self, :repository)
+
+      attr_writer :namespace
+
+      def namespace
+        @namespace || "#{base_namespace}/#{repository.name}"
+      end
+
+      attr_writer :base_namespace
+
+      def base_namespace
+        @base_namespace || "http://example.com"
+      end
     end
   end
 
@@ -90,5 +143,7 @@ module Domgen
                             Exception => Domgen::XML::XmlException,
                             ExceptionParameter => Domgen::XML::XmlExceptionParameter,
                             Parameter => Domgen::XML::XmlParameter,
+                            DataModule => Domgen::XML::XmlPackage,
+                            Repository => Domgen::XML::XmlApplication,
                             EnumerationSet => Domgen::XML::XmlEnumeration)
 end
