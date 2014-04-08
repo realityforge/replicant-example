@@ -107,8 +107,13 @@ Domgen.template_set(:jws_fakes) do |template_set|
                         Domgen::Generator::JWS::HELPERS)
   template_set.template(Domgen::Generator::JWS::FACETS,
                         :repository,
-                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_server_test.java.erb",
-                        'test/java/#{repository.jws.qualified_fake_server_test_name.gsub(".","/")}.java',
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/abstract_fake_server_test.java.erb",
+                        'test/java/#{repository.jws.qualified_abstract_fake_server_test_name.gsub(".","/")}.java',
+                        Domgen::Generator::JWS::HELPERS)
+  template_set.template(Domgen::Generator::JWS::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/client_integration_test.java.erb",
+                        'test/java/#{repository.jws.qualified_client_integration_test_name.gsub(".","/")}.java',
                         Domgen::Generator::JWS::HELPERS)
 end
 

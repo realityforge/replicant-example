@@ -17,6 +17,14 @@ module Domgen
     class JwsClass < Domgen.ParentedElement(:service)
       include Domgen::Java::BaseJavaGenerator
 
+      def qualified_api_interface_name
+        "#{api_package}.#{web_service_name}"
+      end
+
+      def qualified_api_endpoint_name
+        "#{qualified_api_interface_name}Service"
+      end
+
       def api_package
         "#{service.data_module.jws.api_package}.#{Domgen::Naming.underscore(web_service_name.gsub(/Service$/,''))}"
       end
@@ -141,7 +149,8 @@ module Domgen
       end
 
       java_artifact :fake_server, :service, :fake, :jws, 'Fake#{repository.name}Server'
-      java_artifact :fake_server_test, :service, :fake, :jws, 'AbstractFake#{repository.name}ServerTest'
+      java_artifact :abstract_fake_server_test, :service, :fake, :jws, 'AbstractFake#{repository.name}ServerTest'
+      java_artifact :client_integration_test, :service, :fake, :jws, '#{repository.name}ClientIntegrationTest'
 
       attr_writer :service_name
 
