@@ -65,5 +65,7 @@ define 'replicant-example' do
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 
+   ipr.add_glassfish_configuration(project, :domain => 'tyrell', :exploded => ['replicant-example'])
+
   ipr.extra_modules << '../replicant/replicant.iml'
 end
