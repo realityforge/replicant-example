@@ -10,6 +10,7 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -139,6 +140,19 @@ public class TyrellDataLoaderService
   public void disconnect()
   {
     stopPolling();
+    final EntitySubscriptionManager subscriptionManager = getSubscriptionManager();
+    for ( final Enum graph : subscriptionManager.getInstanceSubscriptionKeys() )
+    {
+      final Set<Object> instanceSubscriptions = subscriptionManager.getInstanceSubscriptions( graph );
+      for ( final Object id : instanceSubscriptions )
+      {
+        subscriptionManager.unsubscribe( graph, id );
+      }
+    }
+    for ( final Enum graph : subscriptionManager.getTypeSubscriptions() )
+    {
+      subscriptionManager.unsubscribe( graph );
+    }
     setSession( null, null );
   }
 
