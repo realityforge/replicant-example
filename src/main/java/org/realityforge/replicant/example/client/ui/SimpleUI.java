@@ -46,7 +46,7 @@ public class SimpleUI
     panel.add( applicationController );
 
     final HorizontalPanel horizontalPanel = new HorizontalPanel();
-    horizontalPanel.setWidth( "100%" );;
+    horizontalPanel.setWidth( "100%" );
     horizontalPanel.setHeight( "200px" );
 
     _resourceList = new FlexTable();
