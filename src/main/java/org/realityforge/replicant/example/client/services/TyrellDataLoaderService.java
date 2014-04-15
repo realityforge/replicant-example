@@ -285,6 +285,10 @@ public class TyrellDataLoaderService
         }
       } );
     }
+    else
+    {
+      throw new IllegalStateException();
+    }
   }
 
   @Override
@@ -316,6 +320,10 @@ public class TyrellDataLoaderService
     {
       _subscriptionService.unsubscribeFromMetaData( getSessionID(), callback );
     }
+    else
+    {
+      throw new IllegalStateException();
+    }
   }
 
   @Override
@@ -338,6 +346,10 @@ public class TyrellDataLoaderService
                                                           (Integer) id,
                                                           (RosterSubscriptionDTO) filterParameter,
                                                           callback );
+    }
+    else
+    {
+      throw new IllegalStateException();
     }
   }
 }
