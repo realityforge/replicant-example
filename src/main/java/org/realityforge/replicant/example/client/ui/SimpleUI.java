@@ -120,12 +120,14 @@ public class SimpleUI
       treeItem.remove();
     }
     final Widget widget = _listViewMap.get( entity );
-    final int rowCount = _resourceList.getRowCount();
-    for( int i = 0; i < rowCount; i++ )
+    int rowCount = _resourceList.getRowCount();
+    for ( int i = 0; i < rowCount; i++ )
     {
       if ( widget == _resourceList.getWidget( i, 0 ) )
       {
         _resourceList.removeRow( i );
+        i = i - 1;
+        rowCount = rowCount - 1;
       }
     }
   }
