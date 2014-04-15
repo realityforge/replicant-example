@@ -3,6 +3,7 @@ package org.realityforge.replicant.example.client.ui;
 import com.google.gwt.i18n.shared.DateTimeFormat;
 import com.google.gwt.i18n.shared.DateTimeFormat.PredefinedFormat;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Tree;
@@ -17,6 +18,8 @@ import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.entity.Assignment;
+import org.realityforge.replicant.example.client.entity.Person;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
@@ -29,7 +32,9 @@ public class SimpleUI
   private static final Level LOG_LEVEL = Level.FINE;
 
   private final Tree _tree;
-  private final Map<Object, TreeItem> _viewMap = new HashMap<Object, TreeItem>();
+  private final Map<Object, TreeItem> _treeViewMap = new HashMap<Object, TreeItem>();
+  private final FlexTable _resourceList;
+  private final Map<Object, Widget> _listViewMap = new HashMap<Object, Widget>();
 
   @Inject
   public SimpleUI( final ApplicationController applicationController, final EntityChangeBroker broker )
@@ -40,12 +45,21 @@ public class SimpleUI
     panel.setWidth( "100%" );
     panel.add( applicationController );
 
+    final HorizontalPanel horizontalPanel = new HorizontalPanel();
+    horizontalPanel.setHeight( "200px" );
+
+    _resourceList = new FlexTable();
+    _resourceList.setWidth( "100%" );
+    _resourceList.setHeight( "100%" );
+
     _tree = new Tree();
-    _tree.setHeight( "200px" );
+    _tree.setHeight( "100%" );
     _tree.setWidth( "100%" );
     _tree.setScrollOnSelectEnabled( true );
 
-    panel.add( _tree );
+    horizontalPanel.add( _tree );
+    horizontalPanel.add( _resourceList );
+    panel.add( horizontalPanel );
     initWidget( panel );
   }
 
@@ -54,7 +68,7 @@ public class SimpleUI
     final TreeItem treeItem = _tree.addItem( createRosterWidget( roster ) );
     treeItem.setUserObject( roster );
     treeItem.setState( true );
-    _viewMap.put( roster, treeItem );
+    _treeViewMap.put( roster, treeItem );
   }
 
   private Widget createRosterWidget( final Roster roster )
@@ -73,6 +87,25 @@ public class SimpleUI
     {
       createRoster( (Roster) entity );
     }
+    else if ( entity instanceof Person )
+    {
+      createPerson( (Person) entity );
+    }
+  }
+
+  private void createPerson( final Person entity )
+  {
+    final int row = _resourceList.insertRow( _resourceList.getRowCount() );
+    final Widget widget = createPersonWidget( entity );
+    _resourceList.setWidget( row, 0, widget );
+    _listViewMap.put( entity, widget );
+  }
+
+  private Widget createPersonWidget( final Person person )
+  {
+    final HorizontalPanel panel = new HorizontalPanel();
+    panel.add( new Label( person.getName() ) );
+    return panel;
   }
 
   @Override
@@ -80,10 +113,19 @@ public class SimpleUI
   {
     LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
-    final TreeItem treeItem = _viewMap.remove( entity );
+    final TreeItem treeItem = _treeViewMap.remove( entity );
     if ( null != treeItem )
     {
       treeItem.remove();
+    }
+    final Widget widget = _listViewMap.get( entity );
+    final int rowCount = _resourceList.getRowCount();
+    for( int i = 0; i < rowCount; i++ )
+    {
+      if ( widget == _resourceList.getWidget( i, 0 ) )
+      {
+        _resourceList.removeRow( i );
+      }
     }
   }
 
@@ -95,7 +137,7 @@ public class SimpleUI
     if ( entity instanceof Roster )
     {
       final Roster roster = (Roster) entity;
-      final TreeItem treeItem = _viewMap.get( roster );
+      final TreeItem treeItem = _treeViewMap.get( roster );
       if ( null != treeItem )
       {
         treeItem.setWidget( createRosterWidget( roster ) );
@@ -104,7 +146,7 @@ public class SimpleUI
     else if ( entity instanceof Shift )
     {
       final Shift shift = (Shift) entity;
-      final TreeItem treeItem = _viewMap.get( shift );
+      final TreeItem treeItem = _treeViewMap.get( shift );
       if ( null != treeItem )
       {
         treeItem.setWidget( createShiftWidget( shift ) );
@@ -113,7 +155,7 @@ public class SimpleUI
     else if ( entity instanceof Position )
     {
       final Position position = (Position) entity;
-      final TreeItem treeItem = _viewMap.get( position );
+      final TreeItem treeItem = _treeViewMap.get( position );
       if ( null != treeItem )
       {
         treeItem.setWidget( createPositionWidget( position ) );
@@ -131,7 +173,7 @@ public class SimpleUI
     {
       final Shift shift = (Shift) value;
       final Roster roster = (Roster) object;
-      final TreeItem parent = _viewMap.get( roster );
+      final TreeItem parent = _treeViewMap.get( roster );
       if ( null != parent )
       {
         addShift( parent, shift );
@@ -141,10 +183,20 @@ public class SimpleUI
     {
       final Shift shift = (Shift) object;
       final Position position = (Position) value;
-      final TreeItem parent = _viewMap.get( shift );
+      final TreeItem parent = _treeViewMap.get( shift );
       if ( null != parent )
       {
         addPosition( parent, position );
+      }
+    }
+    else if ( object instanceof Position && value instanceof Assignment )
+    {
+      final Position position = (Position) object;
+      final Assignment assignment = (Assignment) value;
+      final TreeItem parent = _treeViewMap.get( position );
+      if ( null != parent )
+      {
+        addAssignment( parent, assignment );
       }
     }
   }
@@ -153,7 +205,7 @@ public class SimpleUI
   {
     final TreeItem treeItem = parent.addItem( createShiftWidget( shift ) );
     treeItem.setUserObject( shift );
-    _viewMap.put( shift, treeItem );
+    _treeViewMap.put( shift, treeItem );
   }
 
   private Widget createShiftWidget( final Shift shift )
@@ -168,13 +220,27 @@ public class SimpleUI
   {
     final TreeItem treeItem = parent.addItem( createPositionWidget( position ) );
     treeItem.setUserObject( position );
-    _viewMap.put( position, treeItem );
+    _treeViewMap.put( position, treeItem );
   }
 
   private Widget createPositionWidget( final Position position )
   {
     final HorizontalPanel panel = new HorizontalPanel();
     panel.add( new Label( position.getName() ) );
+    return panel;
+  }
+
+  private void addAssignment( final TreeItem parent, final Assignment assignment )
+  {
+    final TreeItem treeItem = parent.addItem( createAssignmentWidget( assignment ) );
+    treeItem.setUserObject( assignment );
+    _treeViewMap.put( assignment, treeItem );
+  }
+
+  private Widget createAssignmentWidget( final Assignment assignment )
+  {
+    final HorizontalPanel panel = new HorizontalPanel();
+    panel.add( new Label( assignment.getPerson().getName() ) );
     return panel;
   }
 
@@ -187,7 +253,7 @@ public class SimpleUI
     if ( object instanceof Roster && value instanceof Shift )
     {
       final Shift shift = (Shift) value;
-      final TreeItem treeItem = _viewMap.remove( shift );
+      final TreeItem treeItem = _treeViewMap.remove( shift );
       if ( null != treeItem )
       {
         treeItem.remove();
@@ -196,7 +262,16 @@ public class SimpleUI
     else if ( object instanceof Shift && value instanceof Position )
     {
       final Position position = (Position) value;
-      final TreeItem treeItem = _viewMap.remove( position );
+      final TreeItem treeItem = _treeViewMap.remove( position );
+      if ( null != treeItem )
+      {
+        treeItem.remove();
+      }
+    }
+    else if ( object instanceof Position && value instanceof Assignment )
+    {
+      final Assignment assignment = (Assignment) value;
+      final TreeItem treeItem = _treeViewMap.remove( assignment );
       if ( null != treeItem )
       {
         treeItem.remove();
