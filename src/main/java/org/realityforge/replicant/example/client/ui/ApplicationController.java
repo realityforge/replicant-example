@@ -17,6 +17,7 @@ import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTOFactory;
+import org.realityforge.replicant.example.client.entity.Person;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.RosterType;
@@ -275,6 +276,24 @@ public class ApplicationController
   public void removePosition( final Position position )
   {
     _rosterService.removePosition( position );
+  }
+
+  public void loadResources()
+  {
+    _dataLoaderService.getSession().subscribeToPeople( null );
+  }
+
+  public void unloadResources()
+  {
+    if ( isSubscribedToResources() )
+    {
+      _dataLoaderService.getSession().unsubscribeFromPeople( null );
+    }
+  }
+
+  public boolean isSubscribedToResources()
+  {
+    return _dataLoaderService.getSession().isSubscribedToPeople();
   }
 
   public void assignResource( final Position position, final int personID )

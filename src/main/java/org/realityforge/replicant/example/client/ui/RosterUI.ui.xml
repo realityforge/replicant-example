@@ -59,6 +59,12 @@
                 </g:HorizontalPanel>
                 <g:Button ui:field="_updatePositionName">Update Position Name</g:Button>
               </g:VerticalPanel>
+              <g:VerticalPanel>
+                <g:HorizontalPanel>
+                  <g:ListBox ui:field="_resourceList"/>
+                  <g:Button ui:field="_assignResource">Assign Resource</g:Button>
+                </g:HorizontalPanel>
+              </g:VerticalPanel>
             </g:VerticalPanel>
           </td>
         </tr>

@@ -14,6 +14,7 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Tree;
@@ -27,6 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
+import org.realityforge.replicant.example.client.entity.Person;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.Shift;
@@ -74,6 +76,10 @@ public class RosterUI
   TextBox _positionNameEdit;
   @UiField
   Button _downloadAll;
+  @UiField
+  ListBox _resourceList;
+  @UiField
+  Button _assignResource;
 
   private Roster _roster;
   private Shift _shift;
@@ -96,6 +102,7 @@ public class RosterUI
       final Roster roster = (Roster) model;
       _rosterNameEdit.setText( roster.getName() );
       _shiftNameCreate.setText( null );
+      _controller.unloadResources();
 
       _rosterPanel.setVisible( true );
       _shiftPanel.setVisible( false );
@@ -104,6 +111,7 @@ public class RosterUI
     else if ( model instanceof Shift )
     {
       final Shift shift = (Shift) model;
+      _controller.unloadResources();
       _controller.selectShift( shift );
       _position = null;
       _shiftNameEdit.setText( shift.getName() );
@@ -119,6 +127,7 @@ public class RosterUI
       _position = position;
 
       _positionNameEdit.setText( position.getName() );
+      _controller.loadResources();
 
       _rosterPanel.setVisible( false );
       _shiftPanel.setVisible( false );
@@ -126,11 +135,22 @@ public class RosterUI
     }
     else
     {
+      _controller.unloadResources();
       _controller.selectShift( null );
       _position = null;
       _rosterPanel.setVisible( false );
       _shiftPanel.setVisible( false );
       _positionPanel.setVisible( false );
+    }
+  }
+
+  @UiHandler( "_assignResource" )
+  void setAssignResource( final ClickEvent event )
+  {
+    final int selectedIndex = _resourceList.getSelectedIndex();
+    if ( -1 != selectedIndex )
+    {
+      _controller.assignResource( _position, Integer.parseInt( _resourceList.getValue( selectedIndex ) ) );
     }
   }
 
@@ -256,6 +276,24 @@ public class RosterUI
     {
       addRoster( (Roster) entity );
     }
+    else if ( entity instanceof Person )
+    {
+      final Person person = (Person) entity;
+      boolean found = false;
+      final int itemCount = _resourceList.getItemCount();
+      for ( int i = 0; i < itemCount; i++ )
+      {
+        if ( person.getID().toString().equals( _resourceList.getValue( i ) ) )
+        {
+          found = true;
+          break;
+        }
+      }
+      if ( !found )
+      {
+        _resourceList.addItem( person.getName(), person.getID().toString() );
+      }
+    }
   }
 
   @Override
@@ -267,6 +305,19 @@ public class RosterUI
     if ( null != treeItem )
     {
       treeItem.remove();
+    }
+    if ( entity instanceof Person )
+    {
+      final Person person = (Person) entity;
+      final int itemCount = _resourceList.getItemCount();
+      for ( int i = 0; i < itemCount; i++ )
+      {
+        if ( person.getID().toString().equals( _resourceList.getValue( i ) ) )
+        {
+          _resourceList.removeItem( i );
+          break;
+        }
+      }
     }
   }
 
