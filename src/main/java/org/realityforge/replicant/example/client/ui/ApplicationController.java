@@ -102,7 +102,7 @@ public class ApplicationController
 
   public void createAndSelectRoster( final RosterType rosterType, final String rosterName )
   {
-    _rosterService.createRoster( rosterType , rosterName, new TyrellAsyncCallback<Roster>()
+    _rosterService.createRoster( rosterType, rosterName, new TyrellAsyncCallback<Roster>()
     {
       @Override
       public void onSuccess( final Roster result )
@@ -139,7 +139,7 @@ public class ApplicationController
 
   public void selectShift( @Nullable final Shift shift )
   {
-    if( _currentShift == shift )
+    if ( _currentShift == shift )
     {
       return;
     }
