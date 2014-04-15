@@ -257,6 +257,14 @@ public class TyrellDataLoaderService
     {
       _subscriptionService.subscribeToRosterList( getSessionID(), callback );
     }
+    else if ( TyrellReplicationGraph.PEOPLE == graph )
+    {
+      _subscriptionService.subscribeToPeople( getSessionID(), callback );
+    }
+    else if ( TyrellReplicationGraph.PERSON_DETAILS == graph )
+    {
+      _subscriptionService.subscribeToPersonDetails( getSessionID(), (Integer) id, callback );
+    }
     else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
     {
       _subscriptionService.subscribeToShiftList( getSessionID(),
@@ -319,6 +327,14 @@ public class TyrellDataLoaderService
     else if ( TyrellReplicationGraph.META_DATA == graph )
     {
       _subscriptionService.unsubscribeFromMetaData( getSessionID(), callback );
+    }
+    else if ( TyrellReplicationGraph.PEOPLE == graph )
+    {
+      _subscriptionService.unsubscribeFromPeople( getSessionID(), callback );
+    }
+    else if ( TyrellReplicationGraph.PERSON_DETAILS == graph )
+    {
+      _subscriptionService.unsubscribeFromPersonDetails( getSessionID(), (Integer) id, callback );
     }
     else
     {

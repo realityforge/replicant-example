@@ -135,6 +135,24 @@ Domgen.repository(:Tyrell) do |repository|
         m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
+      s.method(:SubscribeToPeople) do |m|
+        m.text(:ClientID)
+        m.exception(:BadSession)
+      end
+      s.method(:UnsubscribeFromPeople) do |m|
+        m.string(:ClientID, 50)
+        m.exception(:BadSession)
+      end
+      s.method(:SubscribeToPersonDetails) do |m|
+        m.text(:ClientID)
+        m.reference(:Person)
+        m.exception(:BadSession)
+      end
+      s.method(:UnsubscribeFromPersonDetails) do |m|
+        m.string(:ClientID, 50)
+        m.reference(:Person)
+        m.exception(:BadSession)
+      end
       s.method(:DownloadAll) do |m|
         m.string(:ClientID, 50)
         m.exception(:BadSession)
