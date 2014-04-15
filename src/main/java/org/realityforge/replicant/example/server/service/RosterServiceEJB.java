@@ -8,12 +8,14 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import org.realityforge.replicant.example.server.entity.Assignment;
 import org.realityforge.replicant.example.server.entity.Contact;
 import org.realityforge.replicant.example.server.entity.Person;
 import org.realityforge.replicant.example.server.entity.Position;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.RosterType;
 import org.realityforge.replicant.example.server.entity.Shift;
+import org.realityforge.replicant.example.server.entity.dao.AssignmentRepository;
 import org.realityforge.replicant.example.server.entity.dao.ContactRepository;
 import org.realityforge.replicant.example.server.entity.dao.PersonRepository;
 import org.realityforge.replicant.example.server.entity.dao.PositionRepository;
@@ -58,6 +60,9 @@ public class RosterServiceEJB
 
   @EJB
   private PositionRepository _positionRepository;
+
+  @EJB
+  private AssignmentRepository _assignmentRepository;
 
   @EJB
   private PersonRepository _personRepository;
@@ -162,5 +167,15 @@ public class RosterServiceEJB
   public void setPositionName( @Nonnull final Position position, @Nonnull final String name )
   {
     position.setName( name );
+  }
+
+  @Override
+  public void assignPerson( @Nonnull final Position position, @Nonnull final Person person )
+  {
+    for ( final Assignment assignment : new ArrayList<Assignment>( position.getAssignments() ) )
+    {
+      _assignmentRepository.remove( assignment );
+    }
+    _assignmentRepository.persist( new Assignment( person, position ) );
   }
 }

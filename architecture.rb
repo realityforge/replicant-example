@@ -119,6 +119,10 @@ Domgen.repository(:Tyrell) do |repository|
         m.reference(:Position)
         m.text(:Name)
       end
+      s.method(:AssignPerson) do |m|
+        m.reference(:Position)
+        m.reference(:Person)
+      end
     end
 
     data_module.exception(:BadSession, "ejb.rollback" => false)

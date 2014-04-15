@@ -276,4 +276,9 @@ public class ApplicationController
   {
     _rosterService.removePosition( position );
   }
+
+  public void assignResource( final Position position, final int personID )
+  {
+    _rosterService.assignPerson( position, _repository.getByID( Person.class, personID ) );
+  }
 }
