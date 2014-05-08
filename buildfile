@@ -1,4 +1,5 @@
 require 'buildr/git_auto_version'
+require 'buildr/gwt'
 require 'buildr/top_level_generate_dir'
 
 GWT_DEPS = [:gwt_webpoller,
