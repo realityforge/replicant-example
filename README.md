@@ -9,6 +9,7 @@ TODO
 ====
 
 * Rework transport layer so that it can occur over websockets, sse, long polling etc.
+* Remove the need for the ugly hack known as domgens "graph_to_subscribe" (Consider most of subscription manager and perhaps remote interface?)
 * Handle scenario where session goes away. Gracefully handle re-authentication etc.
 * Document how this all works together!
 * Rework AbstractTyrellSessionManager so that SubscriptionServiceEJB need not extend it.
