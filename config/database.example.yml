@@ -13,5 +13,3 @@ development:
 test:
   database: <%= prefix %>TYRELL_TEST
   <<: *devhost
-
-
