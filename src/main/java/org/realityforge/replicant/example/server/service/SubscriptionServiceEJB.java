@@ -1,5 +1,6 @@
 package org.realityforge.replicant.example.server.service;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -98,7 +99,7 @@ public class SubscriptionServiceEJB
   @Override
   public String getMetaDataCacheKey()
   {
-    if( null == _cacheKey )
+    if ( null == _cacheKey )
     {
       // Return a per-deploy constant as we know that it will
       // never be changed, so it should only be re-downloaded
@@ -119,7 +120,18 @@ public class SubscriptionServiceEJB
   public List<Shift> getShiftsInShiftListGraph( @Nonnull final Roster object,
                                                 @Nonnull final RosterSubscriptionDTO filter )
   {
-    return object.getShifts();
+    final Date startOn = filter.getStartOn();
+    final int numberOfDays = filter.getNumberOfDays();
+    final Date endDate = addDays( startOn, numberOfDays );
+    return _shiftRepository.findAllByAreaOfInterest( object, startOn, endDate );
+  }
+
+  private Date addDays( final Date time, final int dayCount )
+  {
+    final Calendar cal = Calendar.getInstance();
+    cal.setTime( time );
+    cal.add( Calendar.DAY_OF_YEAR, dayCount );
+    return cal.getTime();
   }
 
   @Override
@@ -146,7 +158,12 @@ public class SubscriptionServiceEJB
                                          @Nonnull final RosterSubscriptionDTO filter,
                                          @Nullable final Date shiftStartAt )
   {
-    return true;
+    final Date startOn = filter.getStartOn();
+    final int numberOfDays = filter.getNumberOfDays();
+    final Date endDate = addDays( startOn, numberOfDays );
+    return null == shiftStartAt ||
+           ( ( startOn.before( shiftStartAt ) || startOn.equals( shiftStartAt ) ) &&
+             endDate.after( shiftStartAt ) );
   }
 
   @Override

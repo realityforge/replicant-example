@@ -44,6 +44,20 @@ Domgen.repository(:Tyrell) do |repository|
       t.string(:Name, 50)
       t.datetime(:StartAt, :"imit.filter_in_graphs" => [:ShiftList])
       t.imit.replicate(:Shift, :instance)
+
+      t.query(:FindAllByAreaOfInterest, 'jpa.jpql' => <<JPQL) do |q|
+SELECT S
+FROM
+  Tyrell_Shift S
+WHERE
+  S.roster = :Roster AND
+  S.startAt >= :From AND
+  S.startAt < :To
+JPQL
+        q.reference(:Roster)
+        q.datetime(:From)
+        q.datetime(:To)
+      end
     end
 
     data_module.entity(:Position) do |t|
