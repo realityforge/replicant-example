@@ -44,7 +44,7 @@ define 'replicant-example' do
   clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
 
   iml.add_gwt_facet({'org.realityforge.replicant.example.ExampleDev' => true,
-                    'org.realityforge.replicant.example.Example' => false},
+                     'org.realityforge.replicant.example.Example' => false},
                     :settings => {:compilerMaxHeapSize => '1024'},
                     :gwt_dev_artifact => :gwt_dev)
 
@@ -66,7 +66,7 @@ define 'replicant-example' do
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 
-   ipr.add_glassfish_configuration(project, :domain => 'tyrell', :exploded => ['replicant-example'])
+  ipr.add_glassfish_configuration(project, :domain => 'tyrell', :exploded => ['replicant-example'])
 
   ipr.extra_modules << '../replicant/replicant.iml'
 end
