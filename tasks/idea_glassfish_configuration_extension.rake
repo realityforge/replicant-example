@@ -1,3 +1,4 @@
+raise 'Patch applied in latest version of buildr' if Buildr::VERSION >= '1.4.18'
 module Buildr
   module IntellijIdea
     class IdeaProject
@@ -54,7 +55,7 @@ module Buildr
 
           add_runner_settings(xml, "Debug", {
             :DEBUG_PORT => "#{domain_port}",
-           :TRANSPORT => "0",
+            :TRANSPORT => "0",
             :LOCAL => "true",
           })
           add_configuration_wrapper(xml, "Debug")
