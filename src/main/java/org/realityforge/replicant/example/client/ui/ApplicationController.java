@@ -44,6 +44,7 @@ public class ApplicationController
   private final EventBus _eventBus;
   private Roster _currentRoster;
   private Shift _currentShift;
+  private RDate _currentDate;
 
   @Inject
   public ApplicationController( final RosterService rosterService,
@@ -125,7 +126,7 @@ public class ApplicationController
     _currentRoster = roster;
     if ( null != _currentRoster )
     {
-      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( RDate.fromDate( new Date() ), 7 );
+      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( getCurrentDate(), 7 );
       _dataLoaderService.getSession().subscribeToShiftList( roster.getID(), filter, null );
       _rosterUI.setRoster( _currentRoster );
       goToRosterAtivity();
@@ -134,6 +135,30 @@ public class ApplicationController
     {
       _rosterUI.setRoster( null );
       goToRosterListActivity();
+    }
+  }
+
+  @Nonnull
+  public RDate getCurrentDate()
+  {
+    if( null == _currentDate )
+    {
+      _currentDate = RDate.fromDate( new Date() );
+    }
+    return _currentDate;
+  }
+
+  public void updateShiftListSubscription( @Nonnull final RDate newStartDate )
+  {
+    if ( newStartDate.equals( _currentDate ) )
+    {
+      return;
+    }
+    _currentDate = newStartDate;
+    if ( null != _currentRoster )
+    {
+      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( _currentDate, 7 );
+      _dataLoaderService.getSession().updateShiftListSubscription( _currentRoster.getID(), filter, null );
     }
   }
 

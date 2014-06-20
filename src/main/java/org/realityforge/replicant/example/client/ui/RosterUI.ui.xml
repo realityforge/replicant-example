@@ -9,7 +9,28 @@
       <table style="width: 100%; margin: 0; padding: 0;" >
         <tr>
           <td style="width: 30%; vertical-align: top;">
-            <g:Tree ui:field="_tree"/>
+            <table style="width: 100%; margin: 0; padding: 0;" >
+              <tr>
+                <td>
+                  <table style="width: 100%; margin: 0; padding: 0;">
+                    <tr>
+                      <td>
+                        <g:Button ui:field="_moveToPast">&lt;</g:Button>
+                      </td>
+                      <td>
+                        <g:Label ui:field="_filterStart" width="6em"/>
+                      </td>
+                      <td>
+                        <g:Button ui:field="_moveToFuture">&gt;</g:Button>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td><g:Tree ui:field="_tree"/></td>
+              </tr>
+            </table>
           </td>
           <td style="width: 40%; vertical-align: top;">
             <div style="background-color: grey; width: 100%;">

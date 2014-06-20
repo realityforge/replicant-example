@@ -90,6 +90,8 @@ public class RosterUI
   Button _createShift;
   @UiField
   DateBox _shiftDateCreate;
+  @UiField
+  Label _filterStart;
 
   private Roster _roster;
   private Shift _shift;
@@ -119,6 +121,7 @@ public class RosterUI
       _controller.unloadResources();
 
       updateCreateShiftButtonStatus();
+      updateFilterLabel();
       _rosterPanel.setVisible( true );
       _shiftPanel.setVisible( false );
       _positionPanel.setVisible( false );
@@ -157,6 +160,23 @@ public class RosterUI
       _shiftPanel.setVisible( false );
       _positionPanel.setVisible( false );
     }
+  }
+
+  private void updateFilterLabel()
+  {
+    _filterStart.setText( _controller.getCurrentDate().toString() );
+  }
+
+  @UiHandler("_moveToPast")
+  void moveToPast( final ClickEvent event )
+  {
+    _controller.updateShiftListSubscription( _controller.getCurrentDate().addDays( -1 ) );
+  }
+
+  @UiHandler("_moveToFuture")
+  void moveToFuture( final ClickEvent event )
+  {
+    _controller.updateShiftListSubscription( _controller.getCurrentDate().addDays( 1 ) );
   }
 
   @UiHandler("_assignResource")
