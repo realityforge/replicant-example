@@ -3,7 +3,9 @@ package org.realityforge.replicant.example.client.ui;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.i18n.shared.DateTimeFormat;
 import com.google.gwt.i18n.shared.DateTimeFormat.PredefinedFormat;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -21,11 +23,15 @@ import com.google.gwt.user.client.ui.Tree;
 import com.google.gwt.user.client.ui.TreeItem;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.datepicker.client.DateBox;
+import com.google.gwt.user.datepicker.client.DateBox.DefaultFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.example.client.entity.Person;
@@ -80,6 +86,10 @@ public class RosterUI
   ListBox _resourceList;
   @UiField
   Button _assignResource;
+  @UiField
+  Button _createShift;
+  @UiField
+  DateBox _shiftDateCreate;
 
   private Roster _roster;
   private Shift _shift;
@@ -91,9 +101,13 @@ public class RosterUI
   {
     _controller = controller;
     initWidget( UI_BINDER.createAndBindUi( this ) );
+    final com.google.gwt.i18n.client.DateTimeFormat format =
+      com.google.gwt.i18n.client.DateTimeFormat.getFormat(
+        com.google.gwt.i18n.client.DateTimeFormat.PredefinedFormat.YEAR_MONTH_DAY );
+    _shiftDateCreate.setFormat( new DefaultFormat( format ) );
   }
 
-  @UiHandler("_tree")
+  @UiHandler( "_tree" )
   void onSelection( final SelectionEvent<TreeItem> event )
   {
     final Object model = event.getSelectedItem().getUserObject();
@@ -104,6 +118,7 @@ public class RosterUI
       _shiftNameCreate.setText( null );
       _controller.unloadResources();
 
+      updateCreateShiftButtonStatus();
       _rosterPanel.setVisible( true );
       _shiftPanel.setVisible( false );
       _positionPanel.setVisible( false );
@@ -144,7 +159,7 @@ public class RosterUI
     }
   }
 
-  @UiHandler( "_assignResource" )
+  @UiHandler("_assignResource")
   void setAssignResource( final ClickEvent event )
   {
     final int selectedIndex = _resourceList.getSelectedIndex();
@@ -154,51 +169,72 @@ public class RosterUI
     }
   }
 
-  @UiHandler( "_updateRosterName" )
+  @UiHandler("_updateRosterName")
   void setRosterName( final ClickEvent event )
   {
     _controller.setRosterName( _roster, _rosterNameEdit.getValue() );
   }
 
-  @UiHandler( "_createShift" )
-  void createShift( final ClickEvent event )
+  @UiHandler("_shiftNameCreate")
+  void onShiftNameChange( final KeyUpEvent event )
   {
-    _controller.createShift( _roster, _shiftNameCreate.getValue() );
-    _shiftNameCreate.setText( null );
+    updateCreateShiftButtonStatus();
   }
 
-  @UiHandler( "_updateShiftName" )
+  @UiHandler("_shiftDateCreate")
+  void onShiftDateChange( final ValueChangeEvent<Date> event )
+  {
+    updateCreateShiftButtonStatus();
+  }
+
+  private void updateCreateShiftButtonStatus()
+  {
+    final String name = _shiftNameCreate.getValue();
+    final Date date = _shiftDateCreate.getValue();
+    final boolean enabled = null != name && !"".equals( name ) && null != date;
+    _createShift.setEnabled( enabled );
+  }
+
+  @UiHandler("_createShift")
+  void createShift( final ClickEvent event )
+  {
+    _controller.createShift( _roster, _shiftNameCreate.getValue(), RDate.fromDate( _shiftDateCreate.getValue() ) );
+    _shiftNameCreate.setText( null );
+    _shiftDateCreate.setValue( null );
+  }
+
+  @UiHandler("_updateShiftName")
   void setShiftName( final ClickEvent event )
   {
     _controller.setShiftName( _shift, _shiftNameEdit.getValue() );
   }
 
-  @UiHandler( "_createPosition" )
+  @UiHandler("_createPosition")
   void createPosition( final ClickEvent event )
   {
     _controller.createPosition( _shift, _positionNameCreate.getValue() );
     _positionNameCreate.setText( null );
   }
 
-  @UiHandler( "_updatePositionName" )
+  @UiHandler("_updatePositionName")
   void setPositionName( final ClickEvent event )
   {
     _controller.setPositionName( _position, _positionNameEdit.getValue() );
   }
 
-  @UiHandler( "_downloadAll" )
+  @UiHandler("_downloadAll")
   void onDownloadAll( final ClickEvent event )
   {
     _controller.downloadAll();
   }
 
-  @UiHandler( "_disconnect" )
+  @UiHandler("_disconnect")
   void onDisconnect( final ClickEvent event )
   {
     _controller.disconnect();
   }
 
-  @UiHandler( "_delete" )
+  @UiHandler("_delete")
   void onDeleteRoster( final ClickEvent event )
   {
     _controller.doDeleteRoster( _roster );

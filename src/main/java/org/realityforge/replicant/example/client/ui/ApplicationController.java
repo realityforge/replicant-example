@@ -241,9 +241,9 @@ public class ApplicationController
     _rosterService.setShiftName( shift, name );
   }
 
-  public void createShift( final Roster roster, final String name )
+  public void createShift( final Roster roster, final String name, final RDate shiftOn )
   {
-    _rosterService.createShift( roster, name );
+    _rosterService.createShift( roster, name, shiftOn );
   }
 
   public void createPosition( final Shift shift, final String name )

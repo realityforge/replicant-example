@@ -98,6 +98,7 @@ Domgen.repository(:Tyrell) do |repository|
       s.method(:CreateShift) do |m|
         m.reference(:Roster)
         m.text(:Name)
+        m.date(:ShiftOn)
         m.returns(:reference, :referenced_entity => :Shift)
       end
       s.method(:RemoveShift) do |m|

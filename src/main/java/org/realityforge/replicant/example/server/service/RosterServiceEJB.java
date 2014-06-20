@@ -122,11 +122,11 @@ public class RosterServiceEJB
 
   @Override
   @Nonnull
-  public Shift createShift( @Nonnull final Roster roster, @Nonnull final String name )
+  public Shift createShift( @Nonnull final Roster roster, @Nonnull final String name, @Nonnull final Date shiftOn )
   {
     final Shift shift = new Shift( roster );
     shift.setName( name );
-    shift.setStartAt( new Date() );
+    shift.setStartAt( shiftOn );
     _shiftRepository.persist( shift );
     return shift;
   }
