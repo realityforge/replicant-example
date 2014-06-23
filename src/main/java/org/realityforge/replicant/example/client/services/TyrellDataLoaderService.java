@@ -28,6 +28,7 @@ import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderService;
+import org.realityforge.replicant.example.client.net.TyrellClientRouter;
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
@@ -40,6 +41,7 @@ public class TyrellDataLoaderService
 {
   private final EventBus _eventBus;
   private final GwtSubscriptionService _subscriptionService;
+  private final TyrellClientRouter _router;
 
   private final WebPoller _webPoller = WebPoller.newWebPoller();
 
@@ -63,11 +65,13 @@ public class TyrellDataLoaderService
                                   final EntitySubscriptionManager subscriptionManager,
                                   final EventBus eventBus,
                                   final GwtSubscriptionService subscriptionService,
-                                  final ReplicantConfig replicantConfig )
+                                  final ReplicantConfig replicantConfig,
+                                  final TyrellClientRouter router )
   {
     super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig );
     _eventBus = eventBus;
     _subscriptionService = subscriptionService;
+    _router = router;
     _webPoller.setListener( new WebPollerListenerAdapter()
     {
       @Override
