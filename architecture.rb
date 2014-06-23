@@ -78,7 +78,7 @@ JPQL
       t.integer(:ID, :primary_key => true)
       t.reference(:Person, :immutable => true,
                   "inverse.traversable" => true,
-                  "imit.graph_links" => {:Shift => :Person},
+                  "imit.graph_links" => {:Shift => {:target_graph => :Person}},
                   "inverse.imit.exclude_edges" => [:Person, :PersonDetails])
       t.reference(:Position, :immutable => true, :"inverse.traversable" => true)
     end
