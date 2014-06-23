@@ -200,7 +200,7 @@ JPQL
         m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)
         m.exception(:BadSession)
       end
-      s.method(:UpdateSubscriptionToShiftList) do |m|
+      s.method(:UpdateShiftListSubscription) do |m|
         m.string(:ClientID, 50)
         m.reference(:Roster)
         m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)

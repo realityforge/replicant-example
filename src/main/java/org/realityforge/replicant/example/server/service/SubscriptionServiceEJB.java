@@ -167,16 +167,6 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  public void updateSubscriptionToShiftList( @Nonnull final String clientID,
-                                             @Nonnull final Roster roster,
-                                             @Nonnull final RosterSubscriptionDTO rosterSubscriptionDTO )
-    throws BadSessionException
-  {
-    final TyrellSession session = ensureSession( clientID );
-    session.updateInterestInShiftList( roster.getID(), rosterSubscriptionDTO );
-  }
-
-  @Override
   public void collectForFilterChangeShiftList( @Nonnull final EntityMessageSet messages,
                                                @Nonnull final Roster entity,
                                                @Nonnull final RosterSubscriptionDTO original,

@@ -364,10 +364,10 @@ public class TyrellDataLoaderService
     };
     if ( TyrellReplicationGraph.SHIFT_LIST == graph )
     {
-      _subscriptionService.updateSubscriptionToShiftList( getSessionID(),
-                                                          (Integer) id,
-                                                          (RosterSubscriptionDTO) filterParameter,
-                                                          callback );
+      _subscriptionService.updateShiftListSubscription( getSessionID(),
+                                                        (Integer) id,
+                                                        (RosterSubscriptionDTO) filterParameter,
+                                                        callback );
     }
     else
     {
