@@ -9,12 +9,16 @@ import com.google.gwt.http.client.Response;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
 import org.realityforge.gwt.webpoller.client.WebPollerListenerAdapter;
@@ -22,8 +26,10 @@ import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
+import org.realityforge.replicant.client.GraphDescriptor;
 import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
+import org.realityforge.replicant.example.client.data_type.JsoRosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
@@ -372,6 +378,33 @@ public class TyrellDataLoaderService
                                                         (Integer) id,
                                                         (RosterSubscriptionDTO) filterParameter,
                                                         callback );
+    }
+    else
+    {
+      throw new IllegalStateException();
+    }
+  }
+
+  @Override
+  protected boolean doesEntityMatchFilter( @Nonnull final TyrellReplicationGraph graph,
+                                           @Nullable final Object subChannelID,
+                                           @Nullable final Object rawFilter,
+                                           @Nonnull final Class<?> entityType,
+                                           @Nonnull final Object entityID )
+  {
+    if ( TyrellReplicationGraph.SHIFT_LIST == graph )
+    {
+      final RosterSubscriptionDTO filter = (JsoRosterSubscriptionDTO) rawFilter;
+      assert null != filter;
+      final RDate startAt = filter.getStartOn();
+      final Date startOn = RDate.toDate( startAt );
+      final Date endDate = RDate.toDate( startAt.addDays( filter.getNumberOfDays() ) );
+      final Object entity = getRepository().getByID( entityType, entityID );
+      final Map<String, Serializable> route = _router.route( entity );
+      final Date shiftStartAt = (Date) route.get( TyrellClientRouter.SHIFT_LIST_TYRELL_SHIFT_START_AT_KEY );
+      return null == shiftStartAt ||
+                        ( ( startOn.before( shiftStartAt ) || startOn.equals( shiftStartAt ) ) &&
+                          endDate.after( shiftStartAt ) );
     }
     else
     {
