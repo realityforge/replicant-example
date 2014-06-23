@@ -193,7 +193,11 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected void onDataLoadComplete( final boolean bulkLoad, @Nullable final String requestID )
+  protected void onDataLoadComplete( final boolean bulkLoad,
+                                     @Nullable final String requestID,
+                                     @Nonnull final LinkedList<GraphDescriptor> channelAdds,
+                                     @Nonnull final LinkedList<GraphDescriptor> channelUpdates,
+                                     @Nonnull final LinkedList<GraphDescriptor> channelRemoves )
   {
     if ( _webPoller.isPaused() )
     {
