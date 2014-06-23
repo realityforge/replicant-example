@@ -11,6 +11,7 @@ import javax.ejb.Local;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
+import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.example.server.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.server.entity.Roster;
 import org.realityforge.replicant.example.server.entity.Shift;
@@ -172,5 +173,30 @@ public class SubscriptionServiceEJB
                                                @Nonnull final RosterSubscriptionDTO original,
                                                @Nonnull final RosterSubscriptionDTO filter )
   {
+    //We assume that the roster has been replicated.
+    // So what we need to do is send any additional shifts down. The client already knows enough to
+    // delete those no longer of interest.
+    final RDate originalStart = RDate.fromDate( original.getStartOn() );
+    final RDate originalEnd = originalStart.addDays( original.getNumberOfDays() );
+    RDate start = RDate.fromDate( filter.getStartOn() );
+    RDate end = start.addDays( filter.getNumberOfDays() );
+
+    if( originalStart.equals( start ) && originalEnd.equals( end ) )
+    {
+      return;
+    }
+
+    if ( start.before( originalEnd ) && start.after( originalStart ) )
+    {
+      start = originalEnd;
+    }
+    if ( end.after( originalStart ) && end.before( originalEnd ) )
+    {
+      end = originalStart;
+    }
+    getEncoder().encodeObjects( messages,
+                                _shiftRepository.findAllByAreaOfInterest( entity,
+                                                                          RDate.toDate( start ),
+                                                                          RDate.toDate( end ) ));
   }
 }
