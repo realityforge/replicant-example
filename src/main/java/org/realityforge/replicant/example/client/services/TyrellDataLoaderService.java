@@ -22,6 +22,7 @@ import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
+import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
@@ -61,9 +62,10 @@ public class TyrellDataLoaderService
                                   final CacheService cacheService,
                                   final EntitySubscriptionManager subscriptionManager,
                                   final EventBus eventBus,
-                                  final GwtSubscriptionService subscriptionService )
+                                  final GwtSubscriptionService subscriptionService,
+                                  final ReplicantConfig replicantConfig )
   {
-    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager );
+    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig );
     _eventBus = eventBus;
     _subscriptionService = subscriptionService;
     _webPoller.setListener( new WebPollerListenerAdapter()
