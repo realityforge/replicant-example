@@ -28,8 +28,8 @@ artifacts:
   #
   # Used in mapping entities to json
   # TODO: This hard dependency exists in the generated servlet code for gwt-rpc. It should be removed!
-  jackson_core: org.codehaus.jackson:jackson-core-asl:jar:1.9.4
-  jackson_mapper: org.codehaus.jackson:jackson-mapper-asl:jar:1.9.4
+  jackson_core: org.codehaus.jackson:jackson-core-asl:jar:1.9.13
+  jackson_mapper: org.codehaus.jackson:jackson-mapper-asl:jar:1.9.13
 
   # Supporting GWT libraries
   gwt_datatypes: org.realityforge.gwt.datatypes:gwt-datatypes:jar:0.4
