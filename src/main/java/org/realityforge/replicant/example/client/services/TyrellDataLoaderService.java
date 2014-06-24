@@ -11,7 +11,6 @@ import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -26,9 +25,9 @@ import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
-import org.realityforge.replicant.client.GraphDescriptor;
 import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
+import org.realityforge.replicant.client.transport.DataLoadStatus;
 import org.realityforge.replicant.example.client.data_type.JsoRosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
@@ -203,11 +202,7 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected void onDataLoadComplete( final boolean bulkLoad,
-                                     @Nullable final String requestID,
-                                     @Nonnull final LinkedList<GraphDescriptor> channelAdds,
-                                     @Nonnull final LinkedList<GraphDescriptor> channelUpdates,
-                                     @Nonnull final LinkedList<GraphDescriptor> channelRemoves )
+  protected void onDataLoadComplete( @Nonnull final DataLoadStatus status )
   {
     if ( _webPoller.isPaused() )
     {
