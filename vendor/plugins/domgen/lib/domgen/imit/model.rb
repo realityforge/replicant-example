@@ -89,6 +89,16 @@ module Domgen
         @filter
       end
 
+      def filtered?
+        !unfiltered?
+      end
+
+
+      def unfiltered?
+        @filter.nil?
+      end
+
+
       def post_verify
         if cacheable? && (filter_parameter || instance_root?)
           raise "Cacheable graphs are not supported for instance based or filterable graphs"
@@ -163,6 +173,7 @@ module Domgen
 
       attr_writer :shared_comm_package
 
+      java_artifact :repository_debugger, :comm, :client, :imit, '#{repository.name}RepositoryDebugger'
       java_artifact :change_mapper, :comm, :client, :imit, '#{repository.name}ChangeMapper'
       java_artifact :data_loader_service, :comm, :client, :imit, 'Abstract#{repository.name}DataLoaderService'
       java_artifact :client_session, :comm, :client, :imit, '#{repository.name}ClientSessionImpl'
@@ -192,7 +203,6 @@ module Domgen
       def auto_register_change_recorder?
         @auto_register_change_recorder.nil? ? true : @auto_register_change_recorder
       end
-
 
       def graphs
         graph_map.values
@@ -339,6 +349,21 @@ module Domgen
         graph.type_roots.concat([k.to_s]) if :type == replication_type
       end
 
+      def subgraph_roots
+        @subgraph_roots || []
+      end
+
+      def subgraph_roots=(subgraph_roots)
+        raise "subgraph_roots expected to be an array" unless subgraph_roots.is_a?(Array)
+        subgraph_roots.each do |subgraph_root|
+          graph = entity.data_module.repository.imit.graph_by_name(subgraph_root)
+          raise "subgraph_roots specifies a non graph #{subgraph_root}" unless graph
+          raise "subgraph_roots specifies a non-instance graph #{subgraph_root}" unless graph.instance_root?
+          raise "subgraph_roots specifies a non-filtered graph #{subgraph_root}" unless graph.filtered?
+        end
+        @subgraph_roots = subgraph_roots
+      end
+
       def replication_graphs
         entity.data_module.repository.imit.graphs.select do |graph|
           (graph.instance_root? && graph.reachable_entities.include?(entity.qualified_name.to_s)) ||
@@ -400,9 +425,9 @@ module Domgen
           target_graph = attribute.entity.data_module.repository.imit.graph_by_name(target_graph_key)
           prefix = "Link #{source_graph_key}=>#{target_graph_key} on #{attribute.qualified_name}"
           raise "#{prefix} must have an instance graph on the LHS" unless source_graph.instance_root?
-          raise "#{prefix} must have an non filtered graph on the LHS" unless source_graph.filter_parameter.nil?
+          raise "#{prefix} must have an non filtered graph on the LHS" unless source_graph.unfiltered?
           raise "#{prefix} must have an instance graph on the RHS" unless target_graph.instance_root?
-          raise "#{prefix} must have an non filtered graph on the RHS" unless target_graph.filter_parameter.nil?
+          raise "#{prefix} must have an non filtered graph on the RHS" unless target_graph.unfiltered?
           if path
             entity = attribute.referenced_entity
             path.to_s.split.each_with_index do |attribute_name_path_element, i|
