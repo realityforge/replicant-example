@@ -22,6 +22,7 @@ import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
 import org.realityforge.gwt.webpoller.client.WebPoller;
 import org.realityforge.gwt.webpoller.client.WebPollerListenerAdapter;
 import org.realityforge.replicant.client.ChangeMapper;
+import org.realityforge.replicant.client.ChannelDescriptor;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
@@ -381,13 +382,12 @@ public class TyrellDataLoaderService
   }
 
   @Override
-  protected boolean doesEntityMatchFilter( @Nonnull final TyrellReplicationGraph graph,
-                                           @Nullable final Object subChannelID,
+  protected boolean doesEntityMatchFilter( @Nonnull final ChannelDescriptor descriptor,
                                            @Nullable final Object rawFilter,
                                            @Nonnull final Class<?> entityType,
                                            @Nonnull final Object entityID )
   {
-    if ( TyrellReplicationGraph.SHIFT_LIST == graph )
+    if ( TyrellReplicationGraph.SHIFT_LIST == descriptor.getGraph() )
     {
       final RosterSubscriptionDTO filter = (JsoRosterSubscriptionDTO) rawFilter;
       assert null != filter;
