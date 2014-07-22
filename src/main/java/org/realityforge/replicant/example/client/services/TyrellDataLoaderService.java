@@ -128,7 +128,7 @@ public class TyrellDataLoaderService
 
   private void onSessionCreated( final String sessionID )
   {
-    setSession( new TyrellClientSessionImpl( this, sessionID, getRepository(), getChangeBroker() ),
+    setSession( new TyrellClientSessionImpl( this, sessionID ),
                 new Runnable()
                 {
                   @Override
