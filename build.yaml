@@ -5,6 +5,7 @@ repositories:
 artifacts:
   javax_javaee: javax:javaee-api:jar:7.0
   javax_jsr305: com.google.code.findbugs:jsr305:jar:2.0.1
+  findbugs_annotations: com.google.code.findbugs:annotations:jar:2.0.1
 
   # GWT Dependencies
   gwt_user: com.google.gwt:gwt-user:jar:2.6.1
