@@ -25,7 +25,7 @@ public class RosterListUI
 
   private static final Binder UI_BINDER = GWT.create( Binder.class );
 
-  private final HashMap<String, Roster> _rosters = new HashMap<String, Roster>();
+  private final HashMap<String, Roster> _rosters = new HashMap<>();
 
   @UiField
   Button _select;

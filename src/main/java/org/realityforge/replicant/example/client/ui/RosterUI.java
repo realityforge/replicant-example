@@ -53,7 +53,7 @@ public class RosterUI
 
   private static final Binder UI_BINDER = GWT.create( Binder.class );
 
-  private final Map<Object, TreeItem> _viewMap = new HashMap<Object, TreeItem>();
+  private final Map<Object, TreeItem> _viewMap = new HashMap<>();
 
 
   @UiField

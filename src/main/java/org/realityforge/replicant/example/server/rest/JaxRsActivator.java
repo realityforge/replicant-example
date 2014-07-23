@@ -12,7 +12,7 @@ public class JaxRsActivator
   @Override
   public Set<Class<?>> getClasses()
   {
-    final Set<Class<?>> classes = new HashSet<Class<?>>();
+    final Set<Class<?>> classes = new HashSet<>();
     classes.addAll( super.getClasses() );
     classes.add( AuthenticationService.class );
     classes.add( ReplicantResource.class );

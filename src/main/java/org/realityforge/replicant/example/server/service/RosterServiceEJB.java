@@ -107,7 +107,7 @@ public class RosterServiceEJB
   @Override
   public void removeRoster( @Nonnull final Roster roster )
   {
-    for ( final Shift shift : new ArrayList<Shift>( roster.getShifts() ) )
+    for ( final Shift shift : new ArrayList<>( roster.getShifts() ) )
     {
       removeShift( shift );
     }
@@ -134,7 +134,7 @@ public class RosterServiceEJB
   @Override
   public void removeShift( @Nonnull final Shift shift )
   {
-    for ( final Position position : new ArrayList<Position>( shift.getPositions() ) )
+    for ( final Position position : new ArrayList<>( shift.getPositions() ) )
     {
       removePosition( position );
     }
@@ -172,7 +172,7 @@ public class RosterServiceEJB
   @Override
   public void assignPerson( @Nonnull final Position position, @Nonnull final Person person )
   {
-    for ( final Assignment assignment : new ArrayList<Assignment>( position.getAssignments() ) )
+    for ( final Assignment assignment : new ArrayList<>( position.getAssignments() ) )
     {
       _assignmentRepository.remove( assignment );
     }

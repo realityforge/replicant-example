@@ -32,9 +32,9 @@ public class SimpleUI
   private static final Level LOG_LEVEL = Level.FINE;
 
   private final Tree _tree;
-  private final Map<Object, TreeItem> _treeViewMap = new HashMap<Object, TreeItem>();
+  private final Map<Object, TreeItem> _treeViewMap = new HashMap<>();
   private final FlexTable _resourceList;
-  private final Map<Object, Widget> _listViewMap = new HashMap<Object, Widget>();
+  private final Map<Object, Widget> _listViewMap = new HashMap<>();
 
   @Inject
   public SimpleUI( final ApplicationController applicationController, final EntityChangeBroker broker )
