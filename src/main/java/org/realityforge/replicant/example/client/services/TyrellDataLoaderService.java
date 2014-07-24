@@ -222,7 +222,7 @@ public class TyrellDataLoaderService
   {
     stopPolling();
     _webPoller.setRequestFactory( new ReplicantRequestFactory() );
-    _webPoller.setLongPoll( true );
+    _webPoller.setInterRequestDuration( 0 );
     _webPoller.start();
   }
 
