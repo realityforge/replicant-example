@@ -160,6 +160,7 @@ public class RosterServiceEJB
   @Override
   public void removePosition( @Nonnull final Position position )
   {
+    removeAssignments( position );
     _positionRepository.remove( position );
   }
 
@@ -172,10 +173,15 @@ public class RosterServiceEJB
   @Override
   public void assignPerson( @Nonnull final Position position, @Nonnull final Person person )
   {
+    removeAssignments( position );
+    _assignmentRepository.persist( new Assignment( person, position ) );
+  }
+
+  private void removeAssignments( final Position position )
+  {
     for ( final Assignment assignment : new ArrayList<>( position.getAssignments() ) )
     {
       _assignmentRepository.remove( assignment );
     }
-    _assignmentRepository.persist( new Assignment( person, position ) );
   }
 }
