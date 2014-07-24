@@ -11,7 +11,7 @@ require 'domgen'
 
 Domgen::Sql.dialect = Domgen::Sql::PgDialect
 Domgen::LoadSchema.new("#{workspace_dir}/architecture.rb")
-Domgen::GenerateTask.new(:Tyrell, 'sql', [:pgsql], generated_database_dir)
+Domgen::GenerateTask.new(:Tyrell, :sql, [:pgsql], generated_database_dir)
 
 Dbt::Config.environment = ENV['DB_ENV'] if ENV['DB_ENV']
 Dbt::Config.driver = 'postgres'
