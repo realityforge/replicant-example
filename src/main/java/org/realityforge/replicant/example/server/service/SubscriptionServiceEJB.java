@@ -180,7 +180,7 @@ public class SubscriptionServiceEJB
     RDate start = RDate.fromDate( filter.getStartOn() );
     RDate end = start.addDays( filter.getNumberOfDays() );
 
-    if( originalStart.equals( start ) && originalEnd.equals( end ) )
+    if ( originalStart.equals( start ) && originalEnd.equals( end ) )
     {
       return;
     }
@@ -196,6 +196,6 @@ public class SubscriptionServiceEJB
     getEncoder().encodeObjects( messages,
                                 _shiftRepository.findAllByAreaOfInterest( entity,
                                                                           RDate.toDate( start ),
-                                                                          RDate.toDate( end ) ));
+                                                                          RDate.toDate( end ) ) );
   }
 }
