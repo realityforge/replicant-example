@@ -16,6 +16,7 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:People)
   repository.imit.graph(:Person)
   repository.imit.graph(:PersonDetails)
+  repository.imit.invalid_session_exception = 'Tyrell.BadSession'
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|
