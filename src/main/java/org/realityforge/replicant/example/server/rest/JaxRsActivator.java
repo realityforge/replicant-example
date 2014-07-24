@@ -16,6 +16,7 @@ public class JaxRsActivator
     classes.addAll( super.getClasses() );
     classes.add( AuthenticationService.class );
     classes.add( ReplicantResource.class );
+    classes.add( BadSessionExceptionMapper.class );
     return classes;
   }
 }
