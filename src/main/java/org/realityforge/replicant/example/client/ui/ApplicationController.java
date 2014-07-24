@@ -215,9 +215,13 @@ public class ApplicationController
   {
     LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
-    if ( entity instanceof Roster )
+    if ( _currentRoster == entity )
     {
-      resetRosterList();
+      selectRoster( null );
+    }
+    else if ( _currentShift == entity )
+    {
+      selectShift( null );
     }
   }
 
