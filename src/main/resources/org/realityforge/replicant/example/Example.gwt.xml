@@ -2,7 +2,6 @@
 <module rename-to='example'>
   <inherits name='com.google.gwt.user.User'/>
   <inherits name="com.google.gwt.logging.Logging"/>
-  <inherits name="org.realityforge.gwt.websockets.WebSockets"/>
   <inherits name="org.realityforge.replicant.Replicant"/>
   <inherits name="org.realityforge.gwt.datatypes.Datatypes"/>
   <inherits name="com.google.gwt.inject.Inject"/>

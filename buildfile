@@ -9,7 +9,7 @@ GWT_DEPS = [:gwt_webpoller,
             :aopalliance,
             :gwt_gin,
             :javax_validation_sources]
-PROVIDED_DEPS = [:gwt_websockets, :javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
+PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
 COMPILE_DEPS = [:gwt_user, :replicant, :jackson_core, :jackson_mapper, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes]
 PACKAGE_DEPS = COMPILE_DEPS
 
