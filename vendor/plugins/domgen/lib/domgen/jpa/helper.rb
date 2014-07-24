@@ -582,6 +582,7 @@ JAVADOC
     Class<? extends javax.validation.Payload>[] payload() default { };
   }
 
+  @SuppressWarnings( { "PMD.UselessParentheses" } )
   public static class #{constraint_name}Validator
     implements javax.validation.ConstraintValidator<#{validation_name(constraint_name)}, #{entity.jpa.name}>
   {
