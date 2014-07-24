@@ -1,13 +1,26 @@
-#!/bin/bash
+#!/bin/sh
+
+STOP_DOMAIN=false
+CREATED_DOMAIN=false
 
 R=`(asadmin list-domains | grep -q 'tyrell ') && echo yes`
 if [ "$R" != 'yes' ]; then
-  asadmin create-domain tyrell
+  asadmin create-domain --user admin --nopassword tyrell
+  CREATED_DOMAIN=true
 fi
 
 R=`(asadmin list-domains | grep -q 'tyrell running') && echo yes`
 if [ "$R" != 'yes' ]; then
+  STOP_DOMAIN=true
   asadmin start-domain tyrell
+  if [ "$CREATED_DOMAIN" == 'true' ]; then
+    asadmin delete-jvm-options -XX\\:MaxPermSize=192m
+    asadmin delete-jvm-options -Xmx512m
+    asadmin create-jvm-options -XX\\:MaxPermSize=400m
+    asadmin create-jvm-options -Xmx1500m
+    asadmin create-jvm-options -Dcom.sun.enterprise.tools.admingui.NO_NETWORK=true
+    asadmin restart-domain tyrell
+  fi
 fi
 
 R=`(asadmin list-libraries | grep -q postgresql-9.1-901.jdbc4.jar) && echo yes`
@@ -30,3 +43,9 @@ asadmin create-jdbc-connection-pool\
 asadmin create-jdbc-resource --connectionpoolid TyrellPool jdbc/Tyrell
 
 asadmin set domain.resources.jdbc-connection-pool.TyrellPool.property.JDBC30DataSource=true
+
+asadmin set-log-levels javax.enterprise.resource.resourceadapter.com.sun.gjc.spi=WARNING
+
+if [ "$STOP_DOMAIN" == 'true' ]; then
+  asadmin stop-domain tyrell
+fi
