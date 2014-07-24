@@ -68,19 +68,27 @@ public class SubscriptionServiceEJB
   @Override
   @Nullable
   public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
+    throws BadSessionException
   {
-    final Packet packet = poll( ensureSession( clientID ), lastSequenceAcked );
-    if ( null != packet )
+    try
     {
-      return JsonEncoder.
-        encodeChangeSet( packet.getSequence(),
-                         packet.getRequestID(),
-                         packet.getETag(),
-                         packet.getChangeSet() );
+      final Packet packet = poll( ensureSession( clientID ), lastSequenceAcked );
+      if ( null != packet )
+      {
+        return JsonEncoder.
+          encodeChangeSet( packet.getSequence(),
+                           packet.getRequestID(),
+                           packet.getETag(),
+                           packet.getChangeSet() );
+      }
+      else
+      {
+        return null;
+      }
     }
-    else
+    catch ( final org.realityforge.replicant.server.transport.BadSessionException e )
     {
-      return null;
+      throw new BadSessionException( e );
     }
   }
 
