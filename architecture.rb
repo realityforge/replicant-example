@@ -23,7 +23,7 @@ Domgen.repository(:Tyrell) do |repository|
       s.date(:StartOn)
       s.integer(:NumberOfDays)
     end
-    repository.imit.graph_by_name(:ShiftList).filter(:struct, :referenced_struct => :"Tyrell.RosterSubscriptionDTO")
+    repository.imit.graph_by_name(:ShiftList).filter(:struct, :referenced_struct => 'Tyrell.RosterSubscriptionDTO')
 
     data_module.entity(:RosterType) do |t|
       t.integer(:ID, :primary_key => true)
@@ -41,9 +41,9 @@ Domgen.repository(:Tyrell) do |repository|
 
     data_module.entity(:Shift) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Roster, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:RosterList])
+      t.reference(:Roster, :immutable => true, 'inverse.traversable' => true, 'inverse.imit.exclude_edges' => [:RosterList])
       t.string(:Name, 50)
-      t.datetime(:StartAt, :"imit.filter_in_graphs" => [:ShiftList])
+      t.datetime(:StartAt, 'imit.filter_in_graphs' => [:ShiftList])
       t.imit.replicate(:Shift, :instance)
 
       t.query(:FindAllByAreaOfInterest, 'jpa.jpql' => <<JPQL) do |q|
@@ -63,7 +63,7 @@ JPQL
 
     data_module.entity(:Position) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Shift, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:ShiftList])
+      t.reference(:Shift, :immutable => true, 'inverse.traversable' => true, 'inverse.imit.exclude_edges' => [:ShiftList])
       t.string(:Name, 50)
     end
 
@@ -78,15 +78,15 @@ JPQL
     data_module.entity(:Assignment) do |t|
       t.integer(:ID, :primary_key => true)
       t.reference(:Person, :immutable => true,
-                  "inverse.traversable" => true,
-                  "imit.graph_links" => {:Shift => {:target_graph => :Person}},
-                  "inverse.imit.exclude_edges" => [:Person, :PersonDetails])
-      t.reference(:Position, :immutable => true, :"inverse.traversable" => true)
+                  'inverse.traversable' => true,
+                  'imit.graph_links' => {:Shift => {:target_graph => :Person}},
+                  'inverse.imit.exclude_edges' => [:Person, :PersonDetails])
+      t.reference(:Position, :immutable => true, 'inverse.traversable' => true)
     end
 
     data_module.entity(:Contact) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Person, :immutable => true, :"inverse.traversable" => true, "inverse.imit.exclude_edges" => [:Person])
+      t.reference(:Person, :immutable => true, 'inverse.traversable' => true, 'inverse.imit.exclude_edges' => [:Person])
       t.string(:Email, 50)
     end
 
@@ -94,7 +94,7 @@ JPQL
 
     data_module.message(:SystemError) do |m|
       m.text(:Message)
-      m.parameter(:Throwable, "java.lang.Throwable", :nullable => true)
+      m.parameter(:Throwable, 'java.lang.Throwable', :nullable => true)
     end
 
     data_module.service(:RosterService) do |s|
@@ -141,7 +141,7 @@ JPQL
       end
     end
 
-    data_module.exception(:BadSession, "ejb.rollback" => false)
+    data_module.exception(:BadSession, 'ejb.rollback' => false)
 
     data_module.service(:SubscriptionService) do |s|
       s.method(:SubscribeToMetaData) do |m|
@@ -216,7 +216,7 @@ JPQL
         m.string(:ClientID, 50)
         m.integer(:LastSequenceAcked)
         m.returns(:text, :nullable => true) do |a|
-          a.description("A changeset represented as json or null if no changeset outstanding.")
+          a.description('A changeset represented as json or null if no changeset outstanding.')
         end
         m.exception(:BadSession)
       end
@@ -225,7 +225,7 @@ JPQL
     data_module.services.each do |service|
       if service.ejb?
         service.ejb.generate_boundary = true
-        service.ejb.boundary_extends = "org.realityforge.replicant.example.server.service.AbstractExternalService"
+        service.ejb.boundary_extends = 'org.realityforge.replicant.example.server.service.AbstractExternalService'
       end
     end
   end
