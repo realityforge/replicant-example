@@ -246,11 +246,19 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
 <% else -%>
       session.setInterestedIn<%= graph.name %>( true );
 <% if graph.cacheable? -%>
-      _lock<%= graph.name %>Cache.readLock().lock();
       final String cached<%= graph.name %>Key = getContext().get<%= graph.name %>CacheKey();
-      if ( null == _cachedMetaDataMessages || ( null == cached<%= graph.name %>Key || !cached<%= graph.name %>Key.equals( _cached<%= graph.name %>Key ) ) )
+      _lock<%= graph.name %>Cache.readLock().lock();
+      final boolean uncached;
+      try
+      {
+        uncached = null == _cachedMetaDataMessages || ( null == cached<%= graph.name %>Key || !cached<%= graph.name %>Key.equals(_cached<%= graph.name %>Key) );
+      }
+      finally
       {
         _lock<%= graph.name %>Cache.readLock().unlock();
+      }
+      if ( uncached )
+      {
         _lock<%= graph.name %>Cache.writeLock().lock();
         try
         {
@@ -262,10 +270,6 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
         {
           _lock<%= graph.name %>Cache.writeLock().unlock();
         }
-      }
-      else
-      {
-        _lock<%= graph.name %>Cache.readLock().unlock();
       }
 <% else -%>
       final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
@@ -332,20 +336,16 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
     doUnsubscribeFrom<%= graph.name %>( session<%= pk_accessor.size == 0 ? '' : ", #{pk_accessor}" %> );
   }
 
+<% if graph.instance_root? -%>
   private void doUnsubscribeFrom<%= graph.name %>( @javax.annotation.Nonnull final org.realityforge.replicant.server.ChangeAccumulator accumulator, @javax.annotation.Nonnull final <%= repository.imit.qualified_session_name %> session<%= graph.instance_root? ? ", #{repository.entity_by_name(graph.instance_root).primary_key.imit.java_type} id" : '' %> )
   {
-<% if graph.instance_root? -%>
     if ( session.is<%= graph.name %>Interesting( id ) )
     {
       session.deregisterInterestIn<%= graph.name %>( id );
-<% else -%>
-    if ( session.isInterestedIn<%= graph.name %>() )
-    {
-      session.setInterestedIn<%= graph.name %>( false );
-<% end -%>
       accumulator.addAction( session, new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? 'id' : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE, null ) );
     }
   }
+<% end -%>
 
   private void doUnsubscribeFrom<%= graph.name %>( @javax.annotation.Nonnull final <%= repository.imit.qualified_session_name %> session<%= graph.instance_root? ? ", #{repository.entity_by_name(graph.instance_root).primary_key.imit.java_type} id" : '' %> )
   {
