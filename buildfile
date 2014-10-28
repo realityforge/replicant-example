@@ -27,7 +27,6 @@ define 'replicant-example' do
                            [:ee, :gwt, :gwt_rpc, :imit],
                            _(:target, :generated, 'domgen'))
 
-
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
   gwt_dir = gwt(['org.realityforge.replicant.example.Example'],
