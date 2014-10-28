@@ -2,7 +2,9 @@
 package <%= to_package(repository.imit.qualified_server_session_context_name) %>;
 
 @javax.annotation.Generated( "Domgen" )
+<% if repository.ee.use_cdi? -%>
 @javax.ejb.Local
+<% end -%>
 public interface <%= repository.imit.server_session_context_name %>
 {
 <%
@@ -40,7 +42,7 @@ end
       filter_param = "#{nullability_annotation(p.nullable?)} #{Domgen::Java.java_type(p, :ee, :default)} filter"
     end
 if !graph.instance_root?
- if graph.cacheable? -%>
+ if graph.cacheable? && graph.external_cache_management? -%>
   @javax.annotation.Nullable
   String get<%= graph.name %>CacheKey();
 <% end %>

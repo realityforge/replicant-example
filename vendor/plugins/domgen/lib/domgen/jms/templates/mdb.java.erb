@@ -15,7 +15,7 @@ config_properties['subscriptionDurability'] = method.jms.durable? ? 'Durable' : 
 -%>
 
 @javax.annotation.Generated( "Domgen" )
-@SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
 @javax.ejb.MessageDriven( name = "<%= method.jms.resource_name %>",
                           mappedName = "<%= method.jms.destination_resource_name %>",
                           activationConfig =
@@ -36,7 +36,11 @@ public class <%= method.jms.mdb_name %>
 {
   private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger( <%= method.jms.mdb_name %>.class.getName() );
 
+<% if method.service.data_module.repository.ee.use_cdi? -%>
+  @javax.inject.Inject
+<% else %>
   @javax.ejb.EJB
+<% end %>
   private <%= method.service.ejb.service_name %> _service;
 
 <%
