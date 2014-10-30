@@ -36,7 +36,6 @@ import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderService;
 import org.realityforge.replicant.example.client.net.TyrellClientRouter;
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
-import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
 import org.realityforge.replicant.shared.transport.ReplicantContext;
@@ -46,7 +45,6 @@ public class TyrellDataLoaderService
   implements DataLoaderService
 {
   private final EventBus _eventBus;
-  private final GwtSubscriptionService _subscriptionService;
   private final TyrellClientRouter _router;
 
   private final WebPoller _webPoller = WebPoller.newWebPoller();
@@ -74,9 +72,8 @@ public class TyrellDataLoaderService
                                   final ReplicantConfig replicantConfig,
                                   final TyrellClientRouter router )
   {
-    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig );
+    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig, subscriptionService );
     _eventBus = eventBus;
-    _subscriptionService = subscriptionService;
     _router = router;
     _webPoller.setListener( new WebPollerListenerAdapter()
     {
@@ -171,7 +168,7 @@ public class TyrellDataLoaderService
   @Override
   public void downloadAll()
   {
-    _subscriptionService.downloadAll( getSessionID() );
+    getRemoteSubscriptionService().downloadAll( getSessionID() );
   }
 
   private String getPollURL()
@@ -243,142 +240,6 @@ public class TyrellDataLoaderService
   protected void progressDataLoadFailure( @Nonnull final Exception e )
   {
     handleSystemFailure( e, "Failed to progress data load" );
-  }
-
-  @Override
-  protected void requestSubscribeToGraph( @Nonnull final TyrellReplicationGraph graph,
-                                          @Nullable final Object id,
-                                          @Nullable final Object filterParameter,
-                                          @Nullable final String eTag,
-                                          @Nullable final Runnable cacheAction,
-                                          @Nonnull final Runnable completionAction )
-  {
-    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        completionAction.run();
-      }
-    };
-    if ( TyrellReplicationGraph.SHIFT == graph )
-    {
-      _subscriptionService.subscribeToShift( getSessionID(), (Integer) id, callback );
-    }
-    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
-    {
-      _subscriptionService.subscribeToRosterList( getSessionID(), callback );
-    }
-    else if ( TyrellReplicationGraph.PEOPLE == graph )
-    {
-      _subscriptionService.subscribeToPeople( getSessionID(), callback );
-    }
-    else if ( TyrellReplicationGraph.PERSON_DETAILS == graph )
-    {
-      _subscriptionService.subscribeToPersonDetails( getSessionID(), (Integer) id, callback );
-    }
-    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
-    {
-      _subscriptionService.subscribeToShiftList( getSessionID(),
-                                                 (Integer) id,
-                                                 (RosterSubscriptionDTO) filterParameter,
-                                                 callback );
-    }
-    else if ( TyrellReplicationGraph.META_DATA == graph )
-    {
-      _subscriptionService.subscribeToMetaData( getSessionID(), eTag, new TyrellAsyncCallback<Boolean>()
-      {
-        @Override
-        public void onSuccess( final Boolean result )
-        {
-          if ( result )
-          {
-            completionAction.run();
-          }
-          else
-          {
-            if ( null != cacheAction )
-            {
-              cacheAction.run();
-            }
-          }
-        }
-      } );
-    }
-    else
-    {
-      throw new IllegalStateException();
-    }
-  }
-
-  @Override
-  protected void requestUnsubscribeFromGraph( @Nonnull final TyrellReplicationGraph graph,
-                                              @Nullable final Object id,
-                                              @Nonnull final Runnable completionAction )
-  {
-    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        completionAction.run();
-      }
-    };
-    if ( TyrellReplicationGraph.SHIFT == graph )
-    {
-      _subscriptionService.unsubscribeFromShift( getSessionID(), (Integer) id, callback );
-    }
-    else if ( TyrellReplicationGraph.ROSTER_LIST == graph )
-    {
-      _subscriptionService.unsubscribeFromRosterList( getSessionID(), callback );
-    }
-    else if ( TyrellReplicationGraph.SHIFT_LIST == graph )
-    {
-      _subscriptionService.unsubscribeFromShiftList( getSessionID(), (Integer) id, callback );
-    }
-    else if ( TyrellReplicationGraph.META_DATA == graph )
-    {
-      _subscriptionService.unsubscribeFromMetaData( getSessionID(), callback );
-    }
-    else if ( TyrellReplicationGraph.PEOPLE == graph )
-    {
-      _subscriptionService.unsubscribeFromPeople( getSessionID(), callback );
-    }
-    else if ( TyrellReplicationGraph.PERSON_DETAILS == graph )
-    {
-      _subscriptionService.unsubscribeFromPersonDetails( getSessionID(), (Integer) id, callback );
-    }
-    else
-    {
-      throw new IllegalStateException();
-    }
-  }
-
-  @Override
-  protected void requestUpdateSubscription( @Nonnull final TyrellReplicationGraph graph,
-                                            @Nullable final Object id,
-                                            @Nullable final Object filterParameter,
-                                            @Nonnull final Runnable completionAction )
-  {
-    final TyrellAsyncCallback<Void> callback = new TyrellAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        completionAction.run();
-      }
-    };
-    if ( TyrellReplicationGraph.SHIFT_LIST == graph )
-    {
-      _subscriptionService.updateShiftListSubscription( getSessionID(),
-                                                        (Integer) id,
-                                                        (RosterSubscriptionDTO) filterParameter,
-                                                        callback );
-    }
-    else
-    {
-      throw new IllegalStateException();
-    }
   }
 
   @Override

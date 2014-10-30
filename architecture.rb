@@ -17,6 +17,7 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:Person)
   repository.imit.graph(:PersonDetails)
   repository.imit.invalid_session_exception = 'Tyrell.BadSession'
+  repository.imit.subscription_manager = 'Tyrell.SubscriptionService'
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|
@@ -144,72 +145,8 @@ JPQL
     data_module.exception(:BadSession, 'ejb.rollback' => false)
 
     data_module.service(:SubscriptionService) do |s|
-      s.method(:SubscribeToMetaData) do |m|
-        m.imit.graph_to_subscribe = :MetaData
-        m.text(:ClientID)
-        m.text(:ETag, :nullable => true)
-        m.exception(:BadSession)
-        m.returns(:boolean)
-      end
-      s.method(:UnsubscribeFromMetaData) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
-      s.method(:SubscribeToPeople) do |m|
-        m.text(:ClientID)
-        m.exception(:BadSession)
-      end
-      s.method(:UnsubscribeFromPeople) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
-      s.method(:SubscribeToPersonDetails) do |m|
-        m.text(:ClientID)
-        m.reference(:Person)
-        m.exception(:BadSession)
-      end
-      s.method(:UnsubscribeFromPersonDetails) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Person)
-        m.exception(:BadSession)
-      end
       s.method(:DownloadAll) do |m|
         m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
-      s.method(:SubscribeToShift) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Shift)
-        m.exception(:BadSession)
-      end
-      s.method(:UnsubscribeFromShift) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Shift)
-        m.exception(:BadSession)
-      end
-      s.method(:SubscribeToRosterList) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
-      s.method(:UnsubscribeFromRosterList) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
-      s.method(:SubscribeToShiftList) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Roster)
-        m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)
-        m.exception(:BadSession)
-      end
-      s.method(:UpdateShiftListSubscription) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Roster)
-        m.struct(:RosterSubscriptionDTO, :RosterSubscriptionDTO)
-        m.exception(:BadSession)
-      end
-      s.method(:UnsubscribeFromShiftList) do |m|
-        m.string(:ClientID, 50)
-        m.reference(:Roster)
         m.exception(:BadSession)
       end
       s.method(:Poll) do |m|
