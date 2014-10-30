@@ -99,7 +99,7 @@ Domgen.template_set(:imit_gwt_proxy) do |template_set|
                         'main/java/#{exception.imit.qualified_name.gsub(".","/")}.java',
                         Domgen::Generator::Imit::HELPERS)
 end
-Domgen.template_set(:imit_gwt_proxy_service_test) do |template_set|
+Domgen.template_set(:imit_test_module) do |template_set|
   template_set.template(Domgen::Generator::Imit::FACETS + [:gwt_rpc],
                         :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/mock_services_module.java.erb",
@@ -107,9 +107,35 @@ Domgen.template_set(:imit_gwt_proxy_service_test) do |template_set|
                         [Domgen::Java::Helper])
 end
 
+Domgen.template_set(:imit_module) do |template_set|
+  template_set.template(Domgen::Generator::Imit::FACETS + [:gwt_rpc],
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/mock_services_module.java.erb",
+                        'main/java/#{repository.imit.qualified_mock_services_module_name.gsub(".","/")}.java',
+                        [Domgen::Java::Helper])
+end
+
+Domgen.template_set(:imit_jpa_listener) do |template_set|
+  template_set.template(Domgen::Generator::Imit::FACETS + [:jpa],
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_listener.java.erb",
+                        'main/java/#{repository.imit.qualified_change_listener_name.gsub(".","/")}.java',
+                        [Domgen::Java::Helper])
+  template_set.template(Domgen::Generator::Imit::FACETS + [:jpa],
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_recorder.java.erb",
+                        'main/java/#{repository.imit.qualified_change_recorder_name.gsub(".","/")}.java',
+                        [Domgen::Java::Helper])
+end
+
 Domgen.template_set(:imit_jpa) do |template_set|
   facets = Domgen::Generator::Imit::FACETS + [:jpa]
   helpers = Domgen::Generator::Imit::HELPERS + [Domgen::JPA::Helper, Domgen::Java::Helper]
+  template_set.template(Domgen::Generator::Imit::FACETS + [:jpa],
+                        :repository,
+                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_recorder_impl.java.erb",
+                        'main/java/#{repository.imit.qualified_change_recorder_impl_name.gsub(".","/")}.java',
+                        [Domgen::Java::Helper])
   template_set.template(facets,
                         :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/jpa_encoder.java.erb",
@@ -124,11 +150,6 @@ Domgen.template_set(:imit_jpa) do |template_set|
                         :repository,
                         "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/graph_encoder_impl.java.erb",
                         'main/java/#{repository.imit.qualified_graph_encoder_impl_name.gsub(".","/")}.java',
-                        helpers)
-  template_set.template(facets,
-                        :repository,
-                        "#{Domgen::Generator::Imit::TEMPLATE_DIRECTORY}/change_recorder.java.erb",
-                        'main/java/#{repository.imit.qualified_change_recorder_name.gsub(".","/")}.java',
                         helpers)
   template_set.template(facets,
                         :repository,
@@ -173,6 +194,6 @@ Domgen.template_set(:imit_jpa) do |template_set|
 end
 
 Domgen.template_set(:imit_shared => [:imit_metadata])
-Domgen.template_set(:imit_server => [:imit_jpa])
-Domgen.template_set(:imit_client => [:imit_gwt_proxy_service_test, :imit_gwt_proxy, :imit_entity])
+Domgen.template_set(:imit_server => [:imit_jpa, :imit_jpa_listener])
+Domgen.template_set(:imit_client => [:imit_test_module, :imit_gwt_proxy, :imit_entity])
 Domgen.template_set(:imit => [:imit_client, :imit_server, :imit_shared])
