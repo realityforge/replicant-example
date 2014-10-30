@@ -12,15 +12,11 @@ import com.google.web.bindery.event.shared.EventBus;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.gwt.datatypes.client.date.RDate;
-import org.realityforge.gwt.webpoller.client.AbstractHttpRequestFactory;
-import org.realityforge.gwt.webpoller.client.WebPoller;
-import org.realityforge.gwt.webpoller.client.WebPollerListenerAdapter;
 import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.ChannelDescriptor;
 import org.realityforge.replicant.client.EntityChangeBroker;
@@ -28,7 +24,6 @@ import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.replicant.client.EntitySubscriptionManager;
 import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
-import org.realityforge.replicant.client.transport.DataLoadStatus;
 import org.realityforge.replicant.example.client.data_type.JsoRosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
@@ -38,7 +33,6 @@ import org.realityforge.replicant.example.client.net.TyrellClientRouter;
 import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
-import org.realityforge.replicant.shared.transport.ReplicantContext;
 
 public class TyrellDataLoaderService
   extends AbstractTyrellDataLoaderService
@@ -46,20 +40,6 @@ public class TyrellDataLoaderService
 {
   private final EventBus _eventBus;
   private final TyrellClientRouter _router;
-
-  private final WebPoller _webPoller = WebPoller.newWebPoller();
-
-  class ReplicantRequestFactory
-    extends AbstractHttpRequestFactory
-  {
-    @Override
-    protected RequestBuilder getRequestBuilder()
-    {
-      final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, getPollURL() );
-      rb.setHeader( ReplicantContext.SESSION_ID_HEADER, getSessionID() );
-      return rb;
-    }
-  }
 
   @Inject
   public TyrellDataLoaderService( final ChangeMapper changeMapper,
@@ -75,22 +55,6 @@ public class TyrellDataLoaderService
     super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig, subscriptionService );
     _eventBus = eventBus;
     _router = router;
-    _webPoller.setListener( new WebPollerListenerAdapter()
-    {
-      @Override
-      public void onMessage( @Nonnull final WebPoller webPoller,
-                             @Nonnull final Map<String, String> context,
-                             @Nonnull final String data )
-      {
-        handlePollSuccess( data );
-      }
-
-      @Override
-      public void onError( @Nonnull final WebPoller webPoller, @Nonnull final Throwable exception )
-      {
-        handleSystemFailure( exception, "Failed to poll" );
-      }
-    } );
   }
 
   @Override
@@ -123,46 +87,17 @@ public class TyrellDataLoaderService
     }
   }
 
-  private void onSessionCreated( final String sessionID )
-  {
-    setSession( new TyrellClientSessionImpl( this, sessionID ),
-                new Runnable()
-                {
-                  @Override
-                  public void run()
-                  {
-                    getSession().subscribeToMetaData( new Runnable()
-                    {
-                      @Override
-                      public void run()
-                      {
-                        _eventBus.fireEvent( new SessionEstablishedEvent() );
-                      }
-                    } );
-                  }
-                } );
-    scheduleDataLoad();
-    startPolling();
-  }
-
   @Override
-  public void disconnect()
+  protected void onSessionConnected()
   {
-    stopPolling();
-    final EntitySubscriptionManager subscriptionManager = getSubscriptionManager();
-    for ( final Enum graph : subscriptionManager.getInstanceSubscriptionKeys() )
+    getSession().subscribeToMetaData( new Runnable()
     {
-      final Set<Object> instanceSubscriptions = subscriptionManager.getInstanceSubscriptions( graph );
-      for ( final Object id : instanceSubscriptions )
+      @Override
+      public void run()
       {
-        subscriptionManager.unsubscribe( graph, id );
+        _eventBus.fireEvent( new SessionEstablishedEvent() );
       }
-    }
-    for ( final Enum graph : subscriptionManager.getTypeSubscriptions() )
-    {
-      subscriptionManager.unsubscribe( graph );
-    }
-    setSession( null, null );
+    } );
   }
 
   @Override
@@ -171,7 +106,8 @@ public class TyrellDataLoaderService
     getRemoteSubscriptionService().downloadAll( getSessionID() );
   }
 
-  private String getPollURL()
+  @Nonnull
+  protected String getPollURL()
   {
     final String moduleBaseURL = GWT.getModuleBaseURL();
     final String moduleName = GWT.getModuleName();
@@ -183,57 +119,11 @@ public class TyrellDataLoaderService
     return contextURL + "api/replicant" + suffix;
   }
 
-  final void handlePollSuccess( final String rawJsonData )
-  {
-    if ( null != rawJsonData )
-    {
-      if ( LOG.isLoggable( Level.SEVERE ) )
-      {
-        LOG.severe( "Received data from poll: " + rawJsonData );
-      }
-      getSession().enqueueDataLoad( rawJsonData );
-      if ( !_webPoller.isPaused() )
-      {
-        _webPoller.pause();
-      }
-    }
-  }
-
-  @Override
-  protected void onDataLoadComplete( @Nonnull final DataLoadStatus status )
-  {
-    if ( _webPoller.isPaused() )
-    {
-      _webPoller.resume();
-    }
-  }
-
-  final void handleSystemFailure( final Throwable caught, final String message )
+  protected final void handleSystemFailure( @Nonnull final Throwable caught, @Nonnull final String message )
   {
     LOG.log( Level.SEVERE, "System Failure: " + message, caught );
     final Throwable cause = ( caught instanceof InvocationException ) ? caught.getCause() : caught;
     _eventBus.fireEvent( new SystemErrorEvent( message, cause ) );
-  }
-
-  private void startPolling()
-  {
-    stopPolling();
-    _webPoller.setRequestFactory( new ReplicantRequestFactory() );
-    _webPoller.setInterRequestDuration( 0 );
-    _webPoller.start();
-  }
-
-  private void stopPolling()
-  {
-    if ( isConnected() )
-    {
-      _webPoller.stop();
-    }
-  }
-
-  public boolean isConnected()
-  {
-    return _webPoller.isActive();
   }
 
   @Override
