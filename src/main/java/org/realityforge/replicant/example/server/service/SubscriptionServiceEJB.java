@@ -97,19 +97,6 @@ public class SubscriptionServiceEJB
   }
 
   @Override
-  public String getMetaDataCacheKey()
-  {
-    if ( null == _cacheKey )
-    {
-      // Return a per-deploy constant as we know that it will
-      // never be changed, so it should only be re-downloaded
-      // after a deploy.
-      _cacheKey = "MyCache-" + System.currentTimeMillis();
-    }
-    return _cacheKey;
-  }
-
-  @Override
   protected TyrellSessionContext getContext()
   {
     return this;

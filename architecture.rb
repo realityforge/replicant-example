@@ -9,7 +9,7 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.java.base_package = 'org.realityforge.replicant.example'
 
-  repository.imit.graph(:MetaData, :cacheable => true)
+  repository.imit.graph(:MetaData, :cacheable => true, :external_cache_management => false)
   repository.imit.graph(:RosterList)
   repository.imit.graph(:ShiftList)
   repository.imit.graph(:Shift)
