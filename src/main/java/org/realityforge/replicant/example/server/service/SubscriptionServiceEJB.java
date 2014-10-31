@@ -47,8 +47,6 @@ public class SubscriptionServiceEJB
   @Inject
   private PersonRepository _personRepository;
 
-  private String _cacheKey;
-
   /**
    * Remove idle session changes every 30 seconds.
    */
