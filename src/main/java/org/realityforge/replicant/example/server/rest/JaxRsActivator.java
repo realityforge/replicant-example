@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
+import org.realityforge.replicant.server.ee.rest.ReplicantPollResource;
 
 @ApplicationPath("/api")
 public class JaxRsActivator
@@ -15,7 +16,7 @@ public class JaxRsActivator
     final Set<Class<?>> classes = new HashSet<>();
     classes.addAll( super.getClasses() );
     classes.add( AuthenticationService.class );
-    classes.add( ReplicantResource.class );
+    classes.add( ReplicantPollResource.class );
     classes.add( BadSessionExceptionMapper.class );
     return classes;
   }
