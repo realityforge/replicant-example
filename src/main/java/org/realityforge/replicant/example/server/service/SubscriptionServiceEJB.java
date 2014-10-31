@@ -40,13 +40,10 @@ public class SubscriptionServiceEJB
 
   @Inject
   private RosterTypeRepository _rosterTypeRepository;
-
   @Inject
   private RosterRepository _rosterRepository;
-
   @Inject
   private ShiftRepository _shiftRepository;
-
   @Inject
   private PersonRepository _personRepository;
 
