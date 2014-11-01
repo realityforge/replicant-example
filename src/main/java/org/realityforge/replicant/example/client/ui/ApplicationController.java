@@ -129,7 +129,7 @@ public class ApplicationController
       final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( getCurrentDate(), 7 );
       _dataLoaderService.getSession().subscribeToShiftList( roster.getID(), filter, null );
       _rosterUI.setRoster( _currentRoster );
-      goToRosterAtivity();
+      goToRosterActivity();
     }
     else
     {
@@ -184,7 +184,7 @@ public class ApplicationController
     }
   }
 
-  private void goToRosterAtivity()
+  private void goToRosterActivity()
   {
     _mainPanel.setWidget( _rosterUI );
   }
