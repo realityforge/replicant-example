@@ -158,6 +158,14 @@ public class ApplicationController
     if ( null != _currentRoster )
     {
       final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( _currentDate, 7 );
+      if ( null != _currentShift )
+      {
+        if ( _currentShift.getStartAt().before( RDate.toDate( _currentDate ) ) ||
+             _currentShift.getStartAt().after( RDate.toDate( RDate.addDays( _currentDate, 7 ) ) ) )
+        {
+          _dataLoaderService.getSession().unsubscribeFromShift( _currentShift.getID(), null );
+        }
+      }
       _dataLoaderService.getSession().updateShiftListSubscription( _currentRoster.getID(), filter, null );
     }
   }
