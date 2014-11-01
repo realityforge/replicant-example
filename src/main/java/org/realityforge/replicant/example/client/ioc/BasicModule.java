@@ -8,8 +8,8 @@ import com.google.web.bindery.event.shared.SimpleEventBus;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.client.transport.gwt.LocalCacheService;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
-import org.realityforge.replicant.example.client.services.DataLoaderService;
-import org.realityforge.replicant.example.client.services.TyrellDataLoaderServiceImpl;
+import org.realityforge.replicant.example.client.net.DataLoaderService;
+import org.realityforge.replicant.example.client.net.TyrellDataLoaderServiceImpl;
 
 public class BasicModule
   extends AbstractGinModule

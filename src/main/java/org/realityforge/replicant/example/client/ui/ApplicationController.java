@@ -25,7 +25,7 @@ import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.service.RosterService;
 import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
-import org.realityforge.replicant.example.client.services.DataLoaderService;
+import org.realityforge.replicant.example.client.net.DataLoaderService;
 
 public class ApplicationController
   implements IsWidget, EntityChangeListener
