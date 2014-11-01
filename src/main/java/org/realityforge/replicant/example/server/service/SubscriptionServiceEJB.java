@@ -24,8 +24,6 @@ import org.realityforge.replicant.example.server.net.TyrellSession;
 import org.realityforge.replicant.example.server.net.TyrellSessionContext;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.EntityMessageSet;
-import org.realityforge.replicant.server.json.JsonEncoder;
-import org.realityforge.replicant.server.transport.Packet;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
@@ -57,23 +55,6 @@ public class SubscriptionServiceEJB
     if ( 0 != removedSessions && LOG.isLoggable( Level.INFO ) )
     {
       LOG.info( "Removed " + removedSessions + " idle sessions" );
-    }
-  }
-
-  @Override
-  @Nullable
-  public String poll( @Nonnull final String clientID, final int lastSequenceAcked )
-    throws BadSessionException
-  {
-    final Packet packet = poll( ensureSession( clientID ), lastSequenceAcked );
-    if ( null != packet )
-    {
-      return JsonEncoder.
-        encodeChangeSet( packet.getSequence(), packet.getRequestID(), packet.getETag(), packet.getChangeSet() );
-    }
-    else
-    {
-      return null;
     }
   }
 
