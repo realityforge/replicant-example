@@ -10,8 +10,9 @@ GWT_DEPS = [:gwt_user,
             :aopalliance,
             :gwt_gin,
             :javax_validation_sources]
-PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :jackson_core, :jackson_mapper, :javax_javaee] + GWT_DEPS
-COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes]
+JACKSON_DEPS = [:jackson_core, :jackson_mapper]
+PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
+COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes] + JACKSON_DEPS
 PACKAGE_DEPS = COMPILE_DEPS
 
 desc 'A simple application demonstrating the use of the replicant library'
