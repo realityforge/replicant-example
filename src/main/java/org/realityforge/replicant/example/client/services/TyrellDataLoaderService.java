@@ -30,7 +30,6 @@ import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.net.AbstractTyrellDataLoaderService;
 import org.realityforge.replicant.example.client.net.TyrellClientRouter;
-import org.realityforge.replicant.example.client.net.TyrellClientSessionImpl;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
 
@@ -104,19 +103,6 @@ public class TyrellDataLoaderService
   public void downloadAll()
   {
     getRemoteSubscriptionService().downloadAll( getSessionID() );
-  }
-
-  @Nonnull
-  protected String getPollURL()
-  {
-    final String moduleBaseURL = GWT.getModuleBaseURL();
-    final String moduleName = GWT.getModuleName();
-    final TyrellClientSessionImpl session = getSession();
-
-    final String contextURL = moduleBaseURL.substring( 0, moduleBaseURL.length() - moduleName.length() - 1 );
-    final String suffix = "?rx=" + session.getLastRxSequence();
-
-    return contextURL + "api/replicant" + suffix;
   }
 
   protected final void handleSystemFailure( @Nonnull final Throwable caught, @Nonnull final String message )
