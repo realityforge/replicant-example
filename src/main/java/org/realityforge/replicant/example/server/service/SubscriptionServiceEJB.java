@@ -24,10 +24,11 @@ import org.realityforge.replicant.example.server.net.TyrellSession;
 import org.realityforge.replicant.example.server.net.TyrellSessionContext;
 import org.realityforge.replicant.server.EntityMessageEndpoint;
 import org.realityforge.replicant.server.EntityMessageSet;
+import org.realityforge.replicant.server.ee.rest.ReplicantPollSource;
 import org.realityforge.ssf.SessionManager;
 
 @Singleton
-@Local({ TyrellSessionContext.class, EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
+@Local({ TyrellSessionContext.class, ReplicantPollSource.class, EntityMessageEndpoint.class, SubscriptionService.class, SessionManager.class })
 public class SubscriptionServiceEJB
   extends AbstractTyrellSessionManager
   implements SubscriptionService, TyrellSessionContext
