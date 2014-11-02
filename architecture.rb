@@ -149,14 +149,6 @@ JPQL
         m.string(:ClientID, 50)
         m.exception(:BadSession)
       end
-      s.method(:Poll) do |m|
-        m.string(:ClientID, 50)
-        m.integer(:LastSequenceAcked)
-        m.returns(:text, :nullable => true) do |a|
-          a.description('A changeset represented as json or null if no changeset outstanding.')
-        end
-        m.exception(:BadSession)
-      end
     end
 
     data_module.services.each do |service|
