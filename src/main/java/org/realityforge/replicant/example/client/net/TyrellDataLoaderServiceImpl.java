@@ -44,9 +44,9 @@ public class TyrellDataLoaderServiceImpl
                                       final EntityRepository repository,
                                       final CacheService cacheService,
                                       final EntitySubscriptionManager subscriptionManager,
-                                      final EventBus eventBus,
                                       final GwtSubscriptionService subscriptionService,
                                       final ReplicantConfig replicantConfig,
+                                      final EventBus eventBus,
                                       final TyrellClientRouter router )
   {
     super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig, subscriptionService );
