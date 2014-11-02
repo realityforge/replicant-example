@@ -114,12 +114,6 @@ public class TyrellDataLoaderServiceImpl
   }
 
   @Override
-  protected void progressDataLoadFailure( @Nonnull final Exception e )
-  {
-    handleSystemFailure( e, "Failed to progress data load" );
-  }
-
-  @Override
   protected boolean doesEntityMatchFilter( @Nonnull final ChannelDescriptor descriptor,
                                            @Nullable final Object rawFilter,
                                            @Nonnull final Class<?> entityType,
