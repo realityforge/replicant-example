@@ -16,7 +16,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.realityforge.gwt.datatypes.client.date.RDate;
-import org.realityforge.replicant.client.ChangeMapper;
 import org.realityforge.replicant.client.ChannelDescriptor;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityRepository;
