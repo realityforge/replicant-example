@@ -137,8 +137,8 @@ public class TyrellDataLoaderServiceImpl
       final Map<String, Serializable> route = _router.route( entity );
       final Date shiftStartAt = (Date) route.get( TyrellClientRouter.SHIFT_LIST_TYRELL_SHIFT_START_AT_KEY );
       return null == shiftStartAt ||
-                        ( ( startOn.before( shiftStartAt ) || startOn.equals( shiftStartAt ) ) &&
-                          endDate.after( shiftStartAt ) );
+             ( ( startOn.before( shiftStartAt ) || startOn.equals( shiftStartAt ) ) &&
+               endDate.after( shiftStartAt ) );
     }
     else
     {
