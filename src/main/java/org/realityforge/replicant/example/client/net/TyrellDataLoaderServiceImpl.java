@@ -78,15 +78,13 @@ public class TyrellDataLoaderServiceImpl
         @Override
         public void onError( final Request request, final Throwable exception )
         {
-          LOG.log( Level.SEVERE, "Error generating token", exception );
-          Window.alert( "Failed to generate token" );
+          handleSystemFailure( exception, "Failed to generate token" );
         }
       } );
     }
     catch ( final RequestException e )
     {
-      LOG.log( Level.SEVERE, "Error generating token", e );
-      Window.alert( "Failed to generate token" );
+      handleSystemFailure( e, "Failed to generate token" );
     }
   }
 
