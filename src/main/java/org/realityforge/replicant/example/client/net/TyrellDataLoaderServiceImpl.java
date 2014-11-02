@@ -49,7 +49,13 @@ public class TyrellDataLoaderServiceImpl
                                       final EventBus eventBus,
                                       final TyrellClientRouter router )
   {
-    super( changeMapper, changeBroker, repository, cacheService, subscriptionManager, replicantConfig, subscriptionService );
+    super( changeMapper,
+           changeBroker,
+           repository,
+           cacheService,
+           subscriptionManager,
+           replicantConfig,
+           subscriptionService );
     _eventBus = eventBus;
     _router = router;
   }
