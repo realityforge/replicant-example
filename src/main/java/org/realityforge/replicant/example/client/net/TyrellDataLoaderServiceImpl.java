@@ -39,7 +39,7 @@ public class TyrellDataLoaderServiceImpl
   private final TyrellClientRouter _router;
 
   @Inject
-  public TyrellDataLoaderServiceImpl( final ChangeMapper changeMapper,
+  public TyrellDataLoaderServiceImpl( final TyrellChangeMapperImpl changeMapper,
                                       final EntityChangeBroker changeBroker,
                                       final EntityRepository repository,
                                       final CacheService cacheService,
