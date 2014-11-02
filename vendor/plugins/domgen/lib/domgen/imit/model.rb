@@ -183,7 +183,7 @@ module Domgen
       attr_writer :shared_comm_package
 
       java_artifact :repository_debugger, :comm, :client, :imit, '#{repository.name}RepositoryDebugger'
-      java_artifact :change_mapper, :comm, :client, :imit, '#{repository.name}ChangeMapper'
+      java_artifact :change_mapper, :comm, :client, :imit, '#{repository.name}ChangeMapperImpl'
       java_artifact :data_loader_service, :comm, :client, :imit, 'Abstract#{repository.name}DataLoaderService'
       java_artifact :client_session, :comm, :client, :imit, '#{repository.name}ClientSessionImpl'
       java_artifact :client_router_interface, :comm, :client, :imit, '#{repository.name}ClientRouter'
@@ -207,6 +207,15 @@ module Domgen
       java_artifact :graph_encoder_impl, :comm, :server, :imit, '#{repository.name}GraphEncoderImpl'
       java_artifact :services_module, :ioc, :client, :imit, '#{repository.name}ImitServicesModule'
       java_artifact :mock_services_module, :ioc, :client, :imit, '#{repository.name}MockImitServicesModule'
+
+      def multi_session=(multi_session)
+        raise "multi_session '#{multi_session}' is invalid. Must be a boolean value" unless multi_session.is_a?(TrueClass) || multi_session.is_a?(FalseClass)
+        @multi_session = multi_session
+      end
+
+      def multi_session?
+        @multi_session.nil? ? false : @multi_session
+      end
 
       def replicate_mode=(replicate_mode)
         raise "replicate_mode '#{replicate_mode}' is invalid. Must be one of #{self.class.valid_replicate_modes.inspect}" unless self.class.valid_replicate_modes.include?(replicate_mode)
@@ -268,17 +277,17 @@ module Domgen
       end
 
       def pre_verify
-        raise "subscription_manager not specified" if self.subscription_manager.nil? && self.graphs.size > 0
+        raise 'subscription_manager not specified' if self.subscription_manager.nil? && self.graphs.size > 0
         begin
           repository.service_by_name(self.subscription_manager)
         rescue
-          raise "Bad subscription_manager specified"
+          raise 'Bad subscription_manager specified'
         end
-        raise "invalid_session_exception not specified" if self.invalid_session_exception.nil? && self.graphs.size > 0
+        raise 'invalid_session_exception not specified' if self.invalid_session_exception.nil? && self.graphs.size > 0
         begin
           repository.exception_by_name(self.invalid_session_exception)
         rescue
-          raise "Bad invalid_session_exception specified"
+          raise 'Bad invalid_session_exception specified'
         end
         repository.service_by_name(self.subscription_manager).tap do |s|
           repository.imit.graphs.each do |graph|
@@ -321,6 +330,16 @@ module Domgen
                 m.string(:ClientID, 50)
                 m.exception(self.invalid_session_exception)
               end
+            end
+          end
+          if self.poll_replicate_mode?
+            s.method(:Poll) do |m|
+              m.string(:ClientID, 50)
+              m.integer(:LastSequenceAcked)
+              m.returns(:text, :nullable => true) do |a|
+                a.description('A change set represented as json or null if no change set outstanding.')
+              end
+              m.exception(self.invalid_session_exception)
             end
           end
         end
