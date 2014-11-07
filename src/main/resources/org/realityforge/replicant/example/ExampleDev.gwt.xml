@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module rename-to='example'>
+  <inherits name="org.realityforge.gwt.lognice.Lognice"/>
   <inherits name="org.realityforge.replicant.example.Example"/>
 
   <collapse-all-properties/>

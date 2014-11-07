@@ -3,6 +3,7 @@ require 'buildr/gwt'
 require 'buildr/top_level_generate_dir'
 
 GWT_DEPS = [:gwt_user,
+            :gwt_lognice,
             :gwt_webpoller,
             :gwt_property_source,
             :google_guice,
