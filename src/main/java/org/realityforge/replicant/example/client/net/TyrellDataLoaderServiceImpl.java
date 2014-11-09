@@ -98,7 +98,7 @@ public class TyrellDataLoaderServiceImpl
     } );
   }
 
-  protected final void handleSystemFailure( @Nonnull final Throwable caught, @Nonnull final String message )
+  protected final void handleSystemFailure( @Nullable final Throwable caught, @Nonnull final String message )
   {
     LOG.log( Level.SEVERE, "System Failure: " + message, caught );
     final Throwable cause = ( caught instanceof InvocationException ) ? caught.getCause() : caught;
