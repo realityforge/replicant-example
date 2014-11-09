@@ -144,10 +144,6 @@ JPQL
     data_module.exception(:BadSession, 'ejb.rollback' => false)
 
     data_module.service(:SubscriptionService) do |s|
-      s.method(:DownloadAll) do |m|
-        m.string(:ClientID, 50)
-        m.exception(:BadSession)
-      end
     end
 
     data_module.services.each do |service|

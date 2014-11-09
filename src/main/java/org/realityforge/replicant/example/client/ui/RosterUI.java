@@ -81,8 +81,6 @@ public class RosterUI
   @UiField
   TextBox _positionNameEdit;
   @UiField
-  Button _downloadAll;
-  @UiField
   ListBox _resourceList;
   @UiField
   Button _assignResource;
@@ -240,12 +238,6 @@ public class RosterUI
   void setPositionName( final ClickEvent event )
   {
     _controller.setPositionName( _position, _positionNameEdit.getValue() );
-  }
-
-  @UiHandler("_downloadAll")
-  void onDownloadAll( final ClickEvent event )
-  {
-    _controller.downloadAll();
   }
 
   @UiHandler("_disconnect")

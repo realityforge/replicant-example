@@ -23,7 +23,7 @@ import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.RosterType;
 import org.realityforge.replicant.example.client.entity.Shift;
 import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
-import org.realityforge.replicant.example.client.net.DataLoaderService;
+import org.realityforge.replicant.example.client.net.TyrellDataLoaderService;
 import org.realityforge.replicant.example.client.service.RosterService;
 import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 
@@ -35,7 +35,7 @@ public class ApplicationController
 
   private final EntityRepository _repository;
   private final EntityChangeBroker _broker;
-  private final DataLoaderService _dataLoaderService;
+  private final TyrellDataLoaderService _dataLoaderService;
   private final RosterService _rosterService;
   private final LoginUI _loginUI;
   private final RosterListUI _rosterListUI;
@@ -48,7 +48,7 @@ public class ApplicationController
 
   @Inject
   public ApplicationController( final RosterService rosterService,
-                                final DataLoaderService dataLoaderService,
+                                final TyrellDataLoaderService dataLoaderService,
                                 final EntityRepository repository,
                                 final EntityChangeBroker broker,
                                 final EventBus eventBus )
@@ -286,11 +286,6 @@ public class ApplicationController
   public void createPosition( final Shift shift, final String name )
   {
     _rosterService.createPosition( shift, name );
-  }
-
-  public void downloadAll()
-  {
-    _dataLoaderService.downloadAll();
   }
 
   public void setPositionName( final Position position, final String name )

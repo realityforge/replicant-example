@@ -100,7 +100,6 @@
       </div>
       <div>
         <g:HorizontalPanel>
-          <g:Button text="Download All" ui:field="_downloadAll"/>
           <g:Button text="Disconnect" ui:field="_disconnect"/>
         </g:HorizontalPanel>
       </div>

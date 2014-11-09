@@ -31,7 +31,6 @@ import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
 
 public class TyrellDataLoaderServiceImpl
   extends AbstractTyrellDataLoaderService
-  implements DataLoaderService
 {
   private final EventBus _eventBus;
   private final TyrellClientRouter _router;
@@ -97,12 +96,6 @@ public class TyrellDataLoaderServiceImpl
         _eventBus.fireEvent( new SessionEstablishedEvent() );
       }
     } );
-  }
-
-  @Override
-  public void downloadAll()
-  {
-    getRemoteSubscriptionService().downloadAll( getSessionID() );
   }
 
   protected final void handleSystemFailure( @Nonnull final Throwable caught, @Nonnull final String message )

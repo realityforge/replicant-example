@@ -8,7 +8,7 @@ import com.google.web.bindery.event.shared.SimpleEventBus;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.client.transport.gwt.LocalCacheService;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
-import org.realityforge.replicant.example.client.net.DataLoaderService;
+import org.realityforge.replicant.example.client.net.TyrellDataLoaderService;
 import org.realityforge.replicant.example.client.net.TyrellDataLoaderServiceImpl;
 
 public class BasicModule
@@ -18,7 +18,7 @@ public class BasicModule
   protected void configure()
   {
     bindNamedService( "GLOBAL", AsyncCallback.class, GlobalAsyncCallback.class );
-    bind( DataLoaderService.class ).to( TyrellDataLoaderServiceImpl.class ).asEagerSingleton();
+    bind( TyrellDataLoaderService.class ).to( TyrellDataLoaderServiceImpl.class ).asEagerSingleton();
     bind( CacheService.class ).to( LocalCacheService.class ).asEagerSingleton();
     bind( EventBus.class ).to( SimpleEventBus.class ).asEagerSingleton();
   }
