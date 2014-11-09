@@ -22,8 +22,9 @@ Domgen.repository(:Tyrell) do |repository|
     data_module.struct(:RosterSubscriptionDTO) do |s|
       s.date(:StartOn)
       s.integer(:NumberOfDays)
+
+      s.imit.filter_for_graph(:ShiftList)
     end
-    repository.imit.graph_by_name(:ShiftList).filter(:struct, :referenced_struct => 'Tyrell.RosterSubscriptionDTO')
 
     data_module.entity(:RosterType) do |t|
       t.integer(:ID, :primary_key => true)
