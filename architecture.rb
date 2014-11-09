@@ -78,10 +78,10 @@ JPQL
 
     data_module.entity(:Assignment) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Person, :immutable => true,
-                  'inverse.traversable' => true,
-                  'imit.graph_links' => {:Shift => {:target_graph => :Person}},
-                  'inverse.imit.exclude_edges' => [:Person, :PersonDetails])
+      t.reference(:Person, :immutable => true, 'inverse.traversable' => true) do |a|
+        a.imit.add_graph_link(:Shift, :Person)
+        a.inverse.imit.exclude_edges << :PersonDetails
+      end
       t.reference(:Position, :immutable => true, 'inverse.traversable' => true)
     end
 
