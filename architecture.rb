@@ -15,8 +15,6 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:People)
   repository.imit.graph(:Person)
   repository.imit.graph(:PersonDetails)
-  repository.imit.invalid_session_exception = 'Tyrell.BadSession'
-  repository.imit.subscription_manager = 'Tyrell.SubscriptionService'
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|
@@ -139,18 +137,6 @@ JPQL
       s.method(:AssignPerson) do |m|
         m.reference(:Position)
         m.reference(:Person)
-      end
-    end
-
-    data_module.exception(:BadSession, 'ejb.rollback' => false)
-
-    data_module.service(:SubscriptionService) do |s|
-    end
-
-    data_module.services.each do |service|
-      if service.ejb?
-        service.ejb.generate_boundary = true
-        service.ejb.boundary_extends = 'org.realityforge.replicant.example.server.service.AbstractExternalService'
       end
     end
   end
