@@ -16,13 +16,21 @@ public class <%= repository.imit.session_manager_name %>
 <% end -%>
   @javax.inject.Inject
   private <%= repository.imit.qualified_graph_encoder_name %> _encoder;
-<% repository.imit.graphs.select{|g| g.instance_root? && g.filter_parameter.nil? }.collect{|g|repository.entity_by_name(g.instance_root)}.uniq.each do |entity| -%>
+<%
+entities = repository.imit.graphs.select{|g| g.instance_root?}.collect{|g|repository.entity_by_name(g.instance_root)}
+repository.imit.graphs.select{|g| !g.instance_root?}.each do |graph|
+  graph.type_roots.each do |type_root_name|
+    entities << repository.entity_by_name(type_root_name)
+  end
+end
+
+entities.uniq.each do |entity| -%>
 <% if repository.ee.use_cdi? -%>
   @javax.inject.Inject
 <% else -%>
   @javax.ejb.EJB
 <% end -%>
-  private <%= entity.dao.jpa.qualified_dao_service_name %> _<%= entity.name %>Repository;
+  private <%= entity.dao.jpa.qualified_dao_service_name %> _<%= entity.data_module.name %><%= entity.name %>Repository;
 <% end -%>
   @javax.inject.Inject
   private <%= repository.imit.qualified_server_session_context_name %> _context;
@@ -74,8 +82,9 @@ public class <%= repository.imit.session_manager_name %>
       entity.attributes.select{|a| a.imit? && a.imit.filter_in_graphs.include?(graph.name) }.each do |attribute|
         var_name = "#{graph.name}#{attribute.qualified_name.gsub('.','_')}"
         extra_interest_filter << ", #{var_name}"
+        param_type = attribute.reference? ? attribute.referenced_entity.primary_key.jpa.non_primitive_java_type : attribute.jpa.non_primitive_java_type
 %>
-        final <%= attribute.jpa.non_primitive_java_type %> <%= var_name %> = (<%= attribute.jpa.non_primitive_java_type %>) routingKeys.get( <%= repository.imit.qualified_router_impl_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>_<%= Domgen::Naming.uppercase_constantize(attribute.qualified_name.gsub('.','_')) %>_KEY );
+        final <%= param_type %> <%= var_name %> = (<%= param_type %>) routingKeys.get( <%= repository.imit.qualified_router_impl_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>_<%= Domgen::Naming.uppercase_constantize(attribute.qualified_name.gsub('.','_')) %>_KEY );
 <%
       end
     end
@@ -125,8 +134,9 @@ public class <%= repository.imit.session_manager_name %>
       entity.attributes.select{|a| a.imit? && a.imit.filter_in_graphs.include?(graph.name) }.each do |attribute|
         var_name = "#{graph.name}#{attribute.qualified_name.gsub('.','_')}"
         extra_interest_filter << ", #{var_name}"
+        param_type = attribute.reference? ? attribute.referenced_entity.primary_key.jpa.non_primitive_java_type : attribute.jpa.non_primitive_java_type
 %>
-        final <%= attribute.jpa.non_primitive_java_type %> <%= var_name %> = (<%= attribute.jpa.non_primitive_java_type %>) routingKeys.get( <%= repository.imit.qualified_router_impl_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>_<%= Domgen::Naming.uppercase_constantize(attribute.qualified_name.gsub('.','_')) %>_KEY );
+        final <%= param_type %> <%= var_name %> = (<%= param_type %>) routingKeys.get( <%= repository.imit.qualified_router_impl_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>_<%= Domgen::Naming.uppercase_constantize(attribute.qualified_name.gsub('.','_')) %>_KEY );
 <%
       end
     end
@@ -196,17 +206,30 @@ public class <%= repository.imit.session_manager_name %>
       {
         for ( final org.realityforge.replicant.server.ChannelLink link : links )
         {
-          <% repository.imit.graphs.select{|g| g.instance_root? && g.filter_parameter.nil? }.each do |graph| -%>
+          <% repository.imit.graphs.select{|g| g.instance_root? }.collect{|g| g.inward_graph_links }.flatten.each do |graph_link|
+           graph = repository.imit.graph_by_name(graph_link.target_graph)
+           source_graph = repository.imit.graph_by_name(graph_link.source_graph)
+           entity = repository.entity_by_name(graph.instance_root)
+           source_root = repository.entity_by_name(source_graph.instance_root)
+         -%>
 if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal() == link.getTargetChannel().getChannelID() )
           {
-            if( !session.is<%= graph.name %>Interesting( (<%= repository.entity_by_name(graph.instance_root).primary_key.jpa.java_type %>) link.getTargetChannel().getSubChannelID() ) )
+            if( !session.is<%= graph.name %>Interesting( (<%= entity.primary_key.jpa.java_type %>) link.getTargetChannel().getSubChannelID() ) )
             {
-              final <%= repository.entity_by_name(graph.instance_root).primary_key.jpa.java_type %> id = (<%= repository.entity_by_name(graph.instance_root).primary_key.jpa.java_type %>) link.getTargetChannel().getSubChannelID();
-              session.registerInterestIn<%= graph.name %>( id );
-              final org.realityforge.replicant.server.EntityMessageSet entityMessageSet = encode<%= graph.name %>( _<%= repository.entity_by_name(graph.instance_root).name %>Repository.getByID( id ) );
-              changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( entityMessageSet.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), id ) );
-              changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), id ), org.realityforge.replicant.server.ChannelAction.Action.ADD, null ) );
-              return true;
+              final <%= entity.primary_key.jpa.java_type %> id = (<%= entity.primary_key.jpa.java_type %>) link.getTargetChannel().getSubChannelID();
+              final <%= entity.jpa.qualified_name %> entity = _<%= entity.data_module.name %><%= entity.name %>Repository.getByID( id );
+<% if graph.filter_parameter -%>
+              final <%= Domgen::Java.java_type(source_graph.filter_parameter, :ee, :default) %> filter = session.get<%= source_graph.name %>Parameter( (<%= source_root.primary_key.jpa.java_type %>) link.getSourceChannel().getSubChannelID() );
+              assert null != filter;
+              if ( _context.shouldFollowLinkFrom<%= graph_link.source_graph %>To<%= graph.name %>( entity, filter ) )
+<% end -%>
+              {
+                session.registerInterestIn<%= graph.name %>( id<% if graph.filter_parameter -%>, filter<% end -%> );
+                final org.realityforge.replicant.server.EntityMessageSet entityMessageSet = encode<%= graph.name %>( entity<% if graph.filter_parameter -%>, filter<% end -%> );
+                changeSet.mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( entityMessageSet.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), id ) );
+                changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), id ), org.realityforge.replicant.server.ChannelAction.Action.ADD, <%= graph.filtered? ? 'toJsonObject( filter )' : 'null' %> ) );
+                return true;
+              }
             }
           }
           else <% end -%>
@@ -222,27 +245,32 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
 <%
   repository.imit.graphs.each do |graph|
 
-  param = ''
-  param_value = ''
+  param = []
+  param_value = []
   pk_accessor = ''
   instance_root = nil
   if graph.instance_root?
     # Names are fully qualified so take any random data module
     instance_root = repository.entity_by_name(graph.instance_root)
-    param = ", @javax.annotation.Nonnull final #{instance_root.jpa.qualified_name} entity"
-    param_value = 'entity'
+    param << "@javax.annotation.Nonnull final #{instance_root.jpa.qualified_name} entity"
+    param_value << 'entity'
     pk_accessor = "entity.#{getter_for(instance_root.primary_key)}"
   end
-  filter_param = ''
   update_param = param.dup
   update_param_value = param_value.dup
   if graph.filter_parameter
     p = graph.filter_parameter
-    update_param = "#{update_param}, " if update_param.size > 0
-    update_param = "#{update_param}#{nullability_annotation(p.nullable?)} #{Domgen::Java.java_type(p, :ee, :default)} filter"
-    update_param_value = "#{update_param_value}, " if update_param_value.size > 0
-    update_param_value = "#{update_param_value}filter"
+    update_param << "#{nullability_annotation(p.nullable?)} #{Domgen::Java.java_type(p, :ee, :default)} filter"
+    update_param_value << 'filter'
   end
+  param = param.join(', ')
+  param_value = param_value.join(', ')
+  update_param = update_param.join(', ')
+  update_param_value = update_param_value.join(', ')
+
+  param = ", #{param}" if param.size > 0
+  param_value = ", #{param_value}" if param_value.size > 0
+  update_param = ", #{update_param}" if update_param.size > 0
   update_param_value = ", #{update_param_value}" if update_param_value.size > 0
 %>
 <% if graph.cacheable? -%>
@@ -264,10 +292,10 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
 <% if graph.instance_root? -%>
       session.registerInterestIn<%= graph.name %>( <%= pk_accessor %><%= graph.filter_parameter.nil? ? '' : ", filter" %> );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
-      populateChangeSetFor<%= graph.name %>( session, <%= graph.instance_root? ? pk_accessor : 'null' %>, changeSet, encode<%= graph.name %>( entity<%= graph.filter_parameter.nil? ? '' : ', filter' %> )<%= graph.filter_parameter.nil? ? '' : ', filter' %> );
+      populateChangeSetFor<%= graph.name %>( session, <%= pk_accessor %>, changeSet, encode<%= graph.name %>( entity<%= graph.filter_parameter.nil? ? '' : ', filter' %> )<%= graph.filter_parameter.nil? ? '' : ', filter' %> );
       expandLinks( session, changeSet );
 <% else -%>
-      session.setInterestedIn<%= graph.name %>( true );
+      session.registerInterestedIn<%= graph.name %>(<%= graph.filter_parameter.nil? ? '' : ' filter ' %>);
 <% if graph.cacheable? -%>
 <% if graph.external_cache_management? -%>
       final String cached<%= graph.name %>Key = _context.get<%= graph.name %>CacheKey();
@@ -291,7 +319,7 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
         {
           _cached<%= graph.name %>Key = cached<%= graph.name %>Key;
           _cached<%= graph.name %>Messages = new org.realityforge.replicant.server.EntityMessageSet();
-          _context.collect<%= graph.name %>( _cached<%= graph.name %>Messages );
+          <% if graph.external_data_load? -%>_context.<% end -%>collect<%= graph.name %>( _cached<%= graph.name %>Messages );
         }
         finally
         {
@@ -300,9 +328,9 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
       }
 <% else -%>
       final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
-      _context.collect<%= graph.name %>( messages );
+      <% if graph.external_data_load? || graph.filtered? -%>_context.<% end -%>collect<%= graph.name %>( messages<%= graph.filter_parameter.nil? ? '' : ', filter' %> );
       final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
-      populateChangeSetFor<%= graph.name %>( session, <%= graph.instance_root? ? pk_accessor : 'null' %>, changeSet, messages<%= graph.filter_parameter.nil? ? '' : ', filter' %> );
+      populateChangeSetFor<%= graph.name %>( session, null, changeSet, messages<%= graph.filter_parameter.nil? ? '' : ', filter' %> );
 <% end -%>
 <% end -%>
 <% if graph.cacheable? -%>
@@ -325,12 +353,23 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
     return false;
 <% end -%>
   }
+<% if !graph.instance_root? && !graph.external_data_load? -%>
+  private void collect<%= graph.name %>( @javax.annotation.Nonnull org.realityforge.replicant.server.EntityMessageSet messages )
+  {
+<% graph.type_roots.each do |type_root_name|
+  type = repository.entity_by_name(type_root_name)
+-%>
+    _encoder.encodeObjects( messages, _<%= type.data_module.name %><%= type.name %>Repository.findAll() );
+<% end -%>
+  }
+
+<% end -%>
 <% if graph.instance_root? -%>
 
   private org.realityforge.replicant.server.EntityMessageSet encode<%= graph.name %>( @javax.annotation.Nonnull final <%= repository.entity_by_name(graph.instance_root).jpa.qualified_name %> entity<%= graph.filter_parameter.nil? ? '' : ", #{Domgen::Java.java_type(graph.filter_parameter, :ee, :default)} filter" %> )
   {
     final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
-    _encoder.encode<%= graph.name %>(messages, entity<%= graph.filter_parameter.nil? ? '' : ", filter" %> );
+    _encoder.encode<%= graph.name %>( messages, entity<%= graph.filter_parameter.nil? ? '' : ", filter" %> );
     return messages;
   }
 <% end -%>
@@ -347,12 +386,30 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
   {
     final <%= repository.imit.qualified_session_name %> session = ensureSession( sessionID );
     <%= nullability_annotation(graph.filter_parameter.nullable?) %> final <%= Domgen::Java.java_type(graph.filter_parameter, :ee, :default) %> original = session.get<%= graph.name %>Parameter(<%= pk_accessor %>);
-    session.updateInterestIn<%= graph.name %>( <%= "#{pk_accessor}#{pk_accessor.nil? ? '' : ", "}" %>filter );
+    session.updateInterestIn<%= graph.name %>( <%= "#{pk_accessor}#{'' == pk_accessor ? '' : ", "}" %>filter );
     final org.realityforge.replicant.server.EntityMessageSet messages = new org.realityforge.replicant.server.EntityMessageSet();
-    _context.collectForFilterChange<%= graph.name %>( messages, entity, original, filter );
+    _context.collectForFilterChange<%= graph.name %>( messages<% if graph.instance_root? -%>, entity<% end %>, original, filter );
     final org.realityforge.replicant.server.ChangeSet changeSet = org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges();
     changeSet.addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ), org.realityforge.replicant.server.ChannelAction.Action.UPDATE, toJsonObject( filter ) ) );
     org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().mergeAll( org.realityforge.replicant.server.ChangeUtil.toChanges( messages.getEntityMessages(), <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? pk_accessor : 0 %> ) );
+<%
+  processed = []
+  graph.outward_graph_links.each do |graph_link|
+     target_graph = repository.imit.graph_by_name(graph_link.target_graph)
+     next unless target_graph.filtered?
+     key = "#{graph_link.source_graph}=>#{graph_link.target_graph}"
+      next if processed.include?(key)
+      processed << key
+      instance_root = repository.entity_by_name(target_graph.instance_root)
+-%>
+    {
+      final java.util.List<<%= instance_root.jpa.qualified_name %>> links = _context.getLinksToUpdateFor<%= graph_link.source_graph %>To<%= target_graph.name %>( entity, filter );
+      for ( final <%= instance_root.jpa.qualified_name %> link : links )
+      {
+        update<%= target_graph.name %>Subscription( sessionID, link, filter );
+      }
+    }
+<% end if graph.instance_root? -%>
   }
 <% end -%>
 
@@ -383,7 +440,7 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
 <% else -%>
     if ( session.isInterestedIn<%= graph.name %>() )
     {
-      session.setInterestedIn<%= graph.name %>( false );
+      session.deregisterInterestedIn<%= graph.name %>();
 <% end -%>
       org.realityforge.replicant.server.ee.EntityMessageCacheUtil.getSessionChanges().addAction( new org.realityforge.replicant.server.ChannelAction( new org.realityforge.replicant.server.ChannelDescriptor( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? 'id' : 'null' %> ), org.realityforge.replicant.server.ChannelAction.Action.REMOVE, null ) );
     }
