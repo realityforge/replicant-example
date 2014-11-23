@@ -155,7 +155,7 @@ public class ApplicationController
   @Nonnull
   public RDate getCurrentDate()
   {
-    if( null == _currentDate )
+    if ( null == _currentDate )
     {
       _currentDate = RDate.fromDate( new Date() );
     }
