@@ -87,7 +87,21 @@ public class ApplicationController
 
   public void connect()
   {
-    _dataLoaderService.connect();
+    _dataLoaderService.connect( new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        _dataLoaderService.getSession().subscribeToMetaData( new Runnable()
+        {
+          @Override
+          public void run()
+          {
+            _eventBus.fireEvent( new SessionEstablishedEvent() );
+          }
+        } );
+      }
+    } );
   }
 
   public EntityChangeBroker getBroker()
@@ -300,7 +314,7 @@ public class ApplicationController
 
   public void disconnect()
   {
-    _dataLoaderService.disconnect();
+    _dataLoaderService.disconnect( null );
     _loginUI.resetState();
     gotoLoginActivity();
   }

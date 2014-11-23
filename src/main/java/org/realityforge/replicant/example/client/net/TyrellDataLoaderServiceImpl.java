@@ -24,7 +24,6 @@ import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.JsoRosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
 import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
@@ -58,7 +57,7 @@ public class TyrellDataLoaderServiceImpl
   }
 
   @Override
-  public void connect()
+  public void connect( @Nullable final Runnable runnable )
   {
     final String url = GWT.getHostPageBaseURL() + "api/auth/token";
     final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, url );
@@ -69,7 +68,7 @@ public class TyrellDataLoaderServiceImpl
         @Override
         public void onResponseReceived( final Request request, final Response response )
         {
-          onSessionCreated( response.getText() );
+          onSessionCreated( response.getText(), runnable );
         }
 
         @Override
@@ -83,19 +82,6 @@ public class TyrellDataLoaderServiceImpl
     {
       handleSystemFailure( e, "Failed to generate token" );
     }
-  }
-
-  @Override
-  protected void onSessionConnected()
-  {
-    getSession().subscribeToMetaData( new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        _eventBus.fireEvent( new SessionEstablishedEvent() );
-      }
-    } );
   }
 
   protected final void handleSystemFailure( @Nullable final Throwable caught, @Nonnull final String message )
