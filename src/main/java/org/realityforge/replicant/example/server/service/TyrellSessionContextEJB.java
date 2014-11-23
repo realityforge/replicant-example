@@ -55,24 +55,6 @@ public class TyrellSessionContextEJB
   }
 
   @Override
-  public void collectMetaData( @Nonnull final EntityMessageSet messages )
-  {
-    _encoder.encodeObjects( messages, _rosterTypeRepository.findAll() );
-  }
-
-  @Override
-  public void collectRosterList( @Nonnull final EntityMessageSet messages )
-  {
-    _encoder.encodeObjects( messages, _rosterRepository.findAll() );
-  }
-
-  @Override
-  public void collectPeople( @Nonnull final EntityMessageSet messages )
-  {
-    _encoder.encodeObjects( messages, _personRepository.findAll() );
-  }
-
-  @Override
   public boolean isShiftListInteresting( @Nonnull final TyrellSession session,
                                          @Nonnull final Integer rosterID,
                                          @Nonnull final RosterSubscriptionDTO filter,
