@@ -8,11 +8,9 @@ artifacts:
   findbugs_annotations: com.google.code.findbugs:annotations:jar:3.0.0
 
   # GWT Dependencies
-  gwt_user: com.google.gwt:gwt-user:jar:2.6.1
-  gwt_dev: com.google.gwt:gwt-dev:jar:2.6.1
-  gwt_servlet: com.google.gwt:gwt-servlet:jar:2.6.1
-  javax_validation: javax.validation:validation-api:jar:1.0.0.GA
-  javax_validation_sources: javax.validation:validation-api:jar:sources:1.0.0.GA
+  gwt_user: com.google.gwt:gwt-user:jar:2.7.0
+  gwt_dev: com.google.gwt:gwt-dev:jar:2.7.0
+  gwt_servlet: com.google.gwt:gwt-servlet:jar:2.7.0
 
   #
   # GIN and associated dependencies

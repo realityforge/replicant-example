@@ -9,8 +9,7 @@ GWT_DEPS = [:gwt_user,
             :google_guice,
             :google_guice_assistedinject,
             :aopalliance,
-            :gwt_gin,
-            :javax_validation_sources]
+            :gwt_gin]
 JACKSON_DEPS = [:jackson_core, :jackson_mapper]
 PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
 COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes] + JACKSON_DEPS
@@ -29,9 +28,7 @@ define 'replicant-example' do
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
   gwt_dir = gwt(['org.realityforge.replicant.example.Example'],
-                :java_args => ['-Xms512M', '-Xmx1024M', '-XX:PermSize=128M', '-XX:MaxPermSize=256M'],
-                :draft_compile => (ENV['FAST_GWT'] == 'true'),
-                :dependencies => [:javax_validation, :javax_validation_sources] + project.compile.dependencies)
+                :java_args => ['-Xms512M', '-Xmx1024M', '-XX:PermSize=128M', '-XX:MaxPermSize=256M'])
 
   test.using :testng
   test.with :mockito
