@@ -6,6 +6,8 @@
   <inherits name="org.realityforge.gwt.datatypes.Datatypes"/>
   <inherits name="com.google.gwt.inject.Inject"/>
   <inherits name="org.realityforge.gwt.webpoller.WebPoller"/>
+  <inherits name="org.realityforge.gwt.lognice.Lognice"/>
+
   <add-linker name="xsiframe"/>
 
   <entry-point class='org.realityforge.replicant.example.client.Example'/>
