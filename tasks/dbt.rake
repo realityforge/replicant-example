@@ -9,7 +9,6 @@ $LOAD_PATH.unshift("#{plugins_dir}/domgen/lib")
 require 'dbt'
 require 'domgen'
 
-Domgen::Sql.dialect = Domgen::Sql::PgDialect
 Domgen::LoadSchema.new("#{workspace_dir}/architecture.rb")
 Domgen::GenerateTask.new(:Tyrell, :sql, [:pgsql], generated_database_dir)
 
