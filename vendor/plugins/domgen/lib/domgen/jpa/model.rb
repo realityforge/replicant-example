@@ -162,6 +162,15 @@ module Domgen
     facet.enhance(DataAccessObject) do
       include Domgen::Java::BaseJavaGenerator
 
+      def transaction_type
+        @transaction_type || :mandatory
+      end
+
+      def transaction_type=(transaction_type)
+        raise "Attempted to set transaction_type to invalid #{transaction_type}" unless [:mandatory, :required, :requires_new].include?(transaction_type)
+        @transaction_type = transaction_type
+      end
+
       def server_dao_entity_package
         "#{server_entity_package}.dao"
       end
@@ -258,7 +267,7 @@ module Domgen
       end
 
       def generator_name
-        Domgen.error('generator_name invoked on non-sequence') unless attribute.sql.sequence?
+        Domgen.error('generator_name invoked on non-sequence') if !sequence? && !table_sequence?
         "#{attribute.entity.name}#{attribute.name}Generator"
       end
 
@@ -271,13 +280,48 @@ module Domgen
         return nil if attribute.enumeration?
         @converter ||
           attribute.characteristic_type.jpa.converter ||
-          (Domgen::Sql.dialect.is_a?(Domgen::Sql::MssqlDialect) ?
+          (attribute.sql.dialect.is_a?(Domgen::Mssql::MssqlDialect) ?
             attribute.characteristic_type.jpa.mssql.converter :
             attribute.characteristic_type.jpa.pgsql.converter)
       end
 
       def field_name
         Domgen::Naming.camelize(name)
+      end
+
+      def generated_value_strategy
+        @generated_value_strategy || (attribute.sql.identity? ? :identity : attribute.sql.sequence? ? :sequence : :none)
+      end
+
+      def generated_value_strategy=(generated_value_strategy)
+        raise "Invalid generated_value_strategy set on #{attribute.qualified_name}" unless self.class.valid_generated_value_strategies.include?(generated_value_strategy)
+        @generated_value_strategy = generated_value_strategy
+      end
+
+      def identity?
+        self.generated_value_strategy == :identity
+      end
+
+      def sequence?
+        self.generated_value_strategy == :sequence
+      end
+
+      def table_sequence?
+        self.generated_value_strategy == :table_sequence
+      end
+
+      def sequence_name=(sequence_name)
+        Domgen.error("sequence_name= called on #{attribute.qualified_name} when not a sequence") if !sequence? && !table_sequence?
+        @sequence_name = sequence_name
+      end
+
+      def sequence_name
+        Domgen.error("sequence_name called on #{attribute.qualified_name} when not a sequence") if !sequence? && !table_sequence?
+        @sequence_name || (sequence? && attribute.sql.sequence? ? attribute.sql.sequence_name : "#{attribute.entity.sql.table_name}#{attribute.name}Seq" )
+      end
+
+      def self.valid_generated_value_strategies
+        [:none, :identity, :sequence, :table_sequence]
       end
 
       protected

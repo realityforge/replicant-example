@@ -306,7 +306,6 @@ module Domgen
       java_artifact :change_recorder, :comm, :server, :imit, '#{repository.name}ChangeRecorder'
       java_artifact :change_recorder_impl, :comm, :server, :imit, '#{repository.name}ChangeRecorderImpl'
       java_artifact :change_listener, :comm, :server, :imit, '#{repository.name}EntityChangeListener'
-      java_artifact :server_request_manager, :comm, :server, :imit, '#{repository.name}RequestManager'
       java_artifact :replication_interceptor, :comm, :server, :imit, '#{repository.name}ReplicationInterceptor'
       java_artifact :graph_encoder_impl, :comm, :server, :imit, '#{repository.name}GraphEncoderImpl'
       java_artifact :services_module, :ioc, :client, :imit, '#{repository.name}ImitServicesModule'
@@ -425,11 +424,11 @@ module Domgen
           end
           e_name_parts = self.invalid_session_exception.to_s.split('.')
           Domgen.error('invalid_session_exception invalid. Expected to be in format DataModule.Exception') if e_name_parts.length != 2
-          self.repository.data_module_by_name(e_name_parts[0]).
-            exception(e_name_parts[1], 'ejb.rollback' => false) do |e|
-            (e.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :imit]).each do |facet_key|
-              e.disable_facet(facet_key) if e.facet_enabled?(facet_key)
-            end
+          exception_data_module = self.repository.data_module_by_name(e_name_parts[0])
+          e = exception_data_module.exception_by_name?(e_name_parts[1]) ? exception_data_module.exception_by_name(e_name_parts[1]) : exception_data_module.exception(e_name_parts[1])
+          e.ejb.rollback = false
+          (e.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :imit]).each do |facet_key|
+            e.disable_facet(facet_key) if e.facet_enabled?(facet_key)
           end
         end
         repository.service_by_name(self.subscription_manager).tap do |s|

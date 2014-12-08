@@ -91,7 +91,7 @@ entities.uniq.each do |entity| -%>
   end
 
   if !extra_interest_filter.empty?
-    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}, session.getInterestedIn#{graph.name}().get( #{graph.name} )#{extra_interest_filter} ) "
+    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}#{graph.instance_root? ? ", session.getInterestedIn#{graph.name}().get( #{graph.name} )" : '' }#{extra_interest_filter} ) "
   end
 %>
         if ( null != <%= graph.name %> )
@@ -143,7 +143,8 @@ entities.uniq.each do |entity| -%>
   end
 
   if !extra_interest_filter.empty?
-    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}, session.getInterestedIn#{graph.name}().get( #{graph.name} )#{extra_interest_filter} ) "
+    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}, session.#{graph.instance_root? ? "getInterestedIn#{graph.name}().get( #{graph.name} )" : "get#{graph.name}Parameter()" }#{extra_interest_filter} ) "
+    #extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}, session.getInterestedIn#{graph.name}().get( #{graph.name} )#{extra_interest_filter} ) "
   end
 %>
 
@@ -406,7 +407,7 @@ if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.upperca
       final java.util.List<<%= instance_root.jpa.qualified_name %>> links = _context.getLinksToUpdateFor<%= graph_link.source_graph %>To<%= target_graph.name %>( entity, filter );
       for ( final <%= instance_root.jpa.qualified_name %> link : links )
       {
-        update<%= target_graph.name %>Subscription( sessionID, link, filter );
+        subscribeTo<%= target_graph.name %>( sessionID, link, filter );
       }
     }
 <% end if graph.instance_root? -%>
