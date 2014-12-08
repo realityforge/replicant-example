@@ -24,10 +24,7 @@ define 'replicant-example' do
   compile.options.target = '1.7'
   compile.options.lint = 'all'
 
-  Domgen::GenerateTask.new(:Tyrell,
-                           'server',
-                           [:ee, :gwt, :gwt_rpc, :imit],
-                           _(:target, :generated, 'domgen'))
+  Domgen::GenerateTask.new(:Tyrell, :server, [:ee, :gwt, :gwt_rpc, :imit], _(:target, :generated, 'domgen'))
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
