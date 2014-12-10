@@ -46,8 +46,6 @@ public class TyrellDataLoaderServiceImpl
     _router = router;
   }
 
-  //TODO: Domgen should be updated to completely generate this class and provide a context
-  // interface which can be implemented by a user
   @Override
   protected boolean doesEntityMatchFilter( @Nonnull final ChannelDescriptor descriptor,
                                            @Nullable final Object rawFilter,

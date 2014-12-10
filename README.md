@@ -12,3 +12,5 @@ TODO
 * Remove the need for the ugly hack known as domgens "graph_to_subscribe" (Consider most of subscription manager and perhaps remote interface?)
 * Handle scenario where session goes away. Gracefully handle re-authentication etc.
 * Document how this all works together!
+* Domgen should be updated to completely generate TyrellDataLoaderServiceImpl and a TyrellDataLoaderContext
+  interface which can be implemented by a user
