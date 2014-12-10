@@ -39,14 +39,15 @@ define 'replicant-example' do
 
   clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
 
-  iml.add_gwt_facet({'org.realityforge.replicant.example.ExampleDev' => true,
+  iml.add_gwt_facet({'org.realityforge.replicant.example.ExampleDev' => false,
                      'org.realityforge.replicant.example.Example' => false},
                     :settings => {:compilerMaxHeapSize => '1024'},
                     :gwt_dev_artifact => :gwt_dev)
 
   # Hacke to remove GWT from path
   webroots = {}
-  webroots[_(:source, :main, :webapp)] = '/' if File.exist?(_(:source, :main, :webapp))
+  webroots[_(:source, :main, :webapp)] = '/'
+  webroots[_(:source, :main, :webapp_local)] = '/'
   assets.paths.each { |path| webroots[path.to_s] = '/' if path.to_s != gwt_dir.to_s }
   iml.add_web_facet(:webroots => webroots)
 
@@ -63,6 +64,8 @@ define 'replicant-example' do
                                 :dependencies => [project, PACKAGE_DEPS])
 
   ipr.add_glassfish_configuration(project, :domain => 'tyrell', :exploded => [project.name])
+
+  ipr.add_gwt_configuration(project, :gwt_module => 'org.realityforge.replicant.example.ExampleDev', :vm_parameters => '-Xmx3G', :shell_parameters => '-port 8888', :launch_page => 'http://127.0.0.1:8080/replicant-example')
 
   ipr.extra_modules << '../replicant/replicant.iml'
 end
