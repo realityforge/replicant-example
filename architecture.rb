@@ -92,11 +92,6 @@ JPQL
 
     data_module.message(:SessionEstablished)
 
-    data_module.message(:SystemError) do |m|
-      m.text(:Message)
-      m.parameter(:Throwable, 'java.lang.Throwable', :nullable => true)
-    end
-
     data_module.service(:RosterService) do |s|
       s.method(:CreateRoster) do |m|
         m.reference(:RosterType)

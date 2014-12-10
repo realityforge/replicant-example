@@ -1,17 +1,9 @@
 package org.realityforge.replicant.example.client.net;
 
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.http.client.Request;
-import com.google.gwt.http.client.RequestBuilder;
-import com.google.gwt.http.client.RequestCallback;
-import com.google.gwt.http.client.RequestException;
-import com.google.gwt.http.client.Response;
-import com.google.gwt.user.client.rpc.InvocationException;
 import com.google.web.bindery.event.shared.EventBus;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -24,14 +16,12 @@ import org.realityforge.replicant.client.json.gwt.ReplicantConfig;
 import org.realityforge.replicant.client.transport.CacheService;
 import org.realityforge.replicant.example.client.data_type.JsoRosterSubscriptionDTO;
 import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.event.SystemErrorEvent;
 import org.realityforge.replicant.example.client.service.internal.GwtSubscriptionService;
 import org.realityforge.replicant.example.shared.net.TyrellReplicationGraph;
 
 public class TyrellDataLoaderServiceImpl
   extends AbstractTyrellDataLoaderService
 {
-  private final EventBus _eventBus;
   private final TyrellClientRouter _router;
 
   @Inject
@@ -50,45 +40,10 @@ public class TyrellDataLoaderServiceImpl
            repository,
            cacheService,
            subscriptionManager,
+           eventBus,
            replicantConfig,
            subscriptionService );
-    _eventBus = eventBus;
     _router = router;
-  }
-
-  @Override
-  public void connect( @Nullable final Runnable runnable )
-  {
-    final String url = GWT.getHostPageBaseURL() + "api/auth/token";
-    final RequestBuilder rb = new RequestBuilder( RequestBuilder.GET, url );
-    try
-    {
-      rb.sendRequest( "", new RequestCallback()
-      {
-        @Override
-        public void onResponseReceived( final Request request, final Response response )
-        {
-          onSessionCreated( response.getText(), runnable );
-        }
-
-        @Override
-        public void onError( final Request request, final Throwable exception )
-        {
-          handleSystemFailure( exception, "Failed to generate token" );
-        }
-      } );
-    }
-    catch ( final RequestException e )
-    {
-      handleSystemFailure( e, "Failed to generate token" );
-    }
-  }
-
-  protected final void handleSystemFailure( @Nullable final Throwable caught, @Nonnull final String message )
-  {
-    LOG.log( Level.SEVERE, "System Failure: " + message, caught );
-    final Throwable cause = ( caught instanceof InvocationException ) ? caught.getCause() : caught;
-    _eventBus.fireEvent( new SystemErrorEvent( message, cause ) );
   }
 
   @Override
