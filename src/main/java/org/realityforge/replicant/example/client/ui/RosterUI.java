@@ -165,19 +165,19 @@ public class RosterUI
     _filterStart.setText( _controller.getCurrentDate().toString() );
   }
 
-  @UiHandler("_moveToPast")
+  @UiHandler( "_moveToPast" )
   void moveToPast( final ClickEvent event )
   {
     _controller.updateShiftListSubscription( _controller.getCurrentDate().addDays( -1 ) );
   }
 
-  @UiHandler("_moveToFuture")
+  @UiHandler( "_moveToFuture" )
   void moveToFuture( final ClickEvent event )
   {
     _controller.updateShiftListSubscription( _controller.getCurrentDate().addDays( 1 ) );
   }
 
-  @UiHandler("_assignResource")
+  @UiHandler( "_assignResource" )
   void setAssignResource( final ClickEvent event )
   {
     final int selectedIndex = _resourceList.getSelectedIndex();
@@ -187,19 +187,19 @@ public class RosterUI
     }
   }
 
-  @UiHandler("_updateRosterName")
+  @UiHandler( "_updateRosterName" )
   void setRosterName( final ClickEvent event )
   {
     _controller.setRosterName( _roster, _rosterNameEdit.getValue() );
   }
 
-  @UiHandler("_shiftNameCreate")
+  @UiHandler( "_shiftNameCreate" )
   void onShiftNameChange( final KeyUpEvent event )
   {
     updateCreateShiftButtonStatus();
   }
 
-  @UiHandler("_shiftDateCreate")
+  @UiHandler( "_shiftDateCreate" )
   void onShiftDateChange( final ValueChangeEvent<Date> event )
   {
     updateCreateShiftButtonStatus();
@@ -213,7 +213,7 @@ public class RosterUI
     _createShift.setEnabled( enabled );
   }
 
-  @UiHandler("_createShift")
+  @UiHandler( "_createShift" )
   void createShift( final ClickEvent event )
   {
     _controller.createShift( _roster, _shiftNameCreate.getValue(), RDate.fromDate( _shiftDateCreate.getValue() ) );
@@ -221,32 +221,32 @@ public class RosterUI
     _shiftDateCreate.setValue( null );
   }
 
-  @UiHandler("_updateShiftName")
+  @UiHandler( "_updateShiftName" )
   void setShiftName( final ClickEvent event )
   {
     _controller.setShiftName( _shift, _shiftNameEdit.getValue() );
   }
 
-  @UiHandler("_createPosition")
+  @UiHandler( "_createPosition" )
   void createPosition( final ClickEvent event )
   {
     _controller.createPosition( _shift, _positionNameCreate.getValue() );
     _positionNameCreate.setText( null );
   }
 
-  @UiHandler("_updatePositionName")
+  @UiHandler( "_updatePositionName" )
   void setPositionName( final ClickEvent event )
   {
     _controller.setPositionName( _position, _positionNameEdit.getValue() );
   }
 
-  @UiHandler("_disconnect")
+  @UiHandler( "_disconnect" )
   void onDisconnect( final ClickEvent event )
   {
     _controller.disconnect();
   }
 
-  @UiHandler("_delete")
+  @UiHandler( "_delete" )
   void onDeleteRoster( final ClickEvent event )
   {
     _controller.doDeleteRoster( _roster );

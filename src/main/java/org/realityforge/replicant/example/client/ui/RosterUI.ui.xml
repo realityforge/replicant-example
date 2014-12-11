@@ -6,10 +6,10 @@
       <h1>
         <g:Label ui:field="_rosterName"/>
       </h1>
-      <table style="width: 100%; margin: 0; padding: 0;" >
+      <table style="width: 100%; margin: 0; padding: 0;">
         <tr>
           <td style="width: 30%; vertical-align: top;">
-            <table style="width: 100%; margin: 0; padding: 0;" >
+            <table style="width: 100%; margin: 0; padding: 0;">
               <tr>
                 <td>
                   <table style="width: 100%; margin: 0; padding: 0;">
@@ -28,7 +28,9 @@
                 </td>
               </tr>
               <tr>
-                <td><g:Tree ui:field="_tree"/></td>
+                <td>
+                  <g:Tree ui:field="_tree"/>
+                </td>
               </tr>
             </table>
           </td>
@@ -37,7 +39,7 @@
               <h5>
                 <g:Label ui:field="_shiftName"/>
               </h5>
-              <g:FlexTable ui:field="_rosterData" />
+              <g:FlexTable ui:field="_rosterData"/>
             </div>
           </td>
           <td style="width: 30%; vertical-align: top;">

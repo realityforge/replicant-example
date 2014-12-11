@@ -23,7 +23,7 @@ import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
-@Stateless(name = RosterService.NAME)
+@Stateless( name = RosterService.NAME )
 public class RosterServiceEJB
   implements RosterService
 {

@@ -93,8 +93,8 @@ public class TyrellSessionContextEJB
       end = originalStart;
     }
     _encoder.encodeObjects( messages,
-                                _shiftRepository.findAllByAreaOfInterest( entity,
-                                                                          RDate.toDate( start ),
-                                                                          RDate.toDate( end ) ) );
+                            _shiftRepository.findAllByAreaOfInterest( entity,
+                                                                      RDate.toDate( start ),
+                                                                      RDate.toDate( end ) ) );
   }
 }
