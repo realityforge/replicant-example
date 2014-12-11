@@ -1,0 +1,11 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= to_package(repository.imit.qualified_client_session_context_name) %>;
+
+@javax.annotation.Generated( "Domgen" )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+public interface <%= repository.imit.client_session_context_name %>
+{
+<% repository.imit.graphs.select{|g| g.filtered?}.each do |graph| -%>
+  boolean does<%= graph.name %>MatchEntity( @javax.annotation.Nonnull <%= Domgen::Java.java_type(graph.filter_parameter, :imit, :default) %> filter, @javax.annotation.Nonnull Object entity );
+<% end -%>
+}

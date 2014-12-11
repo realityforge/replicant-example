@@ -10,6 +10,8 @@ import org.realityforge.replicant.client.transport.gwt.LocalCacheService;
 import org.realityforge.replicant.example.client.GlobalAsyncCallback;
 import org.realityforge.replicant.example.client.net.TyrellDataLoaderService;
 import org.realityforge.replicant.example.client.net.TyrellDataLoaderServiceImpl;
+import org.realityforge.replicant.example.client.net.TyrellSessionContext;
+import org.realityforge.replicant.example.client.net.TyrellSessionContextImpl;
 
 public class BasicModule
   extends AbstractGinModule
@@ -19,6 +21,7 @@ public class BasicModule
   {
     bindNamedService( "GLOBAL", AsyncCallback.class, GlobalAsyncCallback.class );
     bind( TyrellDataLoaderService.class ).to( TyrellDataLoaderServiceImpl.class ).asEagerSingleton();
+    bind( TyrellSessionContext.class ).to( TyrellSessionContextImpl.class ).asEagerSingleton();
     bind( CacheService.class ).to( LocalCacheService.class ).asEagerSingleton();
     bind( EventBus.class ).to( LoggingEventBus.class ).asEagerSingleton();
   }
