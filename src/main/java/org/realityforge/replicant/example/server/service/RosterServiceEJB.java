@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
 import org.realityforge.replicant.example.server.entity.Assignment;
 import org.realityforge.replicant.example.server.entity.Contact;
 import org.realityforge.replicant.example.server.entity.Person;
@@ -24,6 +24,7 @@ import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
 @Stateless( name = RosterService.NAME )
+@javax.enterprise.inject.Typed( RosterService.class )
 public class RosterServiceEJB
   implements RosterService
 {
@@ -49,25 +50,19 @@ public class RosterServiceEJB
     "post_master@example.com", "rchilders@example.com", "buster@example.com",
     "user31065@example.com", "ftsgeolbx@example.com" };
 
-  @EJB
+  @Inject
   private RosterTypeRepository _rosterTypeRepository;
-
-  @EJB
+  @Inject
   private RosterRepository _rosterRepository;
-
-  @EJB
+  @Inject
   private ShiftRepository _shiftRepository;
-
-  @EJB
+  @Inject
   private PositionRepository _positionRepository;
-
-  @EJB
+  @Inject
   private AssignmentRepository _assignmentRepository;
-
-  @EJB
+  @Inject
   private PersonRepository _personRepository;
-
-  @EJB
+  @Inject
   private ContactRepository _contactRepository;
 
   @PostConstruct
