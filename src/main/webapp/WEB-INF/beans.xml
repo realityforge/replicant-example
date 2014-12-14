@@ -1,5 +1,5 @@
 <beans xmlns="http://xmlns.jcp.org/xml/ns/javaee" bean-discovery-mode="annotated" version="1.1">
   <scan>
-    <exclude name="footprints.client.**"/>
+    <exclude name="org.realityforge.replicant.client.**"/>
   </scan>
 </beans>
