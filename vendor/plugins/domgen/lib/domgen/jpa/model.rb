@@ -12,15 +12,15 @@
 # limitations under the License.
 #
 
-Domgen::TypeDB.config_element(:'jpa.mssql') do
+Domgen::TypeDB.config_element('jpa.mssql') do
   attr_accessor :converter
 end
 
-Domgen::TypeDB.config_element(:'jpa.pgsql') do
+Domgen::TypeDB.config_element('jpa.pgsql') do
   attr_accessor :converter
 end
 
-Domgen::TypeDB.config_element(:'jpa') do
+Domgen::TypeDB.config_element('jpa') do
   attr_accessor :converter
 end
 
@@ -117,7 +117,22 @@ module Domgen
 
       java_artifact :unit_descriptor, :entity, :server, :jpa, '#{repository.name}PersistenceUnit'
       java_artifact :persistent_test_module, :test, :server, :jpa, '#{repository.name}PersistenceTestModule', :sub_package => 'util'
-      java_artifact :ejb_module, nil, :server, :jpa, '#{repository.name}RepositoryModule'
+      java_artifact :abstract_entity_test, :test, :server, :jpa, 'Abstract#{repository.name}EntityTest', :sub_package => 'util'
+      java_artifact :ejb_module, :test, :server, :jpa, '#{repository.name}RepositoryModule', :sub_package => 'util'
+
+      def extra_test_modules
+        @extra_test_modules ||= []
+      end
+
+      def qualified_base_entity_test_name
+        "#{server_util_test_package}.#{base_entity_test_name}"
+      end
+
+      attr_writer :base_entity_test_name
+
+      def base_entity_test_name
+        @base_entity_test_name || abstract_entity_test_name.gsub(/^Abstract/,'')
+      end
 
       attr_writer :data_source
 
@@ -134,8 +149,8 @@ module Domgen
       attr_accessor :provider
 
       def provider_class
-        return "org.eclipse.persistence.jpa.PersistenceProvider" if provider == :eclipselink
-        return "org.hibernate.ejb.HibernatePersistence" if provider == :hibernate
+        return 'org.eclipse.persistence.jpa.PersistenceProvider' if provider == :eclipselink
+        return 'org.hibernate.ejb.HibernatePersistence' if provider == :hibernate
         return nil if provider.nil?
       end
 
@@ -182,6 +197,7 @@ module Domgen
 
       java_artifact :dao_service, :entity, :server, :jpa, '#{dao.name}', :sub_package => 'dao'
       java_artifact :dao, :entity, :server, :jpa, '#{dao_service_name}EJB', :sub_package => 'dao.internal'
+      java_artifact :dao_test, :entity, :server, :jpa, 'Abstract#{dao_service_name}EJBTest', :sub_package => 'dao.internal'
     end
 
     facet.enhance(Entity) do
@@ -219,9 +235,9 @@ module Domgen
       end
 
       def pre_verify
-        entity.query(:FindAll)
-        entity.query(:"FindBy#{entity.primary_key.name}")
-        entity.query(:"GetBy#{entity.primary_key.name}")
+        entity.query(:FindAll, 'jpa.standard_query' => true)
+        entity.query("FindBy#{entity.primary_key.name}", 'jpa.standard_query' => true)
+        entity.query("GetBy#{entity.primary_key.name}", 'jpa.standard_query' => true)
         entity.queries.select { |query| query.jpa? && query.jpa.no_ql? }.each do |query|
           jpql = ''
           query_text = nil
@@ -253,7 +269,10 @@ module Domgen
               break
             end
           end
-          query.jpa.jpql = jpql if jpql
+          if jpql
+            query.jpa.jpql = jpql
+            query.jpa.standard_query = true
+          end
         end
       end
     end
@@ -424,6 +443,12 @@ module Domgen
 
       attr_accessor :order_by
 
+      def standard_query?
+        @standard_query.nil? ? false : !!@standard_query
+      end
+
+      attr_accessor :standard_query
+
       def ql
         @ql
       end
@@ -438,7 +463,7 @@ module Domgen
       end
 
       def jpql
-        Domgen.error("Called jpql for native query") if self.native?
+        Domgen.error('Called jpql for native query') if self.native?
         @ql
       end
 
@@ -448,7 +473,7 @@ module Domgen
       end
 
       def sql
-        Domgen.error("Called sql for non-native query") unless self.native?
+        Domgen.error('Called sql for non-native query') unless self.native?
         @ql
       end
 
@@ -470,9 +495,9 @@ module Domgen
               q = "SELECT O FROM #{derive_table_name} O #{criteria_clause}#{order_by_clause}"
             end
           elsif query.query_type == :update
-            Domgen.error("The combination of query.query_type == :update and query_spec == :criteria is not supported")
+            Domgen.error('The combination of query.query_type == :update and query_spec == :criteria is not supported')
           elsif query.query_type == :insert
-            Domgen.error("The combination of query.query_type == :insert and query_spec == :criteria is not supported")
+            Domgen.error('The combination of query.query_type == :insert and query_spec == :criteria is not supported')
           elsif query.query_type == :delete
             if self.native?
               table_name = derive_table_name

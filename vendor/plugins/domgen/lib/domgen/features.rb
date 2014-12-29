@@ -18,13 +18,13 @@ module Domgen
     attr_reader :name
 
     def allows_length?
-      text? || (enumeration? && enumeration.textual_values?)
+      text? || (enumeration? && enumeration.textual_values?) || (reference? && referenced_entity.primary_key.allows_length?)
     end
 
     attr_reader :length
 
     def length=(length)
-      Domgen.error("length on #{name} is invalid as #{characteristic_container.characteristic_kind} is not a string") unless allows_length?
+      Domgen.error("length on #{name} of type '#{characteristic_type_key}' is invalid as #{characteristic_container.characteristic_kind} is not string-ish") unless allows_length?
       @length = length
     end
 

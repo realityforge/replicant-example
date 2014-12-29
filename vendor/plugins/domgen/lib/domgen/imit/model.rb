@@ -176,10 +176,12 @@ module Domgen
         @path = path
       end
 
-      def verify
+      def pre_verify
         # Need to make sure the other side is a disconnected graph
         self.imit_attribute.attribute.inverse.imit.exclude_edges << target_graph
+      end
 
+      def post_verify
         entity = self.imit_attribute.attribute.referenced_entity
 
         # Need to make sure that the path is valid
@@ -206,6 +208,16 @@ module Domgen
         # Need to make sure that the other side is the root of the graph
         unless target_graph.instance_root != entity.name
           Domgen.error("Graph link from '#{self.source_graph}' to '#{self.target_graph}' via '#{self.imit_attribute.attribute.qualified_name}' links to entity that is not the root of the graph")
+        end
+
+        elements = (source_graph.instance_root? ? source_graph.reachable_entities.sort : source_graph.type_roots)
+        unless elements.include?(self.imit_attribute.attribute.entity.qualified_name)
+          Domgen.error("Graph link from '#{self.source_graph}' to '#{self.target_graph}' via '#{self.imit_attribute.attribute.qualified_name}' attempts to link to a graph when the source entity is not part of the source graph - #{elements.inspect}")
+        end
+
+        elements = (target_graph.instance_root? ? target_graph.reachable_entities.sort : target_graph.type_roots)
+        unless elements.include?(entity.qualified_name)
+          Domgen.error("Graph link from '#{self.source_graph}' to '#{self.target_graph}' via '#{self.imit_attribute.attribute.qualified_name}' attempts to link to a graph when the target entity is not part of the target graph - #{elements.inspect}")
         end
       end
     end
@@ -302,7 +314,8 @@ module Domgen
       java_artifact :router_impl, :comm, :server, :imit, '#{repository.name}RouterImpl'
       java_artifact :jpa_encoder, :comm, :server, :imit, '#{repository.name}JpaEncoder'
       java_artifact :message_constants, :comm, :server, :imit, '#{repository.name}MessageConstants'
-      java_artifact :message_generator, :comm, :server, :imit, '#{repository.name}EntityMessageGenerator'
+      java_artifact :message_generator_interface, :comm, :server, :imit, '#{repository.name}EntityMessageGenerator'
+      java_artifact :message_generator, :comm, :server, :imit, '#{repository.name}EntityMessageGeneratorImpl'
       java_artifact :graph_encoder, :comm, :server, :imit, '#{repository.name}GraphEncoder'
       java_artifact :change_recorder, :comm, :server, :imit, '#{repository.name}ChangeRecorder'
       java_artifact :change_recorder_impl, :comm, :server, :imit, '#{repository.name}ChangeRecorderImpl'
@@ -310,7 +323,15 @@ module Domgen
       java_artifact :replication_interceptor, :comm, :server, :imit, '#{repository.name}ReplicationInterceptor'
       java_artifact :graph_encoder_impl, :comm, :server, :imit, '#{repository.name}GraphEncoderImpl'
       java_artifact :services_module, :ioc, :client, :imit, '#{repository.name}ImitServicesModule'
-      java_artifact :mock_services_module, :ioc, :client, :imit, '#{repository.name}MockImitServicesModule'
+      java_artifact :mock_services_module, :test, :client, :imit, '#{repository.name}MockImitServicesModule', :sub_package => 'util'
+      java_artifact :callback_success_answer, :test, :client, :imit, '#{repository.name}CallbackSuccessAnswer', :sub_package => 'util'
+      java_artifact :callback_failure_answer, :test, :client, :imit, '#{repository.name}CallbackFailureAnswer', :sub_package => 'util'
+      java_artifact :abstract_client_test, :test, :client, :imit, 'Abstract#{repository.name}ClientTest', :sub_package => 'util'
+      java_artifact :server_net_module, :test, :server, :imit, '#{repository.name}ImitNetModule', :sub_package => 'util'
+
+      def extra_test_modules
+        @extra_test_modules ||= []
+      end
 
       def multi_session=(multi_session)
         Domgen.error("multi_session '#{multi_session}' is invalid. Must be a boolean value") unless multi_session.is_a?(TrueClass) || multi_session.is_a?(FalseClass)
@@ -393,6 +414,7 @@ module Domgen
       end
 
       def pre_verify
+        repository.ejb.extra_test_modules << self.qualified_server_net_module_name if repository.ejb?
         if self.graphs.size == 0
           Domgen.error('subscription_manager specified when no graphs defined') unless self.subscription_manager.nil?
           Domgen.error('invalid_session_exception specified when no graphs defined') unless self.invalid_session_exception.nil?
@@ -433,6 +455,7 @@ module Domgen
           end
         end
         repository.service_by_name(self.subscription_manager).tap do |s|
+          s.ejb.standard_implementation = false
           repository.imit.graphs.each do |graph|
             filter_options = {}
             if graph.filtered? && graph.filter_parameter.filter_type == :struct
@@ -696,7 +719,13 @@ module Domgen
 
       def pre_verify
         self.graph_links.each do |graph_link|
-          graph_link.verify
+          graph_link.pre_verify
+        end
+      end
+
+      def post_verify
+        self.graph_links.each do |graph_link|
+          graph_link.post_verify
         end
       end
 

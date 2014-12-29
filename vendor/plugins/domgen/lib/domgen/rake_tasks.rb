@@ -13,6 +13,49 @@
 #
 
 module Domgen
+  class Build
+    def self.define_load_task(filename = nil, &block)
+      base_directory = File.dirname(Buildr.application.buildfile.to_s)
+      candidate_file = File.expand_path("#{base_directory}/architecture.rb")
+      if filename.nil?
+        filename = candidate_file
+      elsif File.expand_path(filename) == candidate_file
+        Domgen.warn("Domgen::Build.define_load_task() passed parameter '#{filename}' which is the same value as the default parameter. This parameter can be removed.")
+      end
+      File.expand_path(filename)
+      Domgen::LoadSchema.new(filename, &block)
+    end
+
+    def self.define_generate_task(generator_keys, options = {}, &block)
+      repository_key = options[:repository_key]
+      target_dir = options[:target_dir]
+      buildr_project = options[:buildr_project]
+
+      if buildr_project.nil? && Buildr.application.current_scope.size > 0
+        buildr_project = Buildr.project(Buildr.application.current_scope.join(':')) rescue nil
+      end
+
+      build_key = options[:key] || (buildr_project.nil? ? :default : buildr_project.name.split(':').last)
+
+      if target_dir
+        base_directory = File.dirname(Buildr.application.buildfile.to_s)
+        target_dir = File.expand_path(target_dir, base_directory)
+      end
+
+      if target_dir.nil? && !buildr_project.nil?
+        target_dir = buildr_project._(:target, :generated, 'domgen', build_key)
+      elsif !target_dir.nil? && !buildr_project.nil?
+        Domgen.warn('Domgen::Build.define_generate_task specifies a target directory parameter but it can be be derived from the context. The parameter should be removed.')
+      end
+
+      if target_dir.nil?
+        Domgen.error('Domgen::Build.define_generate_task should specify a target directory as it can not be derived from the context.')
+      end
+
+      Domgen::GenerateTask.new(repository_key, build_key, generator_keys, target_dir, buildr_project, &block)
+    end
+  end
+
   class GenerateTask
     attr_accessor :description
     attr_accessor :namespace_key
@@ -27,17 +70,18 @@ module Domgen
     attr_reader :task_name
 
     def initialize(repository_key, key, generator_keys, target_dir, buildr_project = nil)
-      @repository_key, @key, @generator_keys, @target_dir, @buildr_project =
-        repository_key, key, generator_keys, target_dir, buildr_project
+      @repository_key, @key, @generator_keys, @buildr_project =
+        repository_key, key, generator_keys, buildr_project
       @namespace_key = :domgen
       @filter = nil
       @template_map = {}
-      yield self if block_given?
-      define
-      load_templates(generator_keys)
       if buildr_project.nil? && Buildr.application.current_scope.size > 0
         buildr_project = Buildr.project(Buildr.application.current_scope.join(':')) rescue nil
       end
+      @target_dir = target_dir
+      yield self if block_given?
+      define
+      load_templates(generator_keys)
       if buildr_project.nil?
         task('clean') do
           rm_rf target_dir
@@ -138,6 +182,10 @@ module Domgen
       !!@verbose
     end
 
+    def full_task_name
+      "#{self.namespace_key}:#{self.key}"
+    end
+
     def define
       desc self.description || "Generates the #{key} artifacts."
       namespace self.namespace_key do
@@ -146,9 +194,24 @@ module Domgen
           begin
             unprocessed_files = FileList["#{self.target_dir}/**/{*.*,*}"].uniq
 
+            repository = nil
+            if self.repository_key
+              repository = Domgen.repository_by_name(self.repository_key)
+              if Domgen.repositorys.size == 1
+                Domgen.warn("Domgen task #{full_task_name} specifies a repository_key parameter but it can be be derived as there is only a single repository. The parameter should be removed.")
+              end
+            elsif self.repository_key.nil?
+              repositorys = Domgen.repositorys
+              if repositorys.size == 1
+                repository = repositorys[0]
+              else
+                Domgen.error("Domgen task #{full_task_name} does not specify a repository_key parameter and it can not be derived. Candidate repositories include #{repositorys.collect{|r|r.name}.inspect}")
+              end
+            end
+
             Domgen::Logger.level = verbose? ? ::Logger::DEBUG : ::Logger::WARN
             Logger.info "Generator started: Generating #{self.generator_keys.inspect}"
-            Domgen::Generator.generate(Domgen.repository_by_name(self.repository_key),
+            Domgen::Generator.generate(repository,
                                        self.target_dir,
                                        self.templates,
                                        self.filter,

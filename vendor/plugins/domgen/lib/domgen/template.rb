@@ -25,6 +25,7 @@ module Domgen
         options[:required_template_sets] = req.is_a?(Array) ? req : [req]
         name = name.keys[0]
       end
+      raise "Attempting to redefine template_set #{name}" if template_set_map[name.to_s]
       template_set = Domgen::Generator::TemplateSet.new(name, options, &block)
       template_set_map[name.to_s] = template_set
       template_set
@@ -96,7 +97,7 @@ module Domgen
       attr_reader :extra_data
 
       def initialize(template_set, facets, scope, template_key, helpers, options = {})
-        Domgen.error("Unexpected facets") unless facets.is_a?(Array) && facets.all? {|a| a.is_a?(Symbol)}
+        Domgen.error('Unexpected facets') unless facets.is_a?(Array) && facets.all? {|a| a.is_a?(Symbol)}
         Domgen.error("Unknown scope for template #{scope}") unless valid_scopes.include?(scope)
         @template_set = template_set
         @facets = facets
@@ -135,7 +136,7 @@ module Domgen
       end
 
       def name
-        @name ||= "#{self.template_set.name}:#{File.basename(self.template_key, '.erb')}"
+        @name ||= "#{self.template_set.name}:#{self.template_key.gsub(/.*\/templates\/(.*)\.erb/,'\1')}"
       end
 
       protected
