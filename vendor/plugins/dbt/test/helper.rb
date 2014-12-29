@@ -14,6 +14,7 @@ class Dbt::TestCase < Minitest::Test
 
   def setup
     Dbt.cache.reset
+    Dbt::Config.base_directory = nil
     Dbt::Config.default_search_dirs = nil
     Dbt::Config.default_no_create = nil
     Dbt::Config.config_filename = nil
@@ -35,10 +36,10 @@ class Dbt::TestCase < Minitest::Test
     Dbt::Config.default_migrations_dir_name = nil
     Dbt::Config.default_database = nil
     Dbt::Config.task_prefix = nil
-    ENV["IMPORT_RESUME_AT"] = nil
+    ENV['IMPORT_RESUME_AT'] = nil
 
     @cwd = Dir.pwd
-    @base_temp_dir = ENV["TEST_TMP_DIR"] || File.expand_path("#{File.dirname(__FILE__)}/../tmp")
+    @base_temp_dir = ENV['TEST_TMP_DIR'] || File.expand_path("#{File.dirname(__FILE__)}/../tmp")
     @temp_dir = "#{@base_temp_dir}/#{name}"
     FileUtils.mkdir_p @temp_dir
     Dir.chdir(@temp_dir)
