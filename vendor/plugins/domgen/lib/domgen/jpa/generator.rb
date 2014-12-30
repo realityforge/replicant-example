@@ -59,8 +59,8 @@ end
                           Domgen::Generator::JPA::HELPERS)
     template_set.template(Domgen::Generator::JPA::FACETS,
                           :repository,
-                          "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/ejb_module.java.erb",
-                          type + '/java/#{repository.jpa.qualified_ejb_module_name.gsub(".","/")}.java',
+                          "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/dao_module.java.erb",
+                          type + '/java/#{repository.jpa.qualified_dao_module_name.gsub(".","/")}.java',
                           Domgen::Generator::JPA::HELPERS)
   end
 end
@@ -77,19 +77,19 @@ end
 Domgen.template_set(:jpa_ejb_dao) do |template_set|
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :dao,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/ejb.java.erb",
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/dao.java.erb",
                         'main/java/#{dao.jpa.qualified_dao_name.gsub(".","/")}.java',
                         Domgen::Generator::JPA::HELPERS,
                         :guard => '!dao.repository? || dao.entity.jpa?')
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :dao,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/ejb_interface.java.erb",
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/dao_service.java.erb",
                         'main/java/#{dao.jpa.qualified_dao_service_name.gsub(".","/")}.java',
                         Domgen::Generator::JPA::HELPERS,
                         :guard => '!dao.repository? || dao.entity.jpa?')
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :data_module,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/ejb_package_info.java.erb",
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/dao_package_info.java.erb",
                         'main/java/#{data_module.jpa.server_dao_entity_package.gsub(".","/")}/package-info.java',
                         Domgen::Generator::JPA::HELPERS,
                         :guard => 'data_module.entities.any?{|e|e.jpa?}')
