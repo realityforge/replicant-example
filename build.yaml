@@ -33,7 +33,7 @@ artifacts:
 
   # Supporting GWT libraries
   gwt_datatypes: org.realityforge.gwt.datatypes:gwt-datatypes:jar:0.7
-  gwt_cache_filter: org.realityforge.gwt.cache-filter:gwt-cache-filter:jar:0.4
+  gwt_cache_filter: org.realityforge.gwt.cache-filter:gwt-cache-filter:jar:0.6
 
   gwt_webpoller: org.realityforge.gwt.webpoller:gwt-webpoller:jar:0.8
 
