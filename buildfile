@@ -66,7 +66,11 @@ define 'replicant-example' do
 
   ipr.add_glassfish_configuration(project, :domain => 'tyrell', :exploded => [project.name])
 
-  ipr.add_gwt_configuration(project, :gwt_module => 'org.realityforge.replicant.example.ExampleDev', :vm_parameters => '-Xmx3G', :shell_parameters => '-port 8888', :launch_page => 'http://127.0.0.1:8080/replicant-example')
+  ipr.add_gwt_configuration(project,
+                            :gwt_module => 'org.realityforge.replicant.example.ExampleDev',
+                            :vm_parameters => '-Xmx3G',
+                            :shell_parameters => "-port 8888 -war #{_(:artifacts, project.name)}/",
+                            :launch_page => 'http://127.0.0.1:8080/replicant-example')
 
   ipr.extra_modules << '../replicant/replicant.iml'
 end
