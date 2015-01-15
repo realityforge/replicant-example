@@ -28,7 +28,7 @@ define 'replicant-example' do
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
-  gwt_dir = gwt(['org.realityforge.replicant.example.Example'],
+  gwt_dir = gwt(%w(org.realityforge.replicant.example.Example),
                 :java_args => %w(-Xms512M -Xmx1024M -XX:PermSize=128M -XX:MaxPermSize=256M))
 
   test.using :testng
