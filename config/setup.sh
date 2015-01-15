@@ -1,4 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+
+CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ -f "${CURRENT_DIR}/local.sh" ]; then
+  echo "Running local customization script '${CURRENT_DIR}/local.sh'."
+  . "${CURRENT_DIR}/local.sh"
+fi
 
 STOP_DOMAIN=false
 CREATED_DOMAIN=false
