@@ -1,7 +1,6 @@
 Domgen.repository(:Tyrell) do |repository|
   repository.enable_facet(:jpa)
   repository.enable_facet(:pgsql)
-  repository.enable_facet(:jackson)
   repository.enable_facet(:ejb)
   repository.enable_facet(:imit)
 
