@@ -12,18 +12,15 @@ public interface <%= repository.imit.server_session_context_name %>
 
 <% end -%>
 <%
-  repository.imit.graphs.each do |graph|
-    extra_interest_filter = ''
-    repository.data_modules.each do |data_module|
-      data_module.entities.each do |entity|
-        entity.attributes.select{|a| a.imit? && a.imit.filter_in_graphs.include?(graph.name) }.each do |attribute|
-          var_name = Domgen::Naming.camelize("#{attribute.entity.name}#{attribute.name}")
-          nullable = !graph.instance_root? || !(attribute.entity.qualified_name == graph.instance_root)
-          param_type = attribute.reference? ? attribute.referenced_entity.primary_key.jpa.non_primitive_java_type : attribute.jpa.non_primitive_java_type
-          extra_interest_filter << ", #{nullability_annotation(nullable)} #{param_type} #{var_name}"
-        end
-      end
-    end
+repository.imit.graphs.select{|graph| graph.filtered?}.each do |graph|
+  extra_interest_filter = ''
+  graph.routing_keys.each do |routing_key|
+    var_name = Domgen::Naming.camelize(routing_key.target_attribute.qualified_name.gsub('.',''))
+    nullable = !graph.instance_root? || !(routing_key.imit_attribute.attribute.entity.qualified_name == graph.instance_root)
+    param_type = routing_key.target_attribute.jpa.non_primitive_java_type
+    param_type = "java.util.List<#{param_type}>" if routing_key.multivalued?
+    extra_interest_filter << ", #{nullability_annotation(nullable)} #{param_type} #{var_name}"
+  end
   initial_param = ''
   check_method = "is#{graph.name}Interesting"
   if graph.instance_root?
@@ -53,7 +50,7 @@ if !graph.instance_root?
 
 <%
   end
-  if filter_java_type
+  if filter_java_type && !graph.filter_parameter.immutable?
 -%>
   void collectForFilterChange<%= graph.name %>( @javax.annotation.Nonnull org.realityforge.replicant.server.EntityMessageSet messages, <%= filter_java_type %> original, <%= filter_java_type %> filter );
 
@@ -66,10 +63,12 @@ if !graph.instance_root?
 <%
 else
   if filter_java_type
+    unless graph.filter_parameter.immutable?
 -%>
   void collectForFilterChange<%= graph.name %>( @javax.annotation.Nonnull org.realityforge.replicant.server.EntityMessageSet messages, @javax.annotation.Nonnull final <%= repository.entity_by_name(graph.instance_root).jpa.qualified_name %> entity, <%= filter_java_type %> original, <%= filter_java_type %> filter );
 
 <%
+    end
     graph.reachable_entities.collect{|n|repository.entity_by_name(n)}.select { |entity| entity.imit? && !entity.abstract? }.each do |entity|
       outgoing_links = entity.referencing_attributes.select{|a| a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && a.inverse.imit.replication_edges.include?(graph.name)}
       outgoing_links.each do |a|

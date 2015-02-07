@@ -4,20 +4,20 @@ package <%= to_package(dao.jpa.qualified_dao_test_name) %>;
 @java.lang.SuppressWarnings( { "UnusedDeclaration" } )
 @javax.annotation.Generated( "Domgen" )
 public abstract class <%= dao.jpa.dao_test_name %>
-  extends <%= dao.data_module.repository.jpa.qualified_base_entity_test_name %>
+  extends <%= dao.data_module.repository.ejb? ? dao.data_module.repository.ejb.qualified_base_service_test_name : dao.data_module.repository.jpa.qualified_base_entity_test_name %>
 {
 <% dao.queries.select{|q|!q.jpa.standard_query?}.each do |query| -%>
   public abstract void <%= Domgen::Naming.camelize(query.name) %>()
     throws Exception;
 
 <% end -%>
-  protected final <%= dao.jpa.qualified_dao_service_name %> service()
+  protected final <%= dao.jpa.qualified_dao_service_name %> dao()
   {
     return s( <%= dao.jpa.qualified_dao_service_name %>.class );
   }
 
-  protected final <%= dao.jpa.qualified_dao_name %> ejb()
+  protected final <%= dao.jpa.qualified_dao_name %> impl()
   {
-    return toObject( <%= dao.jpa.qualified_dao_name %>.class, service() );
+    return toObject( <%= dao.jpa.qualified_dao_name %>.class, dao() );
   }
 }

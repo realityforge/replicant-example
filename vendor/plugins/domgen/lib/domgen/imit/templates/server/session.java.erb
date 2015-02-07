@@ -168,6 +168,7 @@ else
   end
 %>
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings( "DE_MIGHT_IGNORE" )
   @java.lang.Override
   public void emitStatus( @javax.annotation.Nonnull final javax.json.stream.JsonGenerator g, @javax.annotation.Nonnull final org.realityforge.rest.field_filter.FieldFilter filter )
   {
@@ -237,7 +238,7 @@ else
 <% repository.imit.graphs.select{|graph| !graph.instance_root? && graph.filter_parameter.nil? }.each do |graph| -%>
       if ( subscriptionsFilter.allow( "<%= graph.name %>" ) )
       {
-        g.write("<%= graph.name %>",_interestedIn<%= graph.name %> );
+        g.write( "<%= graph.name %>",_interestedIn<%= graph.name %> );
       }
 <% end -%>
       g.writeEnd();
@@ -252,31 +253,34 @@ else
       {
         final org.realityforge.rest.field_filter.FieldFilter <%= graph.name %>Filter = subscriptionsFilter.subFilter( "<%= graph.name %>" );
         g.writeStartObject( "<%= graph.name %>" );
+        g.write( "subscribed", _interestedIn<%= graph.name %> );
+        if( _interestedIn<%= graph.name %> )
+        {
 <% if graph.filter_parameter.nullable? -%>
           if( null == _<%= graph.name %>Filter )
           {
-            g.write( "<%= graph.name %>" );
+            g.writeNull( "filter" );
           }
           else
           {
 <% end -%>
 <% if Domgen::Java.primitive?(graph.filter_parameter, :ee, :default) -%>
-            g.write( "<%= graph.name %>", _<%= graph.name %>Filter );
+            g.write( "filter", _<%= graph.name %>Filter );
 <% else -%>
-            {
-              final java.io.StringWriter writer = new java.io.StringWriter();
-              try { c_jsonMapper.writeValue( writer, _<%= graph.name %>Filter ); }
-              catch ( final java.io.IOException ioe ) {}
-              writer.flush();
-              final javax.json.JsonReader reader =
-                javax.json.Json.createReader( new java.io.StringReader( writer.toString() ) );
-              g.write( "<%= graph.name %>", reader.read() );
-              reader.close();
-            }
+            final java.io.StringWriter writer = new java.io.StringWriter();
+            try { c_jsonMapper.writeValue( writer, _<%= graph.name %>Filter ); }
+            catch ( final java.io.IOException ioe ) {}
+            writer.flush();
+            final javax.json.JsonReader reader =
+              javax.json.Json.createReader( new java.io.StringReader( writer.toString() ) );
+            g.write( "filter", reader.read() );
+            reader.close();
 <% end -%>
 <% if graph.filter_parameter.nullable? -%>
           }
 <% end -%>
+        }
+        g.writeEnd();
       }
 <% end -%>
       g.writeEnd();

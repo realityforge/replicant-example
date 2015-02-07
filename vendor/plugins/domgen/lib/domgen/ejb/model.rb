@@ -20,6 +20,7 @@ module Domgen
 
       java_artifact :complete_module, :test, :server, :jpa, '#{repository.name}Module', :sub_package => 'util'
       java_artifact :services_module, :test, :server, :jpa, '#{repository.name}ServicesModule', :sub_package => 'util'
+      java_artifact :aggregate_service_test, :test, :server, :jpa, '#{repository.name}AggregateServiceTest', :sub_package => 'util'
       java_artifact :abstract_service_test, :test, :server, :jpa, 'Abstract#{repository.name}ServiceTest', :sub_package => 'util'
 
       def extra_test_modules
@@ -68,6 +69,10 @@ module Domgen
       java_artifact :boundary_implementation, :service, :server, :ee, '#{service_name}BoundaryEJB', :sub_package => 'internal'
       java_artifact :service_test, :service, :server, :ee, 'Abstract#{service_name}EJBTest'
 
+      def qualified_concrete_service_test_name
+        "#{qualified_service_test_name.gsub(/\.Abstract/,'.')}"
+      end
+
       attr_accessor :boundary_extends
 
       def boundary_interceptors
@@ -94,6 +99,7 @@ module Domgen
         if @generate_boundary.nil?
           return service.jmx? ||
             service.jws? ||
+            service.imit? ||
             service.methods.any? { |method| method.parameters.any? { |parameter| parameter.reference? } }
         else
           return @generate_boundary

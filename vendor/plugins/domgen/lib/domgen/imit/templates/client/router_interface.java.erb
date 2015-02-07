@@ -11,15 +11,11 @@ public interface <%= repository.imit.client_router_interface_name %>
   String <%= key %> = "<%= repository.name %>.<%= graph.name %>";
 <% end -%>
 <%
-  repository.data_modules.each do |data_module|
-    data_module.entities.each do |entity|
-      entity.attributes.select{|a| a.imit? && a.imit.filter_in_graphs.size > 0}.each do |attribute|
-        attribute.imit.filter_in_graphs.each do |graph_key|
+  repository.imit.graphs.select{|graph|graph.filtered?}.each do |graph|
+    graph.routing_keys.each do |routing_key|
 -%>
-  String <%= Domgen::Naming.uppercase_constantize(graph_key) %>_<%= Domgen::Naming.uppercase_constantize(attribute.qualified_name.gsub('.','_')) %>_KEY = "<%= repository.name %>.<%= graph_key %>.<%= attribute.qualified_name %>";
+  String <%= Domgen::Naming.uppercase_constantize(graph.name) %>_<%= Domgen::Naming.uppercase_constantize(routing_key.name) %>_KEY = "<%= repository.name %>.<%= graph.name %>.<%= routing_key.name %>";
 <%
-        end
-      end
     end
   end
 %>
@@ -28,7 +24,7 @@ public interface <%= repository.imit.client_router_interface_name %>
 <% repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module| -%>
 <% data_module.entities.select { |entity| entity.imit? && !entity.abstract? }.each do |entity| -%>
   @javax.annotation.Nonnull
-  java.util.Map<String, java.io.Serializable> route<%= entity.name %>( @javax.annotation.Nonnull <%= entity.imit.qualified_name rescue "X" %> entity );
+  java.util.Map<String, java.io.Serializable> route<%= entity.name %>( @javax.annotation.Nonnull <%= entity.imit.qualified_name %> entity );
 <% end -%>
 <% end -%>
 }

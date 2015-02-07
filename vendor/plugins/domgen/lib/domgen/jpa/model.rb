@@ -118,7 +118,9 @@ module Domgen
       java_artifact :unit_descriptor, :entity, :server, :jpa, '#{repository.name}PersistenceUnit'
       java_artifact :persistent_test_module, :test, :server, :jpa, '#{repository.name}PersistenceTestModule', :sub_package => 'util'
       java_artifact :abstract_entity_test, :test, :server, :jpa, 'Abstract#{repository.name}EntityTest', :sub_package => 'util'
+      java_artifact :aggregate_entity_test, :test, :server, :jpa, '#{repository.name}AggregateEntityTest', :sub_package => 'util'
       java_artifact :dao_module, :test, :server, :jpa, '#{repository.name}RepositoryModule', :sub_package => 'util'
+      java_artifact :test_factory_set, :test, :server, :jpa, '#{repository.name}FactorySet', :sub_package => 'util'
 
       def extra_test_modules
         @extra_test_modules ||= []
@@ -164,7 +166,30 @@ module Domgen
     end
 
     facet.enhance(DataModule) do
+      include Domgen::Java::BaseJavaGenerator
       include Domgen::Java::EEClientServerJavaPackage
+
+      attr_writer :short_test_code
+
+      def short_test_code
+        Domgen::Naming.split_into_words(data_module.name.to_s).collect{|w|w[0,1]}.join.downcase
+      end
+
+      java_artifact :abstract_test_factory, :test, :server, :jpa, 'Abstract#{data_module.name}Factory', :sub_package => 'util'
+
+      def server_util_test_package
+        data_module.repository.jpa.server_util_test_package
+      end
+
+      attr_writer :test_factory_name
+
+      def test_factory_name
+        @test_factory_name || abstract_test_factory_name.gsub(/^Abstract/,'')
+      end
+
+      def qualified_test_factory_name
+        "#{server_util_test_package}.#{test_factory_name}"
+      end
 
       def server_dao_entity_package
         "#{server_entity_package}.dao"
@@ -187,17 +212,13 @@ module Domgen
         @transaction_type = transaction_type
       end
 
-      def server_dao_entity_package
-        "#{server_entity_package}.dao"
-      end
-
-      def server_internal_dao_entity_package
-        "#{server_entity_package}.dao.internal"
-      end
-
       java_artifact :dao_service, :entity, :server, :jpa, '#{dao.name}', :sub_package => 'dao'
       java_artifact :dao, :entity, :server, :jpa, '#{dao_service_name}Impl', :sub_package => 'dao.internal'
       java_artifact :dao_test, :entity, :server, :jpa, 'Abstract#{dao_service_name}ImplTest', :sub_package => 'dao.internal'
+
+      def qualified_concrete_dao_test_name
+        "#{qualified_dao_test_name.gsub(/\.Abstract/,'.')}"
+      end
     end
 
     facet.enhance(Entity) do
@@ -247,7 +268,7 @@ module Domgen
           query_text = $1 if query.name =~ /^[dD]eleteBy(.+)$/
           next unless query_text
 
-          entity_prefix = "O."
+          entity_prefix = 'O.'
 
           while true
             if query_text =~ /(.+)(And|Or)(.+)/
