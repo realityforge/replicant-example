@@ -12,7 +12,7 @@ GWT_DEPS = [:gwt_user,
             :gwt_gin]
 JACKSON_DEPS = [:jackson_core, :jackson_mapper]
 PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
-COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :gwt_cache_filter, :gwt_datatypes] + JACKSON_DEPS
+COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :field_filter, :gwt_cache_filter, :gwt_datatypes] + JACKSON_DEPS
 PACKAGE_DEPS = COMPILE_DEPS
 
 desc 'A simple application demonstrating the use of the replicant library'
@@ -28,7 +28,7 @@ define 'replicant-example' do
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
-  gwt_dir = gwt(['org.realityforge.replicant.example.Example'],
+  gwt_dir = gwt(%w(org.realityforge.replicant.example.Example),
                 :java_args => %w(-Xms512M -Xmx1024M -XX:PermSize=128M -XX:MaxPermSize=256M))
 
   test.using :testng

@@ -1,5 +1,6 @@
 /artifacts
 /config/database.yml
+/config/local.sh
 /generated
 /database/generated
 /target

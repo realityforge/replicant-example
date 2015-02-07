@@ -26,7 +26,7 @@ module Domgen
         name = name.keys[0]
       end
       raise "Attempting to redefine template_set #{name}" if template_set_map[name.to_s]
-      template_set = Domgen::Generator::TemplateSet.new(name, options, &block)
+      template_set = Domgen::Generator::TemplateSet.new(name.to_s, options, &block)
       template_set_map[name.to_s] = template_set
       template_set
     end
@@ -48,6 +48,7 @@ module Domgen
     class TemplateSet < BaseElement
       attr_reader :name
       attr_accessor :required_template_sets
+      attr_accessor :description
 
       def initialize(name, options = {}, &block)
         @name = name

@@ -20,10 +20,11 @@ artifacts:
   aopalliance: aopalliance:aopalliance:jar:1.0 # Required for guice
 
   # Library under demonstration
-  replicant: org.realityforge.replicant:replicant:jar:0.5.46
+  replicant: org.realityforge.replicant:replicant:jar:0.5.47
 
   # Dependency used for session management
-  simple_session_filter: org.realityforge.ssf:simple-session-filter:jar:0.4
+  simple_session_filter: org.realityforge.ssf:simple-session-filter:jar:0.5
+  field_filter: org.realityforge.rest.field_filter:rest-field-filter:jar:0.4
 
   #
   # Used in mapping entities to json
