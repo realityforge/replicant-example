@@ -22,7 +22,7 @@ Domgen.repository(:Tyrell) do |repository|
       s.date(:StartOn)
       s.integer(:NumberOfDays)
 
-      s.imit.filter_for_graph(:ShiftList)
+      s.imit.filter_for_graph(:ShiftList, :immutable => false)
     end
 
     data_module.entity(:RosterType) do |t|
