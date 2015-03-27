@@ -330,6 +330,7 @@ module Domgen
 
         a = imit_attribute.attribute
         path.each do |path_element|
+          return false if is_path_element_recursive?(path_element)
           a = a.referenced_entity.attribute_by_name(get_attribute_name_from_path_element?(path_element))
           return false if a.nullable?
         end
@@ -438,7 +439,9 @@ module Domgen
       java_artifact :graph_enum, :comm, :shared, :imit, '#{repository.name}ReplicationGraph'
       java_artifact :session, :comm, :server, :imit, '#{repository.name}Session'
       java_artifact :session_manager, :comm, :server, :imit, '#{repository.name}SessionManagerEJB'
+      # TODO: Consider making server_session_context a regular ejb service created in pre_verify
       java_artifact :server_session_context, :comm, :server, :imit, '#{repository.name}SessionContext'
+      java_artifact :server_session_context_test, :comm, :server, :imit, 'Abstract#{repository.name}SessionContextEJBTest'
       java_artifact :session_exception_mapper, :rest, :server, :imit, '#{repository.name}BadSessionExceptionMapper'
       java_artifact :router_interface, :comm, :server, :imit, '#{repository.name}Router'
       java_artifact :router_impl, :comm, :server, :imit, '#{repository.name}RouterImpl'

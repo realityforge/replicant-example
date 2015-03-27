@@ -27,6 +27,12 @@ public abstract class <%= data_module.imit.abstract_test_factory_name %>
 
 <% end -%>
 <% data_module.entities.select{|e|e.imit?}.each do |entity| -%>
+<% if !entity.abstract? -%>
+  public final void delete<%= entity.name %>( @javax.annotation.Nonnull final <%= entity.imit.qualified_name %> $_ )
+  {
+    repository().deregisterEntity( <%= entity.imit.qualified_name %>.class, $_.get<%= entity.primary_key.name %>() );
+  }
+
   @javax.annotation.Nonnull
   public final <%= entity.imit.qualified_name %> create<%= entity.name %>( <%= entity.attributes.select{|a| a.imit? && a.imit.client_side?}.collect{|a| "#{annotated_type(a, :imit, :default, :final => true)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %>)
   {
@@ -45,11 +51,13 @@ public abstract class <%= data_module.imit.abstract_test_factory_name %>
     return $_;
   }
 
+<% end -%>
 <% entity.attributes.select{|a|a.imit? && a.imit.client_side? && !a.immutable?}.each do |a| -%>
   public final void set<%= a.name %>( @javax.annotation.Nonnull final <%= entity.imit.qualified_name %> $_, <%= annotated_type(a, :imit, :default, :final => true) %> <%= Domgen::Naming.camelize(a.name) %> )
   {
 <% if a.reference? -%>
     $_.set<%= a.referencing_link_name %>( <%= a.nullable? ? "null == #{Domgen::Naming.camelize(a.name)} ? null :" : '' %><%= Domgen::Naming.camelize(a.name) %>.get<%= a.referenced_entity.primary_key.name %>() );
+    $_.link();
 <% elsif a.enumeration? -%>
     $_.set<%= a.name %>( <%= a.nullable? ? "null == #{Domgen::Naming.camelize(a.name)} ? null :" : '' %><%= Domgen::Naming.camelize(a.name) %>.<%= a.enumeration.numeric_values? ? 'ordinal' : 'name' %>() );
 <% else -%>
