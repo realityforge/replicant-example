@@ -222,7 +222,7 @@ public class ApplicationController
   }
 
   @Override
-  public void entityAdded( final EntityChangeEvent event )
+  public void entityAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityAdded(" + event + ")" );
     final Object entity = event.getObject();
@@ -233,7 +233,7 @@ public class ApplicationController
   }
 
   @Override
-  public void entityRemoved( final EntityChangeEvent event )
+  public void entityRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
@@ -248,7 +248,7 @@ public class ApplicationController
   }
 
   @Override
-  public void attributeChanged( final EntityChangeEvent event )
+  public void attributeChanged( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "attributeChanged(" + event + ")" );
     final Object entity = event.getObject();
@@ -259,13 +259,13 @@ public class ApplicationController
   }
 
   @Override
-  public void relatedAdded( final EntityChangeEvent event )
+  public void relatedAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedAdded(" + event + ")" );
   }
 
   @Override
-  public void relatedRemoved( final EntityChangeEvent event )
+  public void relatedRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
   }
