@@ -64,7 +64,7 @@ define 'replicant-example' do
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 
-  ipr.add_glassfish_configuration(project, :server_name => 'Payara 4.1.151', :domain => 'tyrell', :exploded => [project.name])
+  ipr.add_glassfish_configuration(project, :server_name => 'Payara 4.1.154', :domain => 'tyrell', :exploded => [project.name])
 
   ipr.add_gwt_configuration(project,
                             :gwt_module => 'org.realityforge.replicant.example.ExampleDev',
