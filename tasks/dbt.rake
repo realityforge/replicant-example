@@ -1,8 +1,3 @@
-plugins_dir = "#{File.expand_path(File.dirname(__FILE__) + '/..')}/vendor/plugins"
-
-$LOAD_PATH.unshift("#{plugins_dir}/dbt/lib")
-$LOAD_PATH.unshift("#{plugins_dir}/domgen/lib")
-
 require 'dbt'
 require 'domgen'
 
