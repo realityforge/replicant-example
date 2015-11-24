@@ -14,6 +14,17 @@
 
 module Domgen
   module Sql
+    class Sequence < Domgen.ParentedElement(:schema)
+      def initialize(schema, name, options, &block)
+        @name = name
+        schema.send(:register_sequence, name, self)
+        super(schema, options, &block)
+      end
+
+      attr_reader :name
+      attr_accessor :sql_type
+    end
+
     class Index < Domgen.ParentedElement(:table)
       attr_accessor :attribute_names
       attr_accessor :include_attribute_names
@@ -91,11 +102,11 @@ module Domgen
     class ForeignKey < Domgen.ParentedElement(:table)
       ACTION_MAP =
         {
-          :cascade => "CASCADE",
-          :restrict => "RESTRICT",
-          :set_null => "SET NULL",
-          :set_default => "SET DEFAULT",
-          :no_action => "NO ACTION"
+          :cascade => 'CASCADE',
+          :restrict => 'RESTRICT',
+          :set_null => 'SET NULL',
+          :set_default => 'SET DEFAULT',
+          :no_action => 'NO ACTION'
         }.freeze
 
       attr_accessor :attribute_names
@@ -355,7 +366,7 @@ module Domgen
     facet.enhance(Repository) do
 
       def dialect
-        @dialect ||= (repository.mssql? ? Domgen::Mssql::MssqlDialect.new : repository.pgsql? ? Domgen::Pgsql::PgsqlDialect.new  : (raise 'Unable to determine the dialect in use') )
+        @dialect ||= (repository.mssql? ? Domgen::Mssql::MssqlDialect.new : repository.pgsql? ? Domgen::Pgsql::PgsqlDialect.new  : (Domgen.error('Unable to determine the dialect in use')) )
       end
 
       def error_handler
@@ -373,10 +384,11 @@ module Domgen
       end
 
       def pre_complete
+        # TODO: This will re-enable disabled sql facets which seems sub-par
         self.repository.enable_facet(:mssql) if !self.repository.mssql? && !self.repository.pgsql?
       end
 
-      def pre_verify
+      def perform_verify
         self.repository.data_modules.select { |data_module| data_module.sql? }.each do |dm|
           self.repository.data_modules.select { |data_module| data_module.sql? }.each do |other|
             if dm != other && dm.sql.schema.to_s == other.sql.schema.to_s
@@ -396,7 +408,7 @@ module Domgen
             elsif self.repository.mssql?
               'net.sourceforge.jtds.jdbc.Driver'
             else
-              raise 'No default SQL driver available, specify one with repository.sql.sql_driver = "your.driver.here"'
+              Domgen.error('No default SQL driver available, specify one with repository.sql.sql_driver = "your.driver.here"')
             end
         end
         @sql_driver
@@ -417,6 +429,34 @@ module Domgen
 
       def quoted_schema
         self.dialect.quote(self.schema)
+      end
+
+      def sequence(name, options = {}, &block)
+        Domgen::Sql::Sequence.new(self, name, options, &block)
+      end
+
+      def sequences
+        sequence_map.values
+      end
+
+      def sequence_by_name(name)
+        sequence = sequence_map[name.to_s]
+        Domgen.error("Unable to locate sequence #{name} in #{data_module.name}") unless sequence
+        sequence
+      end
+
+      def sequence_by_name?(name)
+        !!sequence_map[name.to_s]
+      end
+
+      protected
+
+      def sequence_map
+        @sequences ||= Domgen::OrderedHash.new
+      end
+
+      def register_sequence(name, sequence)
+        sequence_map[name.to_s] = sequence
       end
     end
 
@@ -441,7 +481,6 @@ module Domgen
         @sequence_table.nil? ? false : !!@sequence_table
       end
 
-      attr_writer :table_name
       attr_accessor :partition_scheme
 
       #+force_overflow_for_large_objects+ if set to true will force the native *VARCHAR(max) and XML datatypes (i.e.
@@ -451,8 +490,14 @@ module Domgen
       # TODO: MSSQL Specific
       attr_accessor :force_overflow_for_large_objects
 
+      def table_name=(table_name)
+        Domgen.error("sql.table_name= invoked on abstract entity #{entity.qualified_name}") if entity.abstract?
+        @table_name = table_name
+      end
+
       def table_name
-        @table_name ||= sql_name(:table, entity.name)
+        Domgen.error("sql.table_name invoked on abstract entity #{entity.qualified_name}") if entity.abstract?
+        @table_name || sql_name(:table, entity.name)
       end
 
       def quoted_table_name
@@ -461,6 +506,78 @@ module Domgen
 
       def qualified_table_name
         "#{entity.data_module.sql.quoted_schema}.#{quoted_table_name}"
+      end
+
+      def view?
+        entity.direct_subtypes.size != 0
+      end
+
+      # A view is created for any entity that has subtypes, and the view abstracts over all subclasses
+      def view_name=(view_name)
+        Domgen.error("sql.view_name= invoked on entity #{entity.qualified_name} with no subtypes") if entity.direct_subtypes.size == 0
+        @view_name = view_name
+      end
+
+      def view_name
+        Domgen.error("sql.view_name invoked on entity #{entity.qualified_name} with no subtypes") if entity.direct_subtypes.size == 0
+        @view_name || sql_name(:view, entity.name)
+      end
+
+      def view_insert_trigger
+        Domgen.error("sql.view_insert_trigger invoked on entity #{entity.qualified_name} with no subtypes") if entity.direct_subtypes.size == 0
+        sql_name(:trigger, "#{entity.name}Insert")
+      end
+
+      def quoted_view_insert_trigger
+        self.dialect.quote(view_insert_trigger)
+      end
+
+      def qualified_view_insert_trigger
+        "#{entity.data_module.sql.quoted_schema}.#{quoted_view_insert_trigger}"
+      end
+
+      def view_update_trigger
+        Domgen.error("sql.view_update_trigger invoked on entity #{entity.qualified_name} with no subtypes") if entity.direct_subtypes.size == 0
+        sql_name(:trigger, "#{entity.name}Update")
+      end
+
+      def quoted_view_update_trigger
+        self.dialect.quote(view_update_trigger)
+      end
+
+      def qualified_view_update_trigger
+        "#{entity.data_module.sql.quoted_schema}.#{quoted_view_update_trigger}"
+      end
+
+      def view_delete_trigger
+        Domgen.error("sql.view_delete_trigger invoked on entity #{entity.qualified_name} with no subtypes") if entity.direct_subtypes.size == 0
+        sql_name(:trigger, "#{entity.name}Delete")
+      end
+
+      def quoted_view_delete_trigger
+        self.dialect.quote(view_delete_trigger)
+      end
+
+      def qualified_view_delete_trigger
+        "#{entity.data_module.sql.quoted_schema}.#{quoted_view_delete_trigger}"
+      end
+
+      def quoted_view_name
+        self.dialect.quote(view_name)
+      end
+
+      def qualified_view_name
+        "#{entity.data_module.sql.quoted_schema}.#{quoted_view_name}"
+      end
+
+      def discriminator=(discriminator)
+        Domgen.error("Attempted to call 'sql.discriminator=' on non-subclass #{entity.qualified_name}") if entity.extends.nil?
+        @discriminator = discriminator
+      end
+
+      def discriminator
+        Domgen.error("Attempted to call 'sql.discriminator' on non-subclass #{entity.qualified_name}") if entity.extends.nil?
+        @discriminator || entity.qualified_name.to_s
       end
 
       def constraint_values
@@ -597,7 +714,7 @@ module Domgen
 
       def index(attribute_names, options = {}, skip_if_present = false, &block)
         index = Domgen::Sql::Index.new(self, attribute_names, options, &block)
-        return if index_values[index.index_name] && skip_if_present
+        return index_values[index.index_name] if index_values[index.index_name] && skip_if_present
         Domgen.error("Index named #{index.index_name} already defined on table #{qualified_table_name}") if index_values[index.index_name]
         index_values[index.index_name] = index
         index
@@ -647,6 +764,28 @@ module Domgen
           constraint_sql << "#{rhs.sql.quoted_column_name} IS NULL" if rhs.nullable?
           constraint_sql << "#{lhs.sql.quoted_column_name} #{op} #{rhs.sql.quoted_column_name}"
           constraint(c.name, :sql => constraint_sql.join(" OR ")) unless constraint_by_name(c.name)
+          copy_tags(c, constraint_by_name(c.name))
+        end
+
+        entity.xor_constraints.each do |c|
+          unless constraint_by_name(c.name)
+            sql = []
+            c.attribute_names.each_with_index do |name, index|
+              s = "#{entity.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL AND " +
+                "#{c.attribute_names.select { |n| n != name }.collect do |n|
+                  "#{entity.attribute_by_name(n).sql.quoted_column_name} IS NULL"
+                end.join(' AND ')}"
+              sql << "(#{s})"
+            end
+            constraint(c.name, :sql => sql.join(' OR '))
+          end
+          copy_tags(c, constraint_by_name(c.name))
+        end
+        entity.dependency_constraints.each do |c|
+          constraint(c.name, :sql => <<SQL) unless constraint_by_name(c.name)
+#{entity.attribute_by_name(c.attribute_name).sql.quoted_column_name} IS NULL OR
+( #{c.dependent_attribute_names.collect { |name| "#{entity.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL" }.join(" AND ") } )
+SQL
           copy_tags(c, constraint_by_name(c.name))
         end
 
@@ -770,7 +909,7 @@ SQL
         if abstract_relationships.size > 0
           abstract_relationships.each do |attribute|
             concrete_subtypes = {}
-            attribute.referenced_entity.subtypes.select { |subtype| !subtype.abstract? }.each_with_index do |subtype, index|
+            attribute.referenced_entity.concrete_subtypes.each_with_index do |subtype, index|
               concrete_subtypes["C#{index}"] = subtype
             end
             names = concrete_subtypes.keys
@@ -796,7 +935,7 @@ SQL
         end
 
         if self.entity.read_only?
-          trigger_name = "ReadOnlyCheck"
+          trigger_name = 'ReadOnlyCheck'
           unless trigger?(trigger_name)
             trigger(trigger_name) do |trigger|
               trigger.description("Ensure that #{self.entity.name} is read only.")
@@ -912,6 +1051,15 @@ SQL
         @sequence_name = sequence_name
       end
 
+      def sequence
+        Domgen.error("sequence called on #{attribute.qualified_name} when not a sequence") unless self.sequence?
+        if attribute.entity.data_module.sql.sequence_by_name?(self.sequence_name)
+          attribute.entity.data_module.sql.sequence_by_name(self.sequence_name)
+        else
+          attribute.entity.data_module.sql.sequence(self.sequence_name, 'sql_type' => self.sql_type)
+        end
+      end
+
       # TODO: MSSQL Specific
       attr_writer :sparse
 
@@ -923,7 +1071,7 @@ SQL
       attr_accessor :calculation
 
       def persistent_calculation=(persistent_calculation)
-        Domgen.error("Non calculated column can not be persistent") unless @calculation
+        Domgen.error('Non calculated column can not be persistent') unless @calculation
         @persistent_calculation = persistent_calculation
       end
 
@@ -954,11 +1102,14 @@ SQL
       end
 
       def self.change_actions
-        #{ :cascade => "CASCADE", :restrict => "RESTRICT", :set_null => "SET NULL", :set_default => "SET DEFAULT", :no_action => "NO ACTION" }.freeze
         [:cascade, :restrict, :set_null, :set_default, :no_action]
       end
 
       attr_accessor :default_value
+
+      def perform_complete
+        self.sequence if self.sequence?
+      end
     end
   end
 end

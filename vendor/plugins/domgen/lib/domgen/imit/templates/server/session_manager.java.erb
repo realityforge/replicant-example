@@ -30,12 +30,12 @@ entities.uniq.each do |entity| -%>
   private <%= entity.dao.jpa.qualified_dao_service_name %> _<%= Domgen::Naming.camelize("#{entity.data_module.name}#{entity.name}") %>Repository;
 <% end -%>
   @javax.inject.Inject
-  private <%= repository.imit.qualified_server_session_context_name %> _context;
+  private <%= repository.service_by_name(repository.imit.session_context_service).ejb.qualified_service_name %> _context;
 
   /**
-   * Remove idle session changes every 30 seconds.
+   * Remove idle session changes. This is called by a scheduler.
    */
-  @javax.ejb.Schedule( info = "<%= repository.name %>.removeIdleSessions", second = "30", minute = "*", hour = "*", persistent = false )
+  @java.lang.Override
   public void removeIdleSessions()
   {
     final int maxIdleTime = 1000 * 60 * 5;
@@ -55,11 +55,11 @@ entities.uniq.each do |entity| -%>
   {
     //TODO: Rewrite this so that we add clients to indexes rather than searching through everyone for each change!
     getLock().readLock().lock();
-    final java.util.Map<String, <%= repository.imit.qualified_session_name %>> sessions = getSessions();
+    final java.util.Map<String, <%= repository.imit.qualified_session_name %>> sessionMap = getSessions();
     final org.realityforge.replicant.server.ChangeAccumulator accumulator = new org.realityforge.replicant.server.ChangeAccumulator();
     try
     {
-      final java.util.Collection<<%= repository.imit.qualified_session_name %>> values = sessions.values();
+      final java.util.Collection<<%= repository.imit.qualified_session_name %>> sessions = sessionMap.values();
       for ( final org.realityforge.replicant.server.EntityMessage message : messages )
       {
         final java.util.Map<String, java.io.Serializable> routingKeys = message.getRoutingKeys();
@@ -88,17 +88,23 @@ entities.uniq.each do |entity| -%>
     end
   end
 
-  if !extra_interest_filter.empty?
-    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}#{graph.instance_root? ? ", session.getInterestedIn#{graph.name}().get( #{graph.name} )" : '' }#{extra_interest_filter} ) "
+  customize_filter = ", session#{graph.instance_root? ? ", #{graph.name}" : ''}"
+  if graph.filter_parameter?
+    customize_filter = "#{customize_filter}, session.#{graph.instance_root? ? "getInterestedIn#{graph.name}().get( #{graph.name} )" : "get#{graph.name}Parameter()" }"
   end
+  customize_filter = "#{customize_filter}#{extra_interest_filter}"
 -%>
-          for ( final <%= repository.imit.qualified_session_name %> session : values )
+          for ( final <%= repository.imit.qualified_session_name %> session : sessions )
           {
-            if ( session.<%= graph.instance_root? ? "is#{graph.name}Interesting" : "isInterestedIn#{graph.name}" %>(<%= param %> ) <%= extra_interest_filter %>)
+            if ( session.<%= graph.instance_root? ? "is#{graph.name}Interesting" : "isInterestedIn#{graph.name}" %>(<%= param %> ) )
             {
-              if( message.isDelete() && <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(instance_root.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(instance_root.name.to_s) %> == message.getTypeID() )
+              final org.realityforge.replicant.server.EntityMessage m = _context.filterMessageOfInterestIn<%= graph.name %>Graph( message<%= customize_filter %> );
+              if( null != m )
               {
-                doUnsubscribeFrom<%= graph.name %>( accumulator, session<%= param.size > 0 ? ", #{param}" : "" %> );
+                if( m.isDelete() && <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(instance_root.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(instance_root.name.to_s) %> == m.getTypeID() )
+                {
+                  doUnsubscribeFrom<%= graph.name %>( accumulator, session<%= param.size > 0 ? ", #{param}" : "" %> );
+                }
               }
             }
           }
@@ -114,7 +120,6 @@ entities.uniq.each do |entity| -%>
 
   param = ''
   type = 'Boolean'
-  instance_root = nil
   if graph.instance_root?
     # Names are fully qualified so take any random data module
     instance_root = repository.entity_by_name(graph.instance_root)
@@ -139,18 +144,24 @@ entities.uniq.each do |entity| -%>
     end
   end
 
-  if !extra_interest_filter.empty?
-    extra_interest_filter = "&& _context.is#{graph.name}Interesting( session#{graph.instance_root? ? ", #{graph.name}" : ''}, session.#{graph.instance_root? ? "getInterestedIn#{graph.name}().get( #{graph.name} )" : "get#{graph.name}Parameter()" }#{extra_interest_filter} ) "
+  customize_filter = ", session#{graph.instance_root? ? ", #{graph.name}" : ''}"
+  if graph.filter_parameter?
+    customize_filter = "#{customize_filter}, session.#{graph.instance_root? ? "getInterestedIn#{graph.name}().get( #{graph.name} )" : "get#{graph.name}Parameter()" }"
   end
+  customize_filter = "#{customize_filter}#{extra_interest_filter}"
 -%>
 <% if graph.cacheable? && !graph.external_cache_management? -%>
           _auto<%= graph.name %>RuntimeIndex++;
 <% end -%>
-          for ( final <%= repository.imit.qualified_session_name %> session : values )
+          for ( final <%= repository.imit.qualified_session_name %> session : sessions )
           {
-            if ( session.<%= graph.instance_root? ? "is#{graph.name}Interesting" : "isInterestedIn#{graph.name}" %>(<%= param %> ) <%= extra_interest_filter %>)
+            if ( session.<%= graph.instance_root? ? "is#{graph.name}Interesting" : "isInterestedIn#{graph.name}" %>(<%= param %> ) )
             {
-              accumulator.addChange( session, new org.realityforge.replicant.server.Change( message, <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? graph.name : 0 %> ) );
+              final org.realityforge.replicant.server.EntityMessage m = _context.filterMessageOfInterestIn<%= graph.name %>Graph( message<%= customize_filter %> );
+              if( null != m )
+              {
+                accumulator.addChange( session, new org.realityforge.replicant.server.Change( m, <%= repository.imit.qualified_graph_enum_name %>.<%= Domgen::Naming.uppercase_constantize(graph.name) %>.ordinal(), <%= graph.instance_root? ? graph.name : 0 %> ) );
+              }
             }
           }
         }

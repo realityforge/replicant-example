@@ -22,6 +22,11 @@ module Domgen
       word
     end
 
+    def self.pascal_case?(word)
+      word_parts = split_into_words(word)
+      word_parts.all? { |part| part[0...1].upcase == part[0...1] }
+    end
+
     def self.pascal_case(camel_cased_word)
       word_parts = split_into_words(camel_cased_word).collect{|part| part[0...1].upcase + part[1..-1]}
       return word_parts[0] if (word_parts.size == 1 && word_parts[0] == word_parts[0].upcase)
@@ -30,7 +35,7 @@ module Domgen
     end
 
     def self.underscore(camel_cased_word)
-      word = split_into_words(camel_cased_word).join("_")
+      word = split_into_words(camel_cased_word).join('_')
       word.downcase!
       word
     end
@@ -39,8 +44,8 @@ module Domgen
       word = camel_cased_word.to_s.dup
       word.gsub!(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
       word.gsub!(/([a-z\d])([A-Z])/, '\1_\2')
-      word.tr!("-", "_")
-      word.split("_")
+      word.tr!('-', '_')
+      word.split('_')
     end
 
     def self.uppercase_constantize(camel_cased_word)
@@ -48,7 +53,7 @@ module Domgen
     end
 
     def self.xmlize(camel_cased_word)
-      underscore(camel_cased_word).tr("_", "-")
+      underscore(camel_cased_word).tr('_', '-')
     end
 
     def self.jsonize(camel_cased_word)

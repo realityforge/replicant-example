@@ -105,6 +105,18 @@ module Domgen
       self.characteristic_type_key == :geometry
     end
 
+    def non_standard_type?
+      !standard_type?
+    end
+
+    def standard_type?
+      Characteristic.standard_types.include?(self.characteristic_type_key)
+    end
+
+    def self.standard_types
+      [:integer, :long, :datetime, :date, :real, :text, :boolean, :reference, :struct]
+    end
+
     def characteristic_type
       Domgen::TypeDB.characteristic_type?(self.characteristic_type_key) ?
         Domgen::TypeDB.characteristic_type_by_name(self.characteristic_type_key) :
@@ -269,7 +281,7 @@ module Domgen
     def reference(other_type, options = {}, &block)
       name = options.delete(:name)
       if name.nil?
-        if other_type.to_s.include? "."
+        if other_type.to_s.include?('.')
           name = other_type.to_s.sub(/.+\./, '').to_sym
         else
           name = other_type
@@ -294,14 +306,28 @@ module Domgen
       characteristic
     end
 
-    def characteristic_exists?(name)
+    def characteristic_by_name?(name)
       !!characteristic_map[name.to_s]
     end
 
     def characteristic(name, type, options, &block)
       characteristic = new_characteristic(name, type, options, &block)
-      Domgen.error("Attempting to override #{characteristic_kind} #{name} on #{self.name}") if characteristic_map[name.to_s]
+      if characteristic_by_name?(name)
+        o = characteristic_by_name(name)
+        if o.respond_to?(:abstract?)
+          unless (o.abstract? || o.override?) && characteristic.override?
+            Domgen.error("Attempting to override non abstract attribute #{name} on #{self.qualified_name}")
+          end
+        else
+          Domgen.error("Attempting to override #{characteristic_kind} #{name} on #{self.name}")
+        end
+      end
+
       characteristic_map[name.to_s] = characteristic
+      @characteristic_modify_count = (@characteristic_modify_count || 0) + 1
+      if characteristic.reference? && self.is_a?(Entity)
+        characteristic.referenced_entity.add_direct_referencing_attribute(characteristic)
+      end
       characteristic
     end
 
@@ -321,6 +347,10 @@ module Domgen
       Domgen.error('characteristic_kind not implemented')
     end
 
+    def characteristic_modify_count
+      @characteristic_modify_count || 0
+    end
+
     # Also need to define data_module
   end
 
@@ -337,7 +367,15 @@ module Domgen
   module InheritableCharacteristicContainer
     include CharacteristicContainer
 
-    attr_accessor :extends
+    attr_reader :extends
+
+    def extends=(extends)
+      return if self.extends == extends
+      raise "#{self.qualified_name} already defined extends '#{self.extends}' and can not unset it" if !self.extends.nil? && extends.nil?
+      raise "#{self.qualified_name} already defined extends '#{self.extends}' and can not unset it" unless self.extends.nil?
+      self.data_module.send("#{container_kind}_by_name", extends).perform_extend(self) if extends
+      @extends = extends
+    end
 
     def direct_subtypes
       @direct_subtypes ||= []
@@ -349,31 +387,121 @@ module Domgen
       @abstract.nil? ? false : @abstract
     end
 
+    def concrete?
+      !abstract?
+    end
+
     attr_writer :final
 
     def final?
       @final.nil? ? !abstract? : @final
     end
 
+    def subtypes
+      if subtypes_obsolete? || @subtypes.nil?
+        @subtypes = []
+        to_process = [self]
+        completed = []
+        while to_process.size > 0
+          ot = to_process.pop
+          ot.direct_subtypes.each do |subtype|
+            next if completed.include?(subtype)
+            @subtypes << subtype
+            to_process << subtype
+            completed << subtype
+          end
+        end
+        @subtypes_obsolete = false
+      end
+      @subtypes
+    end
+
+    def concrete_subtypes
+      self.subtypes.select { |subtype| subtype.concrete? }
+    end
+
+    def compatible_concrete_types
+      self.concrete_subtypes + (self.concrete? ? [self] : [])
+    end
+
     protected
 
+    def characteristic_by_name(name)
+      characteristic = characteristic_map[name.to_s] || inherited_characteristics_map[name.to_s]
+      Domgen.error("Unable to find #{characteristic_kind} named #{name} on type #{self.qualified_name}. Available #{characteristic_kind} set = #{attributes.collect { |a| a.name }.join(', ')}") unless characteristic
+      characteristic
+    end
+
+    def characteristic_by_name?(name)
+      !!inherited_characteristics_map[name.to_s] ||
+        !!characteristic_map[name.to_s]
+    end
+
+    def characteristics
+      results = {}
+
+      inherited_characteristics.each do |c|
+        results[c.name.to_s] = c
+      end
+      characteristic_map.values.each do |c|
+        results[c.name.to_s] = c
+      end
+      results.values
+    end
+
     def declared_characteristics
-      characteristics.select { |c| !c.inherited? }
+      characteristic_map.values
     end
 
     def inherited_characteristics
-      characteristics.select { |c| c.inherited? }
+      inherited_characteristics_map.values
     end
 
-    def perform_extend(data_module, type_key, extends)
-      base_type = data_module.send :"#{type_key}_by_name", extends
-      Domgen.error("#{type_key} #{name} attempting to extend final #{type_key} #{extends}") if base_type.final?
-      base_type.direct_subtypes << self
-      base_type.characteristics.collect { |c| c.clone }.each do |characteristic|
-        characteristic.instance_variable_set("@#{type_key}", self)
-        characteristic.mark_as_inherited
-        characteristic_map[characteristic.name.to_s] = characteristic
+    def inherited_characteristics_map
+      if self.extends
+        base_type = self.data_module.send(:"#{container_kind}_by_name", self.extends)
+        Domgen.error("#{container_kind} #{name} attempting to extend final #{container_kind} #{self.extends}") if base_type.final?
+        mod_count = base_type.characteristic_modify_count
+        t = base_type
+        while t.extends
+          t = self.data_module.send(:"#{container_kind}_by_name", t.extends)
+          mod_count += t.characteristic_modify_count
+        end
+        if @inherited_characteristics.nil? || @inherited_characteristics_mod_count != mod_count
+          @inherited_characteristics_mod_count = mod_count
+          @inherited_characteristics = Domgen::OrderedHash.new
+          base_type.characteristics.collect { |c| c.clone }.each do |characteristic|
+            characteristic.instance_variable_set("@#{container_kind}", self)
+            characteristic.mark_as_inherited
+            @inherited_characteristics[characteristic.name.to_s] = characteristic
+          end
+          @inherited_characteristics
+        else
+          @inherited_characteristics
+        end
+      else
+        {}
       end
+    end
+
+    def container_kind
+      raise 'container_kind not specified for inhertiable container'
+    end
+
+    def mark_subtypes_as_obsolete
+      @subtypes_obsolete = true
+      self.data_module.send(:"#{container_kind}_by_name", self.extends).mark_subtypes_as_obsolete if self.extends
+    end
+
+    def subtypes_obsolete?
+      !!@subtypes_obsolete
+    end
+
+    ## Called on the parent by the child class
+    def perform_extend(subtype)
+      Domgen.error("#{container_kind} #{name} attempting to extend final #{container_kind} #{extends}") if self.final?
+      self.mark_subtypes_as_obsolete
+      self.direct_subtypes << subtype
     end
   end
 end

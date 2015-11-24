@@ -55,7 +55,7 @@ class <%= entity.ruby.classname %> < ActiveRecord::Base
        end
      end
    end %>
-<% entity.referencing_attributes.each do |attribute|
+<% entity.referencing_attributes.select{ |a| a.inverse.traversable? }.each do |attribute|
     if attribute.inverse.multiplicity == :many
 %>
   has_many :<%= Domgen::Naming.pluralize(Domgen::Naming.underscore(attribute.inverse.name)) %>, :class_name => '<%= attribute.entity.ruby.qualified_name %>', :foreign_key => '<%= attribute.sql.column_name %>', :dependent => :destroy
@@ -76,6 +76,9 @@ class <%= entity.ruby.classname %> < ActiveRecord::Base
 <% end %>
 <% entity.codependent_constraints.each do |c| %>
   validates_codependent <%= c.attribute_names.collect{|attribute_name|":#{entity.attribute_by_name(attribute_name).sql.column_name}"}.join(', ') %>
+<% end %>
+<% entity.xor_constraints.each do |c| %>
+  validates_xor <%= c.attribute_names.collect{|attribute_name|":#{entity.attribute_by_name(attribute_name).sql.column_name}"}.join(', ') %>
 <% end %>
 <% entity.dependency_constraints.each do |c| %>
   validates_dependent <%= ":#{entity.attribute_by_name(c.attribute_name).sql.column_name}, [#{c.dependent_attribute_names.collect { |attribute_name| ":#{entity.attribute_by_name(attribute_name).sql.column_name}" }.join(', ')}]" %>

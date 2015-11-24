@@ -21,27 +21,33 @@ module Domgen
     end
   end
 end
-Domgen.template_set(:sync_ejb) do |template_set|
-  template_set.template(Domgen::Generator::Sync::FACETS,
-                        :data_module,
-                        "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/abstract_master_sync_ejb.java.erb",
-                        'main/java/#{data_module.sync.qualified_abstract_master_sync_ejb_name.gsub(".","/")}.java',
-                        Domgen::Generator::Sync::HELPERS,
-                        :guard => 'data_module.sync.master_data_module?')
+Domgen.template_set(:sync_core_ejb) do |template_set|
   template_set.template(Domgen::Generator::Sync::FACETS,
                         :data_module,
                         "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/sync_ejb.java.erb",
                         'main/java/#{data_module.sync.qualified_sync_ejb_name.gsub(".","/")}.java',
                         Domgen::Generator::Sync::HELPERS,
-                        :guard => 'data_module.sync.master_data_module?')
+                        :guard => 'data_module.sync.master_data_module? && data_module.repository.sync.sync_out_of_master?')
   template_set.template(Domgen::Generator::Sync::FACETS,
                         :data_module,
                         "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/sync_context_impl.java.erb",
                         'main/java/#{data_module.sync.qualified_sync_context_impl_name.gsub(".","/")}.java',
                         Domgen::Generator::Sync::HELPERS,
-                        :guard => 'data_module.sync.master_data_module?')
+                        :guard => 'data_module.sync.master_data_module? && data_module.repository.sync.sync_out_of_master?')
+  template_set.template(Domgen::Generator::Sync::FACETS,
+                        :data_module,
+                        "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/sync_service_test.java.erb",
+                        'test/java/#{data_module.sync.qualified_sync_service_test_name.gsub(".","/")}.java',
+                        Domgen::Generator::Sync::HELPERS,
+                        :guard => 'data_module.sync.master_data_module? && data_module.repository.sync.sync_out_of_master?')
 end
-Domgen.template_set(:sync_master_ejb) do |template_set|
+Domgen.template_set(:sync_master_ejb_impl) do |template_set|
+  template_set.template(Domgen::Generator::Sync::FACETS,
+                        :data_module,
+                        "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/sync_temp_factory.java.erb",
+                        'main/java/#{data_module.sync.qualified_sync_temp_factory_name.gsub(".","/")}.java',
+                        Domgen::Generator::Sync::HELPERS,
+                        :guard => 'data_module.sync.master_data_module?')
   template_set.template(Domgen::Generator::Sync::FACETS,
                         :data_module,
                         "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/abstract_master_sync_ejb.java.erb",
@@ -49,3 +55,24 @@ Domgen.template_set(:sync_master_ejb) do |template_set|
                         Domgen::Generator::Sync::HELPERS,
                         :guard => 'data_module.sync.master_data_module?')
 end
+Domgen.template_set(:sync_sql) do |template_set|
+  template_set.template(Domgen::Generator::Sync::FACETS + [:mssql],
+                        :data_module,
+                        "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/mssql_reseed_procs.sql.erb",
+                        '#{data_module.name}/stored-procedures/reseed_procs.sql',
+                        Domgen::Generator::Sync::HELPERS,
+                        :guard => 'data_module.sync.sync_temp_data_module?')
+end
+%w(test main).each do |type|
+  Domgen.template_set(:"sync_master_#{type}_qa") do |template_set|
+    template_set.template(Domgen::Generator::Sync::FACETS,
+                          :data_module,
+                          "#{Domgen::Generator::Sync::TEMPLATE_DIRECTORY}/master_sync_service_test.java.erb",
+                          type + '/java/#{data_module.sync.qualified_master_sync_service_test_name.gsub(".","/")}.java',
+                          Domgen::Generator::Sync::HELPERS,
+                          :guard => 'data_module.sync.master_data_module?')
+  end
+end
+
+Domgen.template_set(:sync_master_ejb => [:sync_master_ejb_impl, :sync_master_test_qa])
+Domgen.template_set(:sync_ejb => [:sync_core_ejb, :sync_master_ejb])

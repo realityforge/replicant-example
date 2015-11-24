@@ -19,13 +19,26 @@ module Domgen
     end
 
     def repository(name, options = {}, &block)
-      Domgen::Repository.new(name, options, &block)
+      Domgen::Repository.new(name, self.current_filename, options, &block)
     end
 
     def repository_by_name(name)
       repository = repository_map[name.to_s]
       Domgen.error("Unable to locate repository #{name}") unless repository
       repository
+    end
+
+    attr_accessor :current_filename
+
+    attr_accessor :current_repository
+
+    def _(filename)
+      raise 'No current repository' unless self.current_repository
+      self.current_repository.resolve_file(filename)
+    end
+
+    def read(filename)
+      IO.read(_(filename))
     end
 
     private
@@ -61,19 +74,28 @@ module Domgen
 
   class UniqueConstraint < AttributeSetConstraint
     def initialize(entity, attribute_names, options, &block)
-      super(entity, attribute_names_to_key(entity, attribute_names), attribute_names, options, &block)
+      constraint_name = options.delete(:name) || attribute_names_to_key(entity, attribute_names)
+      super(entity, constraint_name, attribute_names, options, &block)
+    end
+  end
+
+  class XorConstraint < AttributeSetConstraint
+    def initialize(entity, attribute_names, options, &block)
+      super(entity, "#{attribute_names_to_key(entity, attribute_names)}_Xor", attribute_names, options, &block)
     end
   end
 
   class CodependentConstraint < AttributeSetConstraint
     def initialize(entity, attribute_names, options, &block)
-      super(entity, "#{attribute_names_to_key(entity, attribute_names)}_CoDep", attribute_names, options, &block)
+      constraint_name = options.delete(:name) || "#{attribute_names_to_key(entity, attribute_names)}_CoDep"
+      super(entity, constraint_name, attribute_names, options, &block)
     end
   end
 
   class IncompatibleConstraint < AttributeSetConstraint
     def initialize(entity, attribute_names, options, &block)
-      super(entity, "#{attribute_names_to_key(entity, attribute_names)}_Incompat", attribute_names, options, &block)
+      constraint_name = options.delete(:name) || "#{attribute_names_to_key(entity, attribute_names)}_Incompat"
+      super(entity, constraint_name, attribute_names, options, &block)
     end
   end
 
@@ -405,8 +427,8 @@ module Domgen
       characteristic_by_name(name)
     end
 
-    def parameter_exists?(name)
-      characteristic_exists?(name)
+    def parameter_by_name?(name)
+      characteristic_by_name?(name)
     end
 
     def parameter(name, type, options = {}, &block)
@@ -458,8 +480,20 @@ module Domgen
 
     def result_type=(result_type)
       Domgen.error("Attempt to reassign result_type on #{qualified_name} from #{@result_type} to #{result_type}") if @result_type
-      Domgen.error("Attempt to assign result_type on #{qualified_name} to invalid type #{result_type}") unless ([:reference, :struct] + self.class.supported_scalar_types).include?(result_type)
+      Domgen.error("Attempt to assign result_type on #{qualified_name} to invalid type #{result_type}") unless self.class.supported_types.include?(result_type)
       @result_type = result_type
+    end
+
+    def basic_result_type?
+      !result_type? || self.class.supported_basic_types.include?(self.result_type)
+    end
+
+    def self.supported_types
+      (self.supported_basic_types + Domgen::TypeDB.characteristic_types.collect{|ct| ct.name}).sort.uniq
+    end
+
+    def self.supported_basic_types
+      [:reference, :struct] + self.supported_scalar_types
     end
 
     def self.supported_scalar_types
@@ -471,7 +505,7 @@ module Domgen
     end
 
     def result_entity?
-      self.result_type == :reference
+      self.result_type? && self.result_type == :reference
     end
 
     def result_entity=(entity)
@@ -480,12 +514,13 @@ module Domgen
     end
 
     def entity
+      return self.dao.entity if dao.repository?
       Domgen.error("entity called on #{qualified_name} before being specified") unless @entity
       @entity
     end
 
     def result_struct?
-      self.result_type == :struct
+      self.result_type? && self.result_type == :struct
     end
 
     def result_struct=(struct)
@@ -527,6 +562,11 @@ module Domgen
       elsif base_name =~ /^[iI]nsert.+$/
         self.query_type = :insert if @query_type.nil?
         return base_name
+      elsif base_name =~ /^[cC]ount.*$/
+        self.query_type = :select if @query_type.nil?
+        self.multiplicity = :one if @multiplicity.nil?
+        self.result_type = :long if @result_type.nil?
+        return base_name
       elsif self.query_type == :select
         if self.multiplicity == :many
           :"FindAllBy#{base_name}"
@@ -545,7 +585,7 @@ module Domgen
     end
 
     def characteristic_kind
-      "parameter"
+      'parameter'
     end
 
     def new_characteristic(name, type, options, &block)
@@ -597,8 +637,10 @@ module Domgen
 
     def query(name, options = {}, &block)
       Domgen.error("Attempting to override query #{name} on #{self.name}") if @queries[name.to_s]
-      params = repository? ? options.merge(:result_entity => entity) : options.dup
-      query = Query.new(self, name, params, &block)
+      query = Query.new(self, name, options, &block)
+      if repository?
+        query.result_entity = entity unless query.result_type?
+      end
       @queries[name.to_s] = query
       query
     end
@@ -633,7 +675,7 @@ module Domgen
 
     def generated_value?
       return @generated_value unless @generated_value.nil?
-      return self.primary_key? && self.integer? && !entity.abstract? && entity.final? && entity.extends.nil?
+      return self.primary_key? && self.integer? && entity.concrete? && entity.final? && entity.extends.nil?
     end
 
     attr_writer :primary_key
@@ -682,10 +724,7 @@ module Domgen
     attr_reader :incompatible_constraints
     attr_reader :dependency_constraints
     attr_reader :cycle_constraints
-    attr_reader :referencing_attributes
     attr_reader :queries
-    attr_accessor :extends
-    attr_accessor :subtypes
 
     include GenerateFacet
     include InheritableCharacteristicContainer
@@ -694,16 +733,49 @@ module Domgen
       @name = name
       @unique_constraints = Domgen::OrderedHash.new
       @codependent_constraints = Domgen::OrderedHash.new
+      @xor_constraints = Domgen::OrderedHash.new
       @incompatible_constraints = Domgen::OrderedHash.new
       @dependency_constraints = Domgen::OrderedHash.new
       @relationship_constraints = Domgen::OrderedHash.new
       @cycle_constraints = Domgen::OrderedHash.new
       @queries = Domgen::OrderedHash.new
-      @referencing_attributes = []
-      @subtypes = []
+      @referencing_attributes = nil
       data_module.send :register_entity, name, self
-      perform_extend(data_module, :entity, options[:extends]) if options[:extends]
       super(data_module, options, &block)
+    end
+
+    def referencing_attributes
+      self.inherited_referencing_attributes + self.direct_referencing_attributes
+    end
+
+    def direct_referencing_attributes
+      @direct_referencing_attributes ||= []
+    end
+
+    def add_direct_referencing_attribute(attribute)
+      return if attribute.abstract?
+      raise "Attempting to add non-reference attribute to referencing attribute list on #{entity.qualified_name}" unless attribute.reference?
+      self.direct_referencing_attributes << attribute
+    end
+
+    def inherited_referencing_attributes
+      if self.extends
+        base_type = self.data_module.send(:"#{container_kind}_by_name", self.extends)
+        mod_count = base_type.characteristic_modify_count
+        t = base_type
+        while t.extends
+          t = self.data_module.send(:"#{container_kind}_by_name", t.extends)
+          mod_count += t.characteristic_modify_count
+        end
+        if @inherited_referencing_attributes.nil? || @inherited_referencing_attributes_mod_count != mod_count
+          @inherited_referencing_attributes_mod_count = mod_count
+          @inherited_referencing_attributes = base_type.referencing_attributes
+        else
+          @inherited_referencing_attributes
+        end
+      else
+        []
+      end
     end
 
     def qualified_name
@@ -711,7 +783,15 @@ module Domgen
     end
 
     def non_abstract_superclass?
-      extends.nil? ? false : !data_module.entity_by_name(extends).abstract?
+      extends.nil? ? false : data_module.entity_by_name(extends).concrete?
+    end
+
+    # Return the root entity in the hierarchy
+    #
+    # This means the current entity if it does not extend any other entity, else it means the root of the inheritance tree.
+    #
+    def root_entity
+      self.extends.nil? ? self : data_module.entity_by_name(self.extends).root_entity
     end
 
     attr_writer :read_only
@@ -737,7 +817,7 @@ module Domgen
     end
 
     def attribute_by_name?(name)
-      characteristic_exists?(name)
+      characteristic_by_name?(name)
     end
 
     def attribute_by_name(name)
@@ -761,7 +841,7 @@ module Domgen
     end
 
     def unique_constraint(attribute_names, options = {}, &block)
-      Domgen.error("Must have at least 1 or more attribute names for uniqueness constraint") if attribute_names.empty?
+      Domgen.error('Must have at least 1 or more attribute names for uniqueness constraint') if attribute_names.empty?
       constraint = UniqueConstraint.new(self, attribute_names, options, &block)
       add_unique_to_set("unique", constraint, @unique_constraints)
     end
@@ -784,7 +864,7 @@ module Domgen
       @relationship_constraints.values
     end
 
-    # Check that either the attribute is null or the attribute and all the dependents are not null
+    # Check that the lhs_operand is related to rhs_operand by specified operator
     def relationship_constraint(operator, lhs_operand, rhs_operand, options = {}, &block)
       constraint = RelationshipConstraint.new(self, operator, lhs_operand, rhs_operand, options, &block)
       add_unique_to_set('relationship', constraint, @relationship_constraints)
@@ -801,6 +881,19 @@ module Domgen
         Domgen.error("Codependent constraint #{constraint.name} on #{self.name} has an illegal non nullable attribute") if !a.nullable?
       end
       add_unique_to_set('codependent', constraint, @codependent_constraints)
+    end
+
+    def xor_constraints
+      @xor_constraints.values
+    end
+
+    # Check that one and only one of the attributes is not null
+    def xor_constraint(attribute_names, options = {}, &block)
+      constraint = XorConstraint.new(self, attribute_names, options, &block)
+      attribute_names.collect { |a| attribute_by_name(a) }.each do |a|
+        Domgen.error("Xor constraint #{constraint.name} on #{self.name} has an illegal non nullable attribute") unless a.nullable?
+      end
+      add_unique_to_set('xor', constraint, @xor_constraints)
     end
 
     def incompatible_constraints
@@ -847,16 +940,8 @@ module Domgen
     # Assume single column pk
     def primary_key
       primary_key = attributes.find { |a| a.primary_key? }
-      Domgen.error("Unable to locate primary key for #{self.name}, attributes => #{attributes.collect { |a| a.name }}") unless primary_key
+      Domgen.error("Unable to locate primary key for #{self.qualified_name}, attributes: #{attributes.collect { |a| a.name }.inspect}") unless primary_key
       primary_key
-    end
-
-    def attribute_by_name(name)
-      characteristic_by_name(name)
-    end
-
-    def attribute_exists?(name)
-      characteristic_exists?(name)
     end
 
     def to_s
@@ -871,10 +956,9 @@ module Domgen
 
     def new_characteristic(name, type, options, &block)
       override = false
-      if characteristic_map[name.to_s]
-        Domgen.error("Attempting to override non abstract attribute #{name} on #{self.qualified_name}") if !characteristic_map[name.to_s].abstract?
-        # nil out attribute so the characteristic container will not complain about it overriding an existing value
-        characteristic_map[name.to_s] = nil
+      if characteristic_by_name?(name)
+        c = characteristic_by_name(name)
+        Domgen.error("Attempting to override non abstract attribute #{name} on #{self.qualified_name}") unless (c.abstract? || c.override?)
         override = true
       end
       Attribute.new(self, name, type, {:override => override}.merge(options), &block)
@@ -893,11 +977,15 @@ module Domgen
 
       Domgen.error("Entity #{qualified_name} must define exactly one primary key") if attributes.select { |a| a.primary_key? }.size != 1
       attributes.each do |a|
-        Domgen.error("Abstract attribute #{a.name} on non abstract object type #{qualified_name}") if !abstract? && a.abstract?
+        Domgen.error("Abstract attribute #{a.name} on non abstract object type #{qualified_name}") if concrete? && a.abstract?
       end
     end
 
     private
+
+    def container_kind
+      :entity
+    end
 
     def add_unique_to_set(type, constraint, set)
       Domgen.error("Only 1 #{type} constraint with name #{constraint.name} should be defined") if set[constraint.name]
@@ -1090,7 +1178,6 @@ module Domgen
     def initialize(data_module, name, options, &block)
       @name = name
       data_module.send :register_exception, name, self
-      perform_extend(data_module, :exception, options[:extends]) if options[:extends]
       super(data_module, options, &block)
     end
 
@@ -1119,17 +1206,20 @@ module Domgen
     end
 
     def characteristic_kind
-      "parameter"
+      'parameter'
     end
 
     protected
 
+    def container_kind
+      :exception
+    end
+
     def new_characteristic(name, type, options, &block)
       override = false
-      if characteristic_map[name.to_s]
-        Domgen.error("Attempting to override non abstract parameter #{name} on #{self.name}") if !characteristic_map[name.to_s].abstract?
-        # nil out atribute so the characteristic container will not complain about it overriding an existing value
-        characteristic_map[name.to_s] = nil
+      if characteristic_by_name?(name)
+        c = characteristic_by_name(name)
+        Domgen.error("Attempting to override non abstract parameter #{name} on #{self.name}") unless (c.abstract? || c.override?)
         override = true
       end
 
@@ -1218,7 +1308,7 @@ module Domgen
     end
 
     def parameters
-      characteristic_map.values
+      characteristics
     end
 
     def parameter(name, type, options = {}, &block)
@@ -1296,6 +1386,16 @@ module Domgen
       method = Method.new(self, name, options, &block)
       @methods[name.to_s] = method
       method
+    end
+
+    def method_by_name(name)
+      m = @methods[name.to_s]
+      Domgen.error("Attempting to retrieve non-existent method #{name} on #{self.name}") unless m
+      m
+    end
+
+    def method_by_name?(name)
+      !!@methods[name.to_s]
     end
   end
 
@@ -1702,24 +1802,40 @@ module Domgen
 
   class Repository <  BaseTaggableElement
     attr_reader :name
+    attr_reader :source_file
 
-    def initialize(name, options, &block)
+    def initialize(name, source_file, options, &block)
       @name = name
+      @source_file = source_file
+      @default_model_checks = true
       @data_modules = Domgen::OrderedHash.new
       @model_checks = Domgen::OrderedHash.new
       Domgen::TypeDB.mark_as_initialized
       Domgen.send :register_repository, name, self
-      Logger.info "Repository definition started"
+      Logger.info 'Repository definition started'
       self.activate_facets
+      Domgen.current_repository = self
       super(options, &block)
+      Domgen.current_repository = nil
       post_repository_definition
-      Logger.info "Model Checking started."
-      @model_checks.values.each do |model_check|
+
+      if default_model_checks?
+        Domgen::ModelChecks.name_check(self)
+      end
+
+      Logger.info 'Model Checking started.'
+      self.model_checks.each do |model_check|
         model_check.check_model
       end
-      Logger.info "Model Checking completed."
-      Logger.info "Repository definition completed"
+      Logger.info 'Model Checking completed.'
+      Logger.info 'Repository definition completed'
       Domgen.repositorys << self
+    end
+
+    attr_writer :default_model_checks
+
+    def default_model_checks?
+      !!@default_model_checks
     end
 
     def qualified_name
@@ -1728,6 +1844,11 @@ module Domgen
 
     def to_s
       "Repository[#{self.name}]"
+    end
+
+    def resolve_file(filename)
+      return filename unless self.source_file
+      filename =~ /^\// ? filename : File.expand_path("#{File.dirname(self.source_file)}/#{filename}")
     end
 
     def data_module(name, options = {}, &block)
@@ -1756,9 +1877,35 @@ module Domgen
       Domgen::ModelCheck.new(self, name, options, &block)
     end
 
+    def model_check_by_name?(name)
+      !!@model_checks[name.to_s]
+    end
+
+    def model_checks
+      @model_checks.values
+    end
+
+    def model_check_by_name(name)
+      model_check = @model_checks[name.to_s]
+      Domgen.error("Unable to locate model_check #{name}") unless model_check
+      yield model_check if block_given?
+      model_check
+    end
+
+    def enumeration_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_enumeration_by_name?(name_parts[1])
+    end
+
     def enumeration_by_name(name, optional = false, &block)
       name_parts = split_name(name)
       data_module_by_name(name_parts[0]).local_enumeration_by_name(name_parts[1], optional, &block)
+    end
+
+    def enumeration(name, enumeration_type, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).enumeration(name_parts[1], enumeration_type, options, &block)
     end
 
     def exception_by_name(name, optional = false, &block)
@@ -1766,9 +1913,37 @@ module Domgen
       data_module_by_name(name_parts[0]).local_exception_by_name(name_parts[1], optional, &block)
     end
 
+    def exception_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_exception_by_name?(name_parts[1])
+    end
+
+    def exception(name, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).exception(name_parts[1], options, &block)
+    end
+
+    def entity_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_entity_by_name?(name_parts[1])
+    end
+
     def entity_by_name(name, optional = false, &block)
       name_parts = split_name(name)
       data_module_by_name(name_parts[0]).local_entity_by_name(name_parts[1], optional, &block)
+    end
+
+    def entity(name, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).entity(name_parts[1], options, &block)
+    end
+
+    def service_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_service_by_name?(name_parts[1])
     end
 
     def service_by_name(name, optional = false, &block)
@@ -1776,14 +1951,41 @@ module Domgen
       data_module_by_name(name_parts[0]).local_service_by_name(name_parts[1], optional, &block)
     end
 
+    def service(name, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).service(name_parts[1], options, &block)
+    end
+
+    def struct_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_struct_by_name?(name_parts[1])
+    end
+
     def struct_by_name(name, optional = false, &block)
       name_parts = split_name(name)
       data_module_by_name(name_parts[0]).local_struct_by_name(name_parts[1], optional, &block)
     end
 
+    def struct(name, struct_key, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).struct(name_parts[1], struct_key, options, &block)
+    end
+
+    def message_by_name?(name)
+      name_parts = split_name(name)
+      data_module_by_name?(name_parts[0]) &&
+        data_module_by_name(name_parts[0]).local_message_by_name?(name_parts[1])
+    end
+
     def message_by_name(name, optional = false, &block)
       name_parts = split_name(name)
       data_module_by_name(name_parts[0]).local_message_by_name(name_parts[1], optional, &block)
+    end
+
+    def message(name, options = {}, &block)
+      name_parts = split_name(name)
+      data_module_by_name(name_parts[0]).message(name_parts[1], options, &block)
     end
 
     include GenerateFacet
@@ -1819,41 +2021,6 @@ module Domgen
     def post_repository_definition
       # Run hooks in all the modules that can generate other model elements
       self.complete
-
-      # Add back links for all references
-      Logger.debug "Repository #{name}: Adding back links for all references"
-      self.data_modules.each do |data_module|
-        data_module.entities.each do |entity|
-          entity.attributes.each do |attribute|
-            if attribute.reference? && !attribute.abstract? && !attribute.inherited?
-              other_entities = [attribute.referenced_entity]
-              while !other_entities.empty?
-                other_entity = other_entities.pop
-                other_entity.direct_subtypes.each { |st| other_entities << st }
-                other_entity.referencing_attributes << attribute
-              end
-            end
-          end
-        end
-      end
-      # generate lists of subtypes for entity types
-      Logger.debug "Repository #{name}: Generate lists of subtypes for entities"
-      self.data_modules.each do |data_module|
-        data_module.entities.select { |entity| !entity.final? }.each do |entity|
-          subtypes = entity.subtypes
-          to_process = [entity]
-          completed = []
-          while to_process.size > 0
-            ot = to_process.pop
-            ot.direct_subtypes.each do |subtype|
-              next if completed.include?(subtype)
-              subtypes << subtype
-              to_process << subtype
-              completed << subtype
-            end
-          end
-        end
-      end
       self.verify
     end
   end

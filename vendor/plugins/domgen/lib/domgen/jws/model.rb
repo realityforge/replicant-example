@@ -49,7 +49,7 @@ module Domgen
       attr_writer :base_url
 
       def base_url
-        @base_url || "/api/soap"
+        @base_url || '/api/soap'
       end
 
       attr_writer :url
@@ -101,7 +101,7 @@ module Domgen
       end
 
       def qualified_api_endpoint_name
-        "#{qualified_api_interface_name}Service"
+        "#{api_package}.#{web_service_name}Service"
       end
 
       def api_package
@@ -116,6 +116,12 @@ module Domgen
 
       def url
         @url || "#{service.data_module.jws.url}/#{web_service_name}"
+      end
+
+      attr_writer :servlet_name
+
+      def servlet_name
+        @servlet_name || "#{service.qualified_name.to_s.gsub('.','')}Servlet"
       end
 
       attr_writer :port_type_name
@@ -152,7 +158,7 @@ module Domgen
         @namespace || "#{service.data_module.jws.namespace}/#{web_service_name}"
       end
 
-      java_artifact :service, :service, :server, :ee, '#{service.name}Service'
+      java_artifact :service, :service, :server, :ee, '#{web_service_name}Service'
       java_artifact :java_service, :service, :server, :jws, '#{web_service_name}WS', :sub_package => 'ws'
       java_artifact :boundary_implementation, :service, :server, :jws, '#{web_service_name}WSBoundaryEJB', :sub_package => 'ws.internal'
       java_artifact :fake_implementation, :service, :fake, :jws, 'Fake#{web_service_name}'

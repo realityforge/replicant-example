@@ -22,8 +22,7 @@ module Domgen
       elsif File.expand_path(filename) == candidate_file
         Domgen.warn("Domgen::Build.define_load_task() passed parameter '#{filename}' which is the same value as the default parameter. This parameter can be removed.")
       end
-      File.expand_path(filename)
-      Domgen::LoadSchema.new(filename, &block)
+      Domgen::LoadSchema.new(File.expand_path(filename), &block)
     end
 
     def self.define_generate_task(generator_keys, options = {}, &block)
@@ -98,7 +97,7 @@ module Domgen
           end
           buildr_project.compile.from main_java_dir
           # Need to force this as it may have already been cached and thus will not recalculate
-          buildr_project.iml.main_source_directories << main_java_dir if buildr_project.iml?
+          buildr_project.iml.main_generated_source_directories << main_java_dir if buildr_project.iml?
         end
 
         # Is there resources generated in project?
@@ -117,7 +116,7 @@ module Domgen
               end
             end
           end
-          buildr_project.iml.main_source_directories << main_resources_dir if buildr_project.iml?
+          buildr_project.iml.main_generated_resource_directories << main_resources_dir if buildr_project.iml?
         end
 
         # Is there assets generated in project?
@@ -137,7 +136,7 @@ module Domgen
           end
           buildr_project.test.compile.from test_java_dir
           # Need to force this as it may have already been cached and thus will not recalculate
-          buildr_project.iml.test_source_directories << test_java_dir if buildr_project.iml?
+          buildr_project.iml.test_generated_source_directories << test_java_dir if buildr_project.iml?
         end
 
         # Is there resources generated in project?
@@ -156,7 +155,7 @@ module Domgen
               end
             end
           end
-          buildr_project.iml.test_source_directories << test_resources_dir if buildr_project.iml?
+          buildr_project.iml.test_generated_resource_directories << test_resources_dir if buildr_project.iml?
         end
       end
     end
@@ -271,6 +270,7 @@ module Domgen
           old_level = Domgen::Logger.level
           begin
             Domgen::Logger.level = verbose? ? ::Logger::DEBUG : ::Logger::WARN
+            Domgen.current_filename = self.filename
             require self.filename
           rescue Exception => e
             print "An error occurred loading respository\n"
@@ -278,6 +278,7 @@ module Domgen
             puts $@
             raise e
           ensure
+            Domgen.current_filename = nil
             Domgen::Logger.level = old_level
           end
         end

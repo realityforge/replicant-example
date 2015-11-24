@@ -23,9 +23,9 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
 {
 <% data_module.sync.entities_to_synchronize.each do |entity|
      fn = "#{entity.data_module.name}#{entity.name}"
-     recursive_attributes = entity.attributes.select{|a| a.reference? && a.referenced_entity.qualified_name == entity.qualified_name}
+     recursive_attributes = entity.attributes.select{|a| a.sync? }.select{|a| a.reference? && a.referenced_entity.qualified_name == entity.qualified_name}
 
-     entity.attributes.select{|a| a.sync? && a.sync.custom_transform? }.each do |attribute|
+     entity.attributes.select{|a| a.sync? &&a.sync.custom_transform? }.each do |attribute|
 -%>
   <%= nullability_annotation(attribute.nullable?) %>
   @java.lang.Override
@@ -53,96 +53,131 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
   }
 
 <% end -%>
-
+<% if !entity.primary_key.generated_value? && entity.primary_key.attribute_type == :text
+  s = data_module.service_by_name(:SynchronizationContext)
+  m = s.method_by_name("Generate#{entity.data_module.name}#{entity.name}Key")
+  -%>
   @javax.annotation.Nonnull
-  protected String get<%= fn %>Columns( @javax.annotation.Nullable final String prefix )
+  public <%= m.return_value.ejb.java_type(:boundary) %> generate<%= entity.data_module.name %><%= entity.name %>Key(<%= m.parameters.collect{|p| "#{annotated_type(p, :ejb)} #{Domgen::Naming.camelize(p.name)}" }.join(', ') %>)
   {
-    return
-<% entity.attributes.select{|a| a.sync? && a.sql? && a.jpa? }.each do |a| -%>
-      ( null == prefix ? "" : prefix + "." ) + "<%= entity.sync.master_entity.attribute_by_name( a.primary_key? ? a.entity.name : a.name ).sql.quoted_column_name %>, " +
+    return java.util.UUID.randomUUID().toString();
+  }
 <% end -%>
-      ( null == prefix ? "" : prefix + "." ) + "<%= data_module.sql.dialect.quote('MappingID') %>";
-  }
-
-  @javax.annotation.Nonnull
-  protected String get<%= fn %>MasterTable()
-  {
-    return "<%= entity.sync.master_entity.sql.qualified_table_name %>";
-  }
-
-  @javax.annotation.Nonnull
-  protected String get<%= fn %>MasterTableCriteria( @javax.annotation.Nonnull final String prefix, @javax.annotation.Nonnull final String dataSourceCode )
-  {
-    return prefix + ".<%= data_module.sql.dialect.quote('MasterSynchronized') %> = 0 AND " + prefix + ".<%= data_module.sql.dialect.quote('MappingSource') %> = ?";
-  }
 
   @javax.annotation.Nonnull
   @java.lang.Override
-  public String getSqlToRetrieve<%= fn %>ListToUpdate( @javax.annotation.Nonnull final String dataSourceCode )
+  public String getSqlToRetrieve<%= fn %>ListToUpdate( @javax.annotation.Nonnull final String mappingSourceCode )
   {
-<% if recursive_attributes.size == 0 -%>
+<%
+  common_criteria = "M.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 0 AND M.#{entity.sync.master_entity.attribute_by_name(:MappingSource).sql.quoted_column_name} = ?"
+  criteria = "#{common_criteria} AND M.#{entity.sync.master_entity.attribute_by_name(:DeletedAt).sql.quoted_column_name} IS NULL"
+  remove_criteria = "#{common_criteria} AND M.#{entity.sync.master_entity.attribute_by_name(:DeletedAt).sql.quoted_column_name} IS NOT NULL"
+  create_criteria = ''
+
+  ref_index = 0
+  attr_select = (entity.sync.master_entity.attributes.select{|a| a.primary_key? || entity.attribute_by_name?(a.name) }.collect do |a|
+    if a.primary_key?
+      "M.#{entity.sync.master_entity.attribute_by_name(entity.root_entity.name).sql.quoted_column_name}"
+    elsif a.reference? && a.referenced_entity.data_module.sync.master_data_module? && a.name.to_s != 'MappingSource'
+      ref_index += 1
+      if a.referenced_entity.abstract?
+        index = -1
+        "COALESCE(#{a.referenced_entity.concrete_subtypes.collect do |subtype| "R#{ref_index}#{index += 1}.#{subtype.attribute_by_name(subtype.root_entity.name).sql.quoted_column_name}" end.join(', ')})"
+      else
+        "R#{ref_index}.#{a.referenced_entity.attribute_by_name(a.referenced_entity.root_entity.name).sql.quoted_column_name}"
+      end
+    else
+      "M.#{a.sql.quoted_column_name}"
+    end
+  end + ["M.#{entity.sync.master_entity.attribute_by_name(:MappingID).sql.quoted_column_name}"]).join(', ')
+
+  joins = ""
+  ref_index = 0
+  entity.sync.master_entity.attributes.select{|a| a.reference? && a.referenced_entity.data_module.sync.master_data_module? && a.name.to_s != 'MappingSource'}.collect do |a|
+    ref_index += 1
+    if a.referenced_entity.abstract?
+      ids = []
+      a.referenced_entity.concrete_subtypes.each_with_index do |subtype, index|
+        joins += "      \" LEFT JOIN #{subtype.sql.qualified_table_name} R#{ref_index}#{index} ON R#{ref_index}#{index}.#{subtype.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}#{index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 1 \" +\n"
+        ids << "R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name}"
+      end
+      if a.nullable?
+        create_criteria += " AND (M.#{a.sql.quoted_column_name} IS NULL OR COALESCE(#{ids.join(', ')}) IS NOT NULL)"
+      end
+    else
+      joins += "      \" #{a.nullable? ? 'LEFT ' : ''}JOIN #{a.referenced_entity.sql.qualified_table_name} R#{ref_index} ON R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 1 \" +\n"
+      if a.nullable?
+        create_criteria += " AND (M.#{a.sql.quoted_column_name} IS NULL OR R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name} IS NOT NULL)"
+      end
+    end
+  end
+
+  cte = ''
+  order_by = ''
+  table = entity.sync.master_entity.sql.qualified_table_name
+  if recursive_attributes.size == 1
+    base_attr_select = entity.sync.master_entity.attributes.collect do |a|
+      "M.#{a.sql.quoted_column_name}"
+    end.join(', ')
+
+    table = "#{fn}List"
+    order_by = 'ORDER BY M.Level ASC'
+    cte = <<-CTE
+      "WITH #{fn}List(#{base_attr_select.gsub('M.','')}, [Level]) AS ( \" +
+      "  SELECT #{base_attr_select}, 0 \" +
+      "  FROM #{entity.sync.master_entity.sql.qualified_table_name} M " +
+      "  WHERE M.#{recursive_attributes[0].sql.quoted_column_name} IS NULL " +
+      "  UNION ALL " +
+      "  SELECT #{base_attr_select}, L.[Level] + 1 " +
+      "  FROM #{entity.sync.master_entity.sql.qualified_table_name} M " +
+      "  JOIN #{fn}List L ON L.[ID] = M.#{recursive_attributes[0].sql.quoted_column_name} " +
+      "  WHERE M.#{recursive_attributes[0].sql.quoted_column_name} IS NOT NULL " +
+      " ) " +
+    CTE
+  end
+
+-%>
     return
-      "SELECT " + get<%= fn %>Columns( "M" ) + " " +
-      "FROM " + get<%= fn %>MasterTable() + " M " +
-      "WHERE " + get<%= fn %>MasterTableCriteria( "M", dataSourceCode ) + " AND M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL";
-<% elsif recursive_attributes.size == 1 -%>
-    return
-      "WITH <%= fn %>List([ID], " + get<%= fn %>Columns( null ) + ", [MasterSynchronized], [MappingSource], [Level]) AS (\n" +
-      "  SELECT M.[ID], " + get<%= fn %>Columns( "M" ) + ", M.[MasterSynchronized], M.[MappingSource], 0 " +
-      "  FROM " + get<%= fn %>MasterTable() + " M " +
-      "  WHERE M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL AND M.<%= recursive_attributes[0].sql.quoted_column_name %> IS NULL " +
-      "  UNION ALL\n" +
-      "  SELECT M.[ID], " + get<%= fn %>Columns( "M" ) + ", M.[MasterSynchronized], M.[MappingSource], L.[Level] + 1 " +
-      "  FROM " + get<%= fn %>MasterTable() + " M " +
-      "  JOIN <%= fn %>List L ON L.[ID] = M.<%= recursive_attributes[0].sql.quoted_column_name %> " +
-      "  WHERE M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL " +
-      " )\n " +
-      " SELECT " + get<%= fn %>Columns( "R" ) +
-      "  FROM <%= fn %>List R" +
-      "  WHERE " + get<%= fn %>MasterTableCriteria( "R", dataSourceCode ) +
-      "  ORDER BY R.Level ASC ";
+<% if recursive_attributes.size <= 1 -%>
+<%= cte -%>
+      "SELECT <%= attr_select -%> " +
+      "FROM <%= table %> M " +
+<%= joins -%>
+      "WHERE <%= criteria %><%= create_criteria %> " +
+      "<%= order_by %>";
 <% else -%>
     /*
-    return
-      "SELECT " + get<%= fn %>Columns( "M" ) + " " +
-      "FROM " + get<%= fn %>MasterTable() + " M " +
-      "WHERE " + get<%= fn %>MasterTableCriteria( "M", dataSourceCode ) + " AND M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL";
-    */
+<%= cte -%>
+      "SELECT <%= attr_select -%> " +
+      "FROM <%= table %> M " +
+<%= joins -%>
+      "WHERE <%= criteria %><%= create_criteria %> " +
+      "<%= order_by %>";
+     */
     throw new IllegalStateException( "Override getSqlToRetrieve<%= fn %>ListToUpdate() due to multiple recursive attributes." );
 <% end -%>
   }
 
   @javax.annotation.Nonnull
   @java.lang.Override
-  public String getSqlToRetrieve<%= fn %>ListToRemove( @javax.annotation.Nonnull final String dataSourceCode )
+  public String getSqlToRetrieve<%= fn %>ListToRemove( @javax.annotation.Nonnull final String mappingSourceCode )
   {
-<% if recursive_attributes.size == 0 -%>
+<% if recursive_attributes.size <= 1 -%>
     return
-      "SELECT M.<%= data_module.sql.dialect.quote('MappingID') %>, M.<%= entity.sync.master_entity.attribute_by_name( entity.name ).sql.quoted_column_name %> " +
-      "FROM " + get<%= fn %>MasterTable() + " M " +
-      "WHERE " + get<%= fn %>MasterTableCriteria( "M", dataSourceCode ) + " AND M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NOT NULL";
-<% elsif recursive_attributes.size == 1 -%>
-    return
-      "WITH <%= fn %>List([ID], " + get<%= fn %>Columns( null ) + ", [MasterSynchronized], [MappingSource], [Level]) AS (\n" +
-      "  SELECT M.[ID], " + get<%= fn %>Columns( "M" ) + ", M.[MasterSynchronized], M.[MappingSource], 0 " +
-      "  FROM " + get<%= fn %>MasterTable() + " M " +
-      "  WHERE M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL AND M.<%= recursive_attributes[0].sql.quoted_column_name %> IS NULL " +
-      "  UNION ALL\n" +
-      "  SELECT M.[ID], " + get<%= fn %>Columns( "M" ) + ", M.[MasterSynchronized], M.[MappingSource], L.[Level] + 1 " +
-      "  FROM " + get<%= fn %>MasterTable() + " M " +
-      "  JOIN <%= fn %>List L ON L.[ID] = M.<%= recursive_attributes[0].sql.quoted_column_name %> " +
-      "  WHERE M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NULL " +
-      " )\n " +
-      " SELECT R.<%= data_module.sql.dialect.quote('MappingID') %>, R.<%= entity.sync.master_entity.attribute_by_name( entity.name ).sql.quoted_column_name %> " +
-      "  FROM <%= fn %>List R" +
-      "  WHERE " + get<%= fn %>MasterTableCriteria( "R", dataSourceCode ) + " AND R.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NOT NULL" +
-      "  ORDER BY R.Level DESC ";
+<%= cte -%>
+      "SELECT M.<%= entity.sync.master_entity.primary_key.sql.quoted_column_name %>, M.<%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> " +
+      "FROM <%= table %> M " +
+      "JOIN <%= entity.sql.qualified_table_name %> O ON M.<%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> = O.<%= entity.primary_key.sql.quoted_column_name %> " +
+      "WHERE <%= remove_criteria %> " +
+      "<%= order_by %>";
 <% else -%>
     /*
     return
-      "SELECT M.<%= data_module.sql.dialect.quote('MappingID') %>, M.<%= entity.sync.master_entity.attribute_by_name( entity.name ).sql.quoted_column_name %> " +
-      "FROM " + get<%= fn %>MasterTable() + " M " +
-      "WHERE " + get<%= fn %>MasterTableCriteria( "M", dataSourceCode ) + " AND M.<%= data_module.sql.dialect.quote('DeletedAt') %> IS NOT NULL";
+      "SELECT M.<%= entity.sync.master_entity.primary_key.sql.quoted_column_name %>, M.<%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> " +
+      "FROM <%= table %> M " +
+      "JOIN <%= entity.sql.qualified_table_name %> O ON M.<%= entity.sync.master_entity.attribute_by_name( entity.name ).sql.quoted_column_name %> = O.<%= entity.primary_key.sql.quoted_column_name %> " +
+      "WHERE <%= remove_criteria %> " +
+      "<%= order_by %>";
     */
     throw new IllegalStateException( "Override getSqlToRetrieve<%= fn %>ListToRemove() due to multiple recursive attributes." );
 <% end -%>

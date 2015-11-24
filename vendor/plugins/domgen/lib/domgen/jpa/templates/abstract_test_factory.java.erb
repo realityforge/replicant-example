@@ -14,6 +14,12 @@ public abstract class <%= data_module.jpa.abstract_test_factory_name %>
     _injector = injector;
   }
 
+  @javax.annotation.Nonnull
+  protected final javax.persistence.EntityManager em()
+  {
+    return getInjector().getInstance( com.google.inject.Key.get( javax.persistence.EntityManager.class, com.google.inject.name.Names.named( <%= data_module.repository.jpa.qualified_unit_descriptor_name %>.NAME ) ) );
+  }
+
   protected final <%= data_module.repository.jpa.qualified_test_factory_set_name %> getFactorySet()
   {
     return _factorySet;
@@ -27,10 +33,17 @@ public abstract class <%= data_module.jpa.abstract_test_factory_name %>
 
 <% end -%>
 <% data_module.entities.select{|e|e.jpa?}.each do |entity| -%>
-<% if !entity.abstract? -%>
-
+<% if entity.concrete? -%>
+<% entity.jpa.test_create_defaults.each do |defaults| -%>
   @javax.annotation.Nonnull
-  public final <%= entity.jpa.qualified_name %> create<%= entity.name %>( <%= entity.attributes.select{|a| !a.generated_value? && a.jpa? && a.jpa.persistent?}.collect{|a| "final #{nullable_annotate(a, a.jpa.java_type, false)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %>)
+  public final <%= entity.jpa.qualified_name %> create<%= entity.name %>( <%= entity.attributes.select{|a| !a.generated_value? && a.jpa? && a.jpa.persistent? && !defaults.has_attribute?(a.name) }.collect{|a| "#{annotated_type(a, :jpa, :default, :final => true)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %>)
+  {
+    return create<%= entity.name %>( <%= entity.attributes.select{|a|!a.generated_value? && a.jpa? && a.jpa.persistent?}.collect {|a| defaults.has_attribute?(a.name) ? defaults.value_for(a.name) : Domgen::Naming.camelize(a.name) }.join(', ') %> );
+  }
+
+<% end -%>
+  @javax.annotation.Nonnull
+  public final <%= entity.jpa.qualified_name %> create<%= entity.name %>( <%= entity.attributes.select{|a| !a.generated_value? && a.jpa? && a.jpa.persistent?}.collect{|a| "#{annotated_type(a, :jpa, :default, :final => true)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %>)
   {
     final <%= entity.jpa.qualified_name %> $_ = new <%= entity.jpa.qualified_name %>(<%= entity.attributes.select{|a| a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent?}.collect{|a| Domgen::Naming.camelize(a.name)}.join(', ') %>);
 <% entity.attributes.select{|a|!a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent?}.each do |a| -%>
@@ -39,12 +52,43 @@ public abstract class <%= data_module.jpa.abstract_test_factory_name %>
     <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>().persist( $_ );
     return $_;
   }
+<% if entity.attributes.any?{|a| !a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent?} -%>
+<% entity.jpa.test_update_defaults.each do |defaults|
+    attr = entity.attributes.select{|a| !a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent? && (!defaults.has_attribute?(a.name) || !defaults.value_for(a.name).nil?)}
+    non_default_attr = attr.select{|a| !defaults.has_attribute?(a.name)}
+  -%>
+
+  public final void <%= defaults.factory_method_name %>( @javax.annotation.Nonnull final <%= entity.jpa.qualified_name %> $_<%= non_default_attr.empty? ? '' : ', ' %><%= non_default_attr.collect{|a| "#{annotated_type(a, :jpa, :default, :final => true)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %> )
+  {
+<% if defaults.force_refresh? -%>
+    em().refresh( $_ );
+<% end -%>
+<% attr.each do |a| -%>
+    $_.set<%= a.name %>( <%= defaults.has_attribute?(a.name) ? defaults.value_for(a.name) : Domgen::Naming.camelize(a.name) %> );
+<% end -%>
+    <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>().persist( $_ );
+  }
+<% end -%>
+
+  public final void update<%= entity.name %>( @javax.annotation.Nonnull final <%= entity.jpa.qualified_name %> $_, <%= entity.attributes.select{|a| !a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent?}.collect{|a| "#{annotated_type(a, :jpa, :default, :final => true)} #{Domgen::Naming.camelize(a.name)}"}.join(', ') %>)
+  {
+<% entity.attributes.select{|a|!a.immutable? && !a.generated_value? && a.jpa? && a.jpa.persistent?}.each do |a| -%>
+    $_.set<%= a.name %>( <%= Domgen::Naming.camelize(a.name) %> );
+<% end -%>
+    <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>().persist( $_ );
+  }
+<% end -%>
+
+  public final void remove<%= entity.name %>( @javax.annotation.Nonnull final <%= entity.jpa.qualified_name %> entity )
+  {
+    <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>().remove( entity );
+  }
 <% end -%>
 <% end -%>
 <% data_module.entities.select{|e|e.jpa?}.each do |entity| -%>
 
   @javax.annotation.Nonnull
-  protected final <%= entity.dao.jpa.qualified_dao_service_name %> <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>()
+  public final <%= entity.dao.jpa.qualified_dao_service_name %> <%= Domgen::Naming.camelize(entity.dao.jpa.dao_service_name) %>()
   {
     return s( <%= entity.dao.jpa.qualified_dao_service_name %>.class );
   }
@@ -54,6 +98,12 @@ public abstract class <%= data_module.jpa.abstract_test_factory_name %>
   protected final <T> T s( @javax.annotation.Nonnull final Class<T> type )
   {
     return _injector.getInstance( type );
+  }
+
+  @javax.annotation.Nonnull
+  protected <T> T s( @javax.annotation.Nonnull final String name, @javax.annotation.Nonnull final Class<T> type )
+  {
+    return getInjector().getInstance( com.google.inject.Key.get( type, com.google.inject.name.Names.named( name ) ) );
   }
 
   @javax.annotation.Nonnull

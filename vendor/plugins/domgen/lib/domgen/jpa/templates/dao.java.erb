@@ -14,15 +14,27 @@ public class <%= dao.jpa.dao_name %>
   private static final String <%= Domgen::Naming.uppercase_constantize(query.name) %> = "<%= query.qualified_name %>";
 <% end %>
 <% end -%>
-  @javax.persistence.PersistenceContext( unitName = <%= dao.data_module.repository.jpa.qualified_unit_descriptor_name %>.NAME )
+<% dao.queries.select{|q| !q.basic_result_type?}.collect{|q|q.result_type}.sort.uniq.each do |result_type|
+  converter = Domgen::TypeDB.characteristic_type_by_name(result_type).jpa.converter(dao.data_module.sql.dialect)
+  if converter
+-%>
+  private final <%= converter %> _<%= result_type %>Converter = new <%= converter %>();
+<% end %>
+<% end -%>
+  @javax.persistence.PersistenceContext( unitName = <%= dao.jpa.persistence_unit_name.nil? ? "#{dao.data_module.repository.jpa.qualified_unit_descriptor_name}.NAME" : "\"#{dao.jpa.persistence_unit_name}\"" %> )
   private javax.persistence.EntityManager em;
-
 <% dao.queries.each do |query| -%>
+<%
+  requires_result_conversion = !query.basic_result_type?
+  method_result_java_type = query.result_type? ? query_component_result_type(query) : nil
+  db_result_java_type = method_result_java_type || (dao.repository? ? query.entity.jpa.qualified_name : 'java.lang.Object')
+  -%>
+
   @java.lang.Override
-  public <%= query_result_type(query) %> <%= Domgen::Naming.camelize(query.name) %>(<%= (query.parameters.collect {|p| "final #{p.jpa.primitive? ? '' : nullability_annotation(p.nullable?)} #{p.jpa.java_type} #{p.name}"} + [query.jpa.limit ? 'final int limit': nil] + [query.jpa.offset ? 'final int offset': nil]).compact.join(', ') %>)
+  public <%= query_result_type(query) %> <%= Domgen::Naming.camelize(query.name) %>(<%= (query.parameters.collect {|p|  "#{annotated_type(p, :jpa, :default, :final => true)} #{p.name}"} + [query.jpa.limit ? 'final int limit': nil] + [query.jpa.offset ? 'final int offset': nil]).compact.join(', ') %>)
   {
-    final javax.persistence.TypedQuery<<%= query_component_result_type(query) %>> query =
-      em.createNamedQuery( <%= dao.repository? ? "#{query.entity.jpa.qualified_name}." : '' %><%= Domgen::Naming.uppercase_constantize(query.name) %>, <%= query_component_result_type(query) %>.class );
+    final javax.persistence.TypedQuery<<%= db_result_java_type %>> query =
+      em.createNamedQuery( <%= dao.repository? ? "#{query.entity.jpa.qualified_name}." : '' %><%= Domgen::Naming.uppercase_constantize(query.name) %>, <%= db_result_java_type %>.class );
 <%
    if !query.jpa.native?
     query.parameters.each do |p|
@@ -35,14 +47,14 @@ public class <%= dao.jpa.dao_name %>
       param_suffix = ".#{getter_for(p.referenced_entity.primary_key)}"
     elsif p.enumeration? && p.enumeration.textual_values?
       param_suffix = ".name()"
-    elsif p.enumeration? && p.enumeration.numeric_value?
+    elsif p.enumeration? && p.enumeration.numeric_values?
       param_suffix = ".ordinal()"
     end
     param_value = "#{p.name}#{param_suffix}"
     if param_suffix && p.nullable?
       param_value = "null == #{p.name} ? null : #{param_value}"
     end
-%>
+-%>
     query.setParameter( <%= index + 1 %>, <%= param_value %> );
 <%  end
    end -%>
@@ -53,16 +65,34 @@ public class <%= dao.jpa.dao_name %>
     query.setMaxResults( limit );
 <% end -%>
 <% if query.query_type == :select -%>
+<%
+  return_clause = !requires_result_conversion ? 'return ' : query.multiplicity == :many ? "final java.util.List<#{db_result_java_type}> result = " : "final #{db_result_java_type} result = "
+  converter_clause = "(#{method_result_java_type}) _#{query.result_type}Converter.convertToEntityAttribute( XXXX )"
+-%>
 <% if query.multiplicity == :many -%>
-    return query.getResultList();
+    <%= return_clause %>query.getResultList();
+<% if requires_result_conversion -%>
+    final java.util.ArrayList<<%= method_result_java_type %>> $result = new java.util.ArrayList<<%= method_result_java_type %>>();
+    for ( final java.lang.Object $v : result )
+    {
+      $result.add( <%= converter_clause.gsub('XXXX', '$v') %> );
+    }
+    return $result;
+<% end -%>
 <% elsif query.multiplicity == :one -%>
-    return query.getSingleResult();
+    <%= return_clause %>query.getSingleResult();
+<% if requires_result_conversion -%>
+    return <%= converter_clause.gsub('XXXX', 'result') %>;
+<% end -%>
 <% else -%>
     query.setMaxResults( 1 );
-    final java.util.List<<%= query_component_result_type(query) %>> resultList = query.getResultList();
+    final java.util.List<<%= db_result_java_type %>> resultList = query.getResultList();
     if ( resultList.size() > 0 )
     {
-      return resultList.get( 0 );
+      <%= return_clause %>resultList.get( 0 );
+<% if requires_result_conversion -%>
+    return <%= converter_clause.gsub('XXXX', 'result') %>;
+<% end -%>
     }
     else
     {
@@ -73,10 +103,10 @@ public class <%= dao.jpa.dao_name %>
     return query.executeUpdate();
 <% end -%>
   }
-
 <% end -%>
 <% if dao.repository? -%>
 <% if dao.entity.jpa.detachable? -%>
+
   @java.lang.Override
   public void detach( final <%= dao.entity.jpa.qualified_name %> entity )
   {

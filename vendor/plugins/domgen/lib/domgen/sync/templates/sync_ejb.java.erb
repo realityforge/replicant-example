@@ -1,9 +1,11 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(data_module.sync.qualified_sync_ejb_name) %>;
 
-@javax.ejb.Singleton( name = iris.acal.server.service.master.SynchronizationService.NAME )
+@javax.ejb.Singleton( name = <%= data_module.service_by_name(:SynchronizationService).ejb.qualified_service_name %>.NAME )
 @javax.ejb.TransactionManagement( javax.ejb.TransactionManagementType.BEAN )
 @javax.ejb.ConcurrencyManagement( javax.ejb.ConcurrencyManagementType.BEAN )
+@SuppressWarnings( "ConstantConditions" )
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings( { "NP_ALWAYS_NULL", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "NP_LOAD_OF_KNOWN_NULL_VALUE" } )
 public class <%= data_module.sync.sync_ejb_name %>
   extends iris.syncrecord.server.service.StandardSyncService
   implements <%= data_module.service_by_name(:SynchronizationService).ejb.qualified_service_name %>
@@ -22,8 +24,10 @@ public class <%= data_module.sync.sync_ejb_name %>
 <% end -%>
   @javax.annotation.Resource
   private javax.transaction.TransactionSynchronizationRegistry _registry;
+<% if data_module.repository.imit? -%>
   @javax.inject.Inject
   private org.realityforge.replicant.server.EntityMessageEndpoint _endpoint;
+<% end -%>
   @javax.inject.Inject
   private <%= data_module.service_by_name(:SynchronizationContext).ejb.qualified_service_name %> _context;
 
@@ -31,20 +35,20 @@ public class <%= data_module.sync.sync_ejb_name %>
 
   @java.lang.Override
   @javax.annotation.Nonnull
-  public iris.syncrecord.server.data_type.SyncStatusDTO synchronizeDataSource( @javax.annotation.Nonnull final String dataSourceCode )
+  public iris.syncrecord.server.data_type.SyncStatusDTO synchronizeDataSource( @javax.annotation.Nonnull final String mappingSourceCode )
   {
     if ( !_inSync )
     {
       _inSync = true;
       try
       {
-        if ( isFeatureEnabled( dataSourceCode + ".syncEnabled" ) )
+        if ( isFeatureEnabled( mappingSourceCode + ".syncEnabled" ) )
         {
-          return performSynchronization( dataSourceCode );
+          return performSynchronization( mappingSourceCode );
         }
         else
         {
-          return createDisabledSyncStatus( dataSourceCode );
+          return createDisabledSyncStatus( mappingSourceCode );
         }
       }
       finally
@@ -54,91 +58,128 @@ public class <%= data_module.sync.sync_ejb_name %>
     }
     else
     {
-      return createAlreadyActiveSyncStatus( dataSourceCode );
+      return createAlreadyActiveSyncStatus( mappingSourceCode );
     }
   }
 
-  private iris.syncrecord.server.data_type.SyncStatusDTO performSynchronization( @javax.annotation.Nonnull final String dataSourceCode )
+  private iris.syncrecord.server.data_type.SyncStatusDTO performSynchronization( @javax.annotation.Nonnull final String mappingSourceCode )
   {
-    final iris.syncrecord.server.service.SynchronizationRecorder recorder = startSynchronization( dataSourceCode );
+    final iris.syncrecord.server.service.SynchronizationRecorder recorder = startSynchronization( mappingSourceCode );
 
+    recorder.incMetric( "Duration", 0 );
 <% data_module.sync.entities_to_synchronize.each do |entity| -%>
     recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.AddCount", 0 );
     recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.RemoveCount", 0 );
     recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.UpdateCount", 0 );
+    recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.RemoveDuration", 0 );
+    recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.UpdateDuration", 0 );
 <% end -%>
 
-    log( dataSourceCode, "Synchronizing data" );
+    log( mappingSourceCode, "Synchronizing data" );
+    final long syncStartAt = System.currentTimeMillis();
     try
     {
 <% data_module.sync.entities_to_synchronize.reverse.each do |entity| -%>
       {
-        log( dataSourceCode, "Synchronizing <%= entity.data_module.name %>.<%= entity.name %> removals" );
-        synchronize<%= entity.data_module.name %><%= entity.name %>Removals( dataSourceCode, recorder );
+        final long entityStartAt = System.currentTimeMillis();
+        log( mappingSourceCode, "Synchronizing <%= entity.data_module.name %>.<%= entity.name %> removals" );
+        mark<%= entity.data_module.name %><%= entity.name %>RemovalsPreSync( mappingSourceCode, recorder );
+        synchronize<%= entity.data_module.name %><%= entity.name %>Removals( mappingSourceCode, recorder );
         final int removeCount = recorder.getMetricValue( "<%= entity.data_module.name %>.<%= entity.name %>.RemoveCount" ).get();
-        log( dataSourceCode, "Removed " + removeCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
+        log( mappingSourceCode, "Removed " + removeCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
+        final long entityEndAt = System.currentTimeMillis();
+        log( mappingSourceCode, "Synchronization of <%= entity.qualified_name %> removals completed in " + ( entityEndAt - entityStartAt ) + "ms" );
+        recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.RemoveDuration", (int) ( entityEndAt - entityStartAt ) );
       }
 <% end -%>
 <% data_module.sync.entities_to_synchronize.each do |entity| -%>
       {
-        log( dataSourceCode, "Synchronizing <%= entity.data_module.name %>.<%= entity.name %> adds and updates" );
-        synchronize<%= entity.data_module.name %><%= entity.name %>Updates( dataSourceCode, recorder );
+        final long entityStartAt = System.currentTimeMillis();
+        log( mappingSourceCode, "Synchronizing <%= entity.qualified_name %> adds and updates" );
+        synchronize<%= entity.data_module.name %><%= entity.name %>Updates( mappingSourceCode, recorder );
+        mark<%= entity.data_module.name %><%= entity.name %>RemovalsPreSync( mappingSourceCode, recorder );
         final int addCount = recorder.getMetricValue( "<%= entity.data_module.name %>.<%= entity.name %>.AddCount" ).get();
         final int updateCount = recorder.getMetricValue( "<%= entity.data_module.name %>.<%= entity.name %>.UpdateCount" ).get();
-        log( dataSourceCode, "Added " + addCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
-        log( dataSourceCode, "Updated " + updateCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
+        log( mappingSourceCode, "Added " + addCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
+        log( mappingSourceCode, "Updated " + updateCount + " <%= entity.data_module.name %>.<%= entity.name %> instances" );
+        final long entityEndAt = System.currentTimeMillis();
+        log( mappingSourceCode, "Synchronization of <%= entity.qualified_name %> adds and updated completed in " + ( entityEndAt - entityStartAt ) + "ms" );
+        recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.UpdateDuration", (int) ( entityEndAt - entityStartAt ) );
       }
 <% end -%>
-      log( dataSourceCode, "Successfully synchronized data" );
+      log( mappingSourceCode, "Successfully synchronized data" );
     }
     catch ( final Throwable e )
     {
       recordSyncError( recorder, SYNC_ERROR_CODE, e );
-      log( dataSourceCode, "Synchronisation of data failed", e );
+      log( mappingSourceCode, "Synchronisation of data failed", e );
     }
     finally
     {
+      final long syncEndAt = System.currentTimeMillis();
+      recorder.incMetric( "Duration", (int) ( syncEndAt - syncStartAt ) );
       completeSynchronization( recorder );
     }
     return toSyncStatus( recorder );
   }
 
-  private void log( final String dataSourceCode, final String message )
+  private void log( final String mappingSourceCode, final String message )
   {
-    log( dataSourceCode, message, null );
+    log( mappingSourceCode, message, null );
   }
 
-  private void log( final String dataSourceCode, final String message, final Throwable t )
+  private void log( final String mappingSourceCode, final String message, final Throwable t )
   {
-    final String prefix = dataSourceCode + ": ";
+    final String prefix = mappingSourceCode + ": ";
     LOG.log( java.util.logging.Level.INFO, prefix + message, t );
   }
 <% data_module.sync.entities_to_synchronize.each do |entity| -%>
 
   @java.lang.SuppressWarnings( "unchecked" )
   @javax.annotation.Nonnull
-  private java.util.List<Object[]> query<%= entity.data_module.name %><%= entity.name %>Updates( @javax.annotation.Nonnull final String dataSourceCode )
+  private java.util.List<Object[]> query<%= entity.data_module.name %><%= entity.name %>Updates( @javax.annotation.Nonnull final String mappingSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
     throws Exception
   {
     _transaction.begin();
     try
     {
-      final String sql = _context.getSqlToRetrieve<%= entity.data_module.name %><%= entity.name %>ListToUpdate( dataSourceCode );
+      final String sql = _context.getSqlToRetrieve<%= entity.data_module.name %><%= entity.name %>ListToUpdate( mappingSourceCode );
       final javax.persistence.Query query = _entityManager.createNativeQuery( sql );
-      query.setParameter( 1, dataSourceCode );
+      query.setParameter( 1, mappingSourceCode );
       return query.getResultList();
+    }
+    catch ( final Exception e )
+    {
+      recordSyncError( recorder, 1, "Error retrieving set of <%= entity.qualified_name %> to update", e );
+      _transaction.setRollbackOnly();
+      throw e;
     }
     finally
     {
-      _transaction.commit();
+      if( javax.transaction.Status.STATUS_MARKED_ROLLBACK == _transaction.getStatus() )
+      {
+        _transaction.rollback();
+      }
+      else if( javax.transaction.Status.STATUS_ACTIVE == _transaction.getStatus() )
+      {
+        _transaction.commit();
+      }
     }
   }
 
-  private void synchronize<%= entity.data_module.name %><%= entity.name %>Updates( @javax.annotation.Nonnull final String dataSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
+  private void synchronize<%= entity.data_module.name %><%= entity.name %>Updates( @javax.annotation.Nonnull final String mappingSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
     throws Exception
   {
-    final java.util.List<Object[]> results = query<%= entity.data_module.name %><%= entity.name %>Updates( dataSourceCode );
-
+<% if entity.sync.recursive? -%>
+    // loop to handle recursive entities
+    while( true )
+    {
+<% end -%>
+    final java.util.List<Object[]> results = query<%= entity.data_module.name %><%= entity.name %>Updates( mappingSourceCode, recorder );
+    if ( results.isEmpty() )
+    {
+      return;
+    }
     for ( final Object[] result : results )
     {
       // Start Replication "Hook"
@@ -146,11 +187,50 @@ public class <%= data_module.sync.sync_ejb_name %>
       _entityManager.flush();
       try
       {
+<% if entity.imit? || entity.attributes.any?{|a| a.reference? && a.referenced_entity.imit? } -%>
         org.realityforge.replicant.server.ee.ReplicationRequestUtil.startReplication( _registry, "synchronize<%= entity.data_module.name %><%= entity.name %>Updates", null, null );
+<% end -%>
 <% attr = entity.attributes.select{|a| a.sql? && a.jpa? && a.sync? } -%>
 <% attr.each_with_index do |a, i| -%>
-        final <%= a.jpa.java_type(:boundary) %> v_<%= a.name %> = (<%= a.jpa.java_type(:boundary) %>) result[ <%= i %> ];
+<% if a.enumeration? && a.enumeration.textual_values? -%>
+        final <%= a.jpa.java_type(:boundary) %> v_<%= a.name %> = <%= a.nullable? ? "null == result[ #{i} ] ? null : " : ''  %><%= a.jpa.java_type(:boundary) %>.valueOf( (java.lang.String) result[ <%= i %> ] );
+<% elsif a.enumeration? -%>
+        final <%= a.jpa.java_type(:boundary) %> v_<%= a.name %> = <%= a.nullable? ? "null == result[ #{i} ] ? null : " : '' %><%= a.jpa.java_type(:boundary) %>.values()[ (java.lang.Integer) result[ <%= i %> ] ];
+<% else -%>
+        final <%= a.jpa.non_primitive_java_type(:boundary) %> v_<%= a.name %> = (<%= a.jpa.non_primitive_java_type(:boundary) %>) result[ <%= i %> ];
 <% end -%>
+<% end -%>
+<% attr.select{|a|a.reference?}.each do |a| -%>
+        <%= a.jpa.non_primitive_java_type %> v_<%= a.name %>_ref = null;
+<% if a.nullable? -%>
+          if ( null == v_<%= a.name %> )
+          {
+            v_<%= a.name %>_ref = null;
+          }
+          else
+          {
+<% end -%>
+<% if a.referenced_entity.abstract? -%>
+            <%= a.jpa.java_type %> <%= a.name %>_ref = null;
+<% a.referenced_entity.concrete_subtypes.each do |subtype| -%>
+            if( null == <%= a.name %>_ref )
+            {
+              <%= a.name %>_ref = _<%= subtype.data_module.name %><%= subtype.name %>Repository.findBy<%= subtype.primary_key.name %>( v_<%= a.name %> );
+            }
+<% end -%>
+            if( null == <%= a.name %>_ref )
+            {
+              throw new IllegalStateException( "Unable to locate <%= a.referenced_entity.qualified_name %> referenced by <%= a.qualified_name %> with value " + v_<%= a.name %> );
+            }
+            v_<%= a.name %>_ref = <%= a.name %>_ref;
+<% else -%>
+            v_<%= a.name %>_ref = _<%= a.referenced_entity.data_module.name %><%= a.referenced_entity.name %>Repository.getBy<%= a.referenced_entity.primary_key.name %>( v_<%= a.name %> );
+<% end -%>
+<% if a.nullable? -%>
+          }
+<% end -%>
+<% end -%>
+
         final String v_MappingID = (String) result[ <%= attr.size %> ];
 
         final <%= entity.jpa.qualified_name %> entity;
@@ -161,24 +241,9 @@ public class <%= data_module.sync.sync_ejb_name %>
 <% if a.sync.custom_transform? -%>
           v_<%= a.name %>_ctor = _context.transform<%= entity.data_module.name %><%= entity.name %><%= a.name %>( v_<%= a.name %> );
 <% elsif a.reference? -%>
-<% if a.nullable? -%>
-          if ( null == v_<%= a.name %> )
-          {
-            v_<%= a.name %>_ctor = null;
-          }
-          else
-          {
-<% end -%>
-            final <%= a.jpa.java_type(:boundary) %> v_<%= a.name %>_ctorID = (<%= a.jpa.java_type(:boundary) %>) _entityManager.
-              createNativeQuery( "SELECT <%= a.referenced_entity.sync.master_entity.attribute_by_name( a.primary_key? ? a.entity.name : a.name ).sql.quoted_column_name %> FROM <%= a.referenced_entity.sync.master_entity.sql.qualified_table_name %> WHERE <%= data_module.sql.dialect.quote('ID') %> = ?" ).
-                setParameter( 1, v_<%= a.name %> ).
-                getSingleResult();
-            v_<%= a.name %>_ctor = _<%= a.referenced_entity.data_module.name %><%= a.referenced_entity.name %>Repository.getBy<%= a.referenced_entity.primary_key.name %>( v_<%= a.name %>_ctorID );
-<% if a.nullable? -%>
-          }
-<% end -%>
+          v_<%= a.name %>_ctor = v_<%= a.name %>_ref;
 <% else -%>
-          v_<%= a.name %>_ctor = v_<%= a.name %>;
+          v_<%= a.name %>_ctor = <% if a.primary_key? -%>_context.generate<%= entity.qualified_name.to_s.gsub('.','') %>Key( <%= attr.select{|a| !a.primary_key?}.collect{|a| "v_#{a.name}"}.join(', ') %> )<% else -%>v_<%= a.name %><% end -%>;
 <% end -%>
 <% end -%>
           entity = new <%= entity.jpa.qualified_name %>(<%= attr.select{|a|a.immutable? && !a.generated_value?}.collect{|a| "v_#{a.name}_ctor"}.join(", ") %>);
@@ -193,22 +258,7 @@ public class <%= data_module.sync.sync_ejb_name %>
           final <%= a.jpa.java_type(:boundary) %> v = _context.transform<%= entity.data_module.name %><%= entity.name %><%= a.name %>( v_<%= a.name %> );
           entity.set<%= a.name %>( v );
 <% elsif a.reference? -%>
-<% if a.nullable? -%>
-          if ( null == v_<%= a.name %> )
-          {
-            entity.set<%= a.name %>( null );
-          }
-          else
-          {
-<% end -%>
-            final <%= a.jpa.java_type(:boundary) %> v = (<%= a.jpa.java_type(:boundary) %>) _entityManager.
-              createNativeQuery( "SELECT <%= a.referenced_entity.sync.master_entity.attribute_by_name( a.referenced_entity.name ).sql.quoted_column_name %> FROM <%= a.referenced_entity.sync.master_entity.sql.qualified_table_name %> WHERE <%= data_module.sql.dialect.quote('ID') %> = ?" ).
-                setParameter( 1, v_<%= a.name %> ).
-                getSingleResult();
-            entity.set<%= a.name %>( _<%= a.referenced_entity.data_module.name %><%= a.referenced_entity.name %>Repository.getBy<%= a.referenced_entity.primary_key.name %>( v ) );
-<% if a.nullable? -%>
-          }
-<% end -%>
+          entity.set<%= a.name %>( v_<%= a.name %>_ref );
 <% else -%>
           entity.set<%= a.name %>( v_<%= a.name %> );
 <% end -%>
@@ -218,73 +268,157 @@ public class <%= data_module.sync.sync_ejb_name %>
         {
           _<%= entity.data_module.name %><%= entity.name %>Repository.persist( entity );
           _entityManager.
-            createNativeQuery( "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= entity.sync.master_entity.attribute_by_name( entity.name ).sql.quoted_column_name %> = ?, <%= data_module.sql.dialect.quote('MasterSynchronized') %> = ? WHERE <%= data_module.sql.dialect.quote('MappingID') %> = ?" ).
+            createNativeQuery( "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> = ?, <%= data_module.sql.dialect.quote('MasterSynchronized') %> = ? WHERE <%= data_module.sql.dialect.quote('MappingID') %> = ? AND <%= data_module.sql.dialect.quote('MappingSource') %> = ? AND <%= data_module.sql.dialect.quote('MasterSynchronized') %> = 0" ).
             setParameter( 1, entity.<%= getter_for(entity.primary_key) %> ).
             setParameter( 2, true ).
             setParameter( 3, v_MappingID ).
+            setParameter( 4, mappingSourceCode ).
             executeUpdate();
           recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.AddCount", 1 );
         }
         else
         {
           _entityManager.
-            createNativeQuery( "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= data_module.sql.dialect.quote('MasterSynchronized') %> = ? WHERE <%= data_module.sql.dialect.quote('MappingID') %> = ?" ).
+            createNativeQuery( "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= data_module.sql.dialect.quote('MasterSynchronized') %> = ? WHERE <%= data_module.sql.dialect.quote('MappingID') %> = ? AND <%= data_module.sql.dialect.quote('MappingSource') %> = ?" ).
             setParameter( 1, true ).
             setParameter( 2, v_MappingID ).
+            setParameter( 3, mappingSourceCode ).
             executeUpdate();
           recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.UpdateCount", 1 );
         }
         _entityManager.flush();
-        _<%= entity.data_module.name %><%= entity.name %>Repository.detach( entity );
+        _entityManager.getEntityManagerFactory().getCache().evictAll();
+      }
+      catch ( final Exception e )
+      {
+        recordSyncError( recorder, 1, "Error synchronizing <%= entity.qualified_name %> updates", e );
+        _transaction.setRollbackOnly();
+        throw e;
       }
       finally
       {
-        org.realityforge.replicant.server.ee.ReplicationRequestUtil.completeReplication( _registry, _entityManager, _endpoint );
         // End Replication "Hook"
-        _transaction.commit();
+<% if entity.imit? || entity.attributes.any?{|a| a.reference? && a.referenced_entity.imit? } -%>
+        org.realityforge.replicant.server.ee.ReplicationRequestUtil.completeReplication( _registry, _entityManager, _endpoint );
+<% end -%>
+        if( javax.transaction.Status.STATUS_MARKED_ROLLBACK == _transaction.getStatus() )
+        {
+          _transaction.rollback();
+        }
+        else if( javax.transaction.Status.STATUS_ACTIVE == _transaction.getStatus() )
+        {
+          _transaction.commit();
+        }
       }
     }
+<% if entity.sync.recursive? -%>
+    }
+<% end -%>
   }
 <% end -%>
 <% data_module.sync.entities_to_synchronize.reverse.each do |entity| -%>
 
   @java.lang.SuppressWarnings( "unchecked" )
   @javax.annotation.Nonnull
-  private java.util.List<Object[]> query<%= entity.data_module.name %><%= entity.name %>Removals( @javax.annotation.Nonnull final String dataSourceCode )
+  private java.util.List<Object[]> query<%= entity.data_module.name %><%= entity.name %>Removals( @javax.annotation.Nonnull final String mappingSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
     throws Exception
   {
     _transaction.begin();
     try
     {
-      final String sql = _context.getSqlToRetrieve<%= entity.data_module.name %><%= entity.name %>ListToRemove( dataSourceCode );
+      final String sql = _context.getSqlToRetrieve<%= entity.data_module.name %><%= entity.name %>ListToRemove( mappingSourceCode );
       final javax.persistence.Query query = _entityManager.createNativeQuery( sql );
-      query.setParameter( 1, dataSourceCode );
+      query.setParameter( 1, mappingSourceCode );
       return query.getResultList();
+    }
+    catch ( final Exception e )
+    {
+      recordSyncError( recorder, 1, "Error retrieving set of <%= entity.qualified_name %> to remove", e );
+      _transaction.setRollbackOnly();
+      throw e;
     }
     finally
     {
-      _transaction.commit();
+      if( javax.transaction.Status.STATUS_MARKED_ROLLBACK == _transaction.getStatus() )
+      {
+        _transaction.rollback();
+      }
+      else if( javax.transaction.Status.STATUS_ACTIVE == _transaction.getStatus() )
+      {
+        _transaction.commit();
+      }
     }
   }
 
-  private void synchronize<%= entity.data_module.name %><%= entity.name %>Removals( @javax.annotation.Nonnull final String dataSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
+  @java.lang.SuppressWarnings( "unchecked" )
+  private int mark<%= entity.data_module.name %><%= entity.name %>RemovalsPreSync( @javax.annotation.Nonnull final String mappingSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
     throws Exception
   {
-    final java.util.List<Object[]> results = query<%= entity.data_module.name %><%= entity.name %>Removals( dataSourceCode );
+    _transaction.begin();
+    try
+    {
+      final String sql = "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= data_module.sql.dialect.quote('MasterSynchronized') %> = 1 WHERE <%= data_module.sql.dialect.quote('MasterSynchronized') %> = 0 AND <%= entity.sync.master_entity.attribute_by_name(:DeletedAt).sql.quoted_column_name %> IS NOT NULL AND <%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> IS NULL AND <%= data_module.sql.dialect.quote('MappingSource') %> = ?";
+      final javax.persistence.Query query = _entityManager.createNativeQuery( sql );
+      query.setParameter( 1, mappingSourceCode );
+      final int count = query.executeUpdate();
+      recorder.incMetric( "<%= entity.data_module.name %>.<%= entity.name %>.UnsyncRemovals", count );
+      return count;
+    }
+    catch ( final Exception e )
+    {
+      recordSyncError( recorder, 1, "Error updating unsynchronized and removed <%= entity.qualified_name %> instances", e );
+      _transaction.setRollbackOnly();
+      throw e;
+    }
+    finally
+    {
+      if( javax.transaction.Status.STATUS_MARKED_ROLLBACK == _transaction.getStatus() )
+      {
+        _transaction.rollback();
+      }
+      else if( javax.transaction.Status.STATUS_ACTIVE == _transaction.getStatus() )
+      {
+        _transaction.commit();
+      }
+    }
+  }
+
+  private void synchronize<%= entity.data_module.name %><%= entity.name %>Removals( @javax.annotation.Nonnull final String mappingSourceCode, @javax.annotation.Nonnull final iris.syncrecord.server.service.SynchronizationRecorder recorder )
+    throws Exception
+  {
+<% if entity.sync.recursive? -%>
+    // loop to handle recursive entities
+    while( true )
+    {
+<% end -%>
+    final java.util.List<Object[]> results = query<%= entity.data_module.name %><%= entity.name %>Removals( mappingSourceCode, recorder );
+    if ( results.isEmpty() )
+    {
+      return;
+    }
     for ( final Object[] result : results )
     {
       // Start Replication "Hook"
       _transaction.begin();
       try
       {
+<% if entity.imit? || entity.attributes.any?{|a| a.reference? && a.referenced_entity.imit? } -%>
         org.realityforge.replicant.server.ee.ReplicationRequestUtil.startReplication( _registry, "synchronize<%= entity.data_module.name %><%= entity.name %>Removals", null, null );
-
+<% end -%>
         if( null != result[ 1 ] )
         {
           final <%= entity.jpa.qualified_name %> entity = _<%= entity.data_module.name %><%= entity.name %>Repository.findBy<%= entity.primary_key.name %>( ( <%= entity.primary_key.jpa.java_type(:boundary) %> ) result[ 1 ] );
           if( null != entity )
           {
+<% if entity.sync.transaction_time? -%>
+            entity.setDeletedAt( new java.util.Date() );
+<% end -%>
+<% entity.sync.references_requiring_manual_sync.each do |a| -%>
+            _context.remove<%= a.entity.data_module.name %><%= a.entity.name %>RelatedTo<%= a.referenced_entity.data_module.name %><%= a.referenced_entity.name %>Via<%= a.name %>( entity );
+<% end -%>
+<% unless entity.sync.transaction_time? -%>
             _<%= entity.data_module.name %><%= entity.name %>Repository.remove( entity );
+<% end -%>
             _entityManager.
               createNativeQuery( "UPDATE <%= entity.sync.master_entity.sql.qualified_table_name %> SET <%= data_module.sql.dialect.quote('MasterSynchronized') %> = ? WHERE <%= data_module.sql.dialect.quote('ID') %> = ?" ).
               setParameter( 1, true ).
@@ -296,13 +430,31 @@ public class <%= data_module.sync.sync_ejb_name %>
           }
         }
       }
+      catch ( final Exception e )
+      {
+        recordSyncError( recorder, 1, "Error synchronizing <%= entity.qualified_name %> removals", e );
+        _transaction.setRollbackOnly();
+        throw e;
+      }
       finally
       {
-        org.realityforge.replicant.server.ee.ReplicationRequestUtil.completeReplication( _registry, _entityManager, _endpoint );
         // End Replication "Hook"
-        _transaction.commit();
+<% if entity.imit? || entity.attributes.any?{|a| a.reference? && a.referenced_entity.imit? } -%>
+        org.realityforge.replicant.server.ee.ReplicationRequestUtil.completeReplication( _registry, _entityManager, _endpoint );
+<% end -%>
+        if( javax.transaction.Status.STATUS_MARKED_ROLLBACK == _transaction.getStatus() )
+        {
+          _transaction.rollback();
+        }
+        else if( javax.transaction.Status.STATUS_ACTIVE == _transaction.getStatus() )
+        {
+          _transaction.commit();
+        }
       }
     }
+<% if entity.sync.recursive? -%>
+    }
+<% end -%>
   }
 <% end -%>
 }

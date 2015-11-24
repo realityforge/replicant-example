@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
+<%
+ referenced_modules = data_module.xml.referenced_data_modules
+%>
 <xs:schema targetNamespace="<%= data_module.xml.namespace %>"
            version="1.0"
-<% data_module.repository.data_modules.select{|dm| dm.xml?}.each do |dm| -%>
+<% ([data_module] + referenced_modules).each do |dm| -%>
            xmlns:<%= dm.xml.prefix %>="<%= dm.xml.namespace %>"
 <% end -%>
            xmlns:xs="http://www.w3.org/2001/XMLSchema">
-<% data_module.repository.data_modules.select{|dm| dm.name != data_module.name && dm.xml?}.each do |dm| -%>
+<% referenced_modules.each do |dm| -%>
   <xs:import namespace="<%= dm.xml.namespace %>"/>
 <% end -%>
 <% data_module.enumerations.each do |enum| -%>
@@ -24,7 +26,7 @@
 <% data_module.structs.select{|s|s.xml?}.each do |struct| -%>
   <xs:element name="<%= struct.xml.name %>" type="<%= data_module.xml.prefix %>:<%= struct.name %>"/>
   <xs:complexType name="<%= struct.name %>">
-<% if !struct.fields.select{|f| f.collection? || f.struct?}.empty? -%>
+<% if !struct.fields.select{|f| f.collection? || f.struct? || f.xml.element?}.empty? -%>
     <xs:sequence>
 <% struct.fields.each do |field| -%>
 <% if field.collection? -%>
@@ -41,13 +43,15 @@
       </xs:element>
 <% elsif field.struct? -%>
       <xs:element name="<%= field.xml.name %>" type="<%= field.referenced_struct.data_module.xml.prefix %>:<%= field.referenced_struct.name %>" <%= xsd_element_occurrences(field) %>/>
+<% elsif field.xml.element? -%>
+      <xs:element name="<%= field.xml.name %>" <%= xsd_type(field) %> <%= xsd_element_occurrences(field) %>/>
 <% end -%>
 <% end -%>
     </xs:sequence>
 <% else -%>
     <xs:sequence/>
 <% end -%>
-<% struct.fields.select{|f| !f.collection? && !f.struct?}.each do |field| -%>
+<% struct.fields.select{|f| !f.collection? && !f.struct? && !f.xml.element?}.each do |field| -%>
     <xs:attribute name="<%= field.xml.name %>" <%= xsd_type(field) %> <%= xsd_attribute_use(field) %>/>
 <% end -%>
   </xs:complexType>

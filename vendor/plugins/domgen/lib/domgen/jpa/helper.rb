@@ -51,7 +51,7 @@ module Domgen
 
         if attribute.text?
           unless attribute.length.nil? && attribute.min_length.nil?
-            s << "  @javax.validation.constraints.Size( "
+            s << '  @javax.validation.constraints.Size( '
             s << "min = #{attribute.min_length} " unless attribute.min_length.nil?
             s << ", " unless attribute.min_length.nil? || !attribute.has_non_max_length?
             s << "max = #{attribute.length} " if attribute.has_non_max_length?
@@ -548,7 +548,7 @@ JAVA
       end
 
       def query_result_type(query)
-        return "int" if query.query_type != :select
+        return 'int' if query.query_type != :select
         name = query_component_result_type(query)
         return "#{nullability_annotation(false)} java.util.List<#{name}>" if query.multiplicity == :many
         "#{nullability_annotation(query.multiplicity == :zero_or_one)} #{name}"
@@ -588,7 +588,7 @@ JAVADOC
 
       def jpa_validation_in_jpa?(constraint)
         entity = constraint.entity
-        if constraint.is_a?(CodependentConstraint) || constraint.is_a?(IncompatibleConstraint)
+        if constraint.is_a?(CodependentConstraint) || constraint.is_a?(XorConstraint) || constraint.is_a?(IncompatibleConstraint)
           return constraint.attribute_names.all? { |attribute_name| a = entity.attribute_by_name(attribute_name); a.jpa? && a.jpa.persistent? }
         elsif constraint.is_a?(RelationshipConstraint)
           lhs = entity.attribute_by_name(constraint.lhs_operand)

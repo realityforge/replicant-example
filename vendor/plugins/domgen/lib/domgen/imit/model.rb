@@ -14,10 +14,44 @@
 
 module Domgen
   module Imit
+    class DefaultValues < Domgen.ParentedElement(:entity)
+      def initialize(entity, defaults, options = {}, &block)
+        raise "Attempted to define test_default on abstract entity #{entity.qualified_name}" if entity.abstract?
+        raise "Attempted to define test_default on #{entity.qualified_name} with no values" if defaults.empty?
+        defaults.keys.each do |key|
+          raise "Attempted to define test_default on #{entity.qualified_name} with key '#{key}' that is not an attribute value" unless entity.attribute_by_name?(key)
+          a = entity.attribute_by_name(key)
+          raise "Attempted to define test_default on #{entity.qualified_name} for attribute '#{key}' when attribute has no imit facet defined. Defaults = #{defaults.inspect}" unless a.imit?
+          raise "Attempted to define test_default on #{entity.qualified_name} for attribute '#{key}' when attribute when not client side. Defaults = #{defaults.inspect}" unless a.imit.client_side?
+        end
+        values = {}
+        defaults.each_pair do |k, v|
+          values[k.to_s] = v
+        end
+        @values = values
+
+        super(entity, options, &block)
+      end
+
+      def has_attribute?(name)
+        @values.keys.include?(name.to_s)
+      end
+
+      def value_for(name)
+        @values[name.to_s]
+      end
+
+      def values
+        @values.dup
+      end
+    end
+
     class ReplicationGraph < Domgen.ParentedElement(:application)
       def initialize(application, name, options, &block)
         @name = name
         @type_roots = []
+        @required_type_graphs = []
+        @dependent_type_graphs = []
         @instance_root = nil
         @outward_graph_links = Domgen::OrderedHash.new
         @inward_graph_links = Domgen::OrderedHash.new
@@ -113,6 +147,10 @@ module Domgen
         @filter ||= FilterParameter.new(self, filter_type, options, &block)
       end
 
+      def filter_parameter?
+        !@filter.nil?
+      end
+
       def filter_parameter
         @filter
       end
@@ -123,6 +161,29 @@ module Domgen
 
       def unfiltered?
         @filter.nil?
+      end
+
+      def dependent_type_graphs
+        @dependent_type_graphs.dup
+      end
+
+      def required_type_graphs
+        @required_type_graphs.dup
+      end
+
+      def require_type_graphs=(require_type_graphs)
+        require_type_graphs.each do |graph_key|
+          require_type_graph(graph_key)
+        end
+      end
+
+      def require_type_graph(graph_key)
+        graph = application.repository.imit.graph_by_name(graph_key)
+        Domgen.error("Graph '#{self.name}' requires type graph #{graph_key} but required graph is not a type graph.") if graph.instance_root?
+        Domgen.error("Graph '#{self.name}' requires self which is invalid.") if self.name.to_s == graph_key.to_s
+        Domgen.error("Graph '#{self.name}' requires type graph #{graph_key} multiple times.") if @required_type_graphs.include?(graph)
+        @required_type_graphs << graph
+        graph.send(:add_dependent_type_graph, self)
       end
 
       def post_verify
@@ -137,9 +198,39 @@ module Domgen
             Domgen.error("Graph '#{self.name}' has an outward link from '#{graph_link.imit_attribute.attribute.qualified_name}' to a filtered graph '#{target_graph.name}' but has a different filter. This is not supported.")
           end
         end if self.instance_root?
+
+        rtgs = self.required_type_graphs
+
+        entities = self.included_entities
+
+        entities.each do |entity_name|
+          entity = application.repository.entity_by_name(entity_name)
+          entity.attributes.select { |a| a.reference? && a.imit? && a.imit.client_side? && a.imit.graph_links.empty? }.each do |a|
+            referenced_entity = a.referenced_entity
+
+            # Unclear on how to handle this next scenario. Assume a subtype is visible?
+            next if referenced_entity.abstract?
+
+            # If linked entity is part of current graph then all is ok.
+            next if entities.any? { |e| e == referenced_entity.qualified_name }
+
+            # If entity is part of required type graphs then all is ok
+            next if rtgs.any? { |g| g.type_roots.include?(referenced_entity.qualified_name) }
+
+            next if self.instance_root? && self.inward_graph_links.all? do |graph_link|
+              application.repository.imit.graph_by_name(graph_link.target_graph).included_entities.any? { |e| e == referenced_entity.qualified_name }
+            end
+
+            Domgen.error("Graph '#{self.name}' has a link from '#{a.qualified_name}' to entity '#{referenced_entity.qualified_name}' that is not a instance level graph-link and is not part of any of the dependent type graphs: #{rtgs.collect { |e| e.name }.inspect} and not in current graph #{entities.inspect}.")
+          end
+        end
       end
 
       protected
+
+      def add_dependent_type_graph(graph)
+        @dependent_type_graphs << graph
+      end
 
       def register_routing_key(routing_key)
         key = routing_key.name.to_s
@@ -177,6 +268,7 @@ module Domgen
         super(imit_attribute, options, &block)
         repository.imit.graph_by_name(source_graph).send :register_outward_graph_link, self
         repository.imit.graph_by_name(target_graph).send :register_inward_graph_link, self
+        self.imit_attribute.attribute.inverse.imit.exclude_edges << target_graph
       end
 
       attr_reader :source_graph
@@ -186,11 +278,6 @@ module Domgen
 
       def path=(path)
         @path = path
-      end
-
-      def pre_verify
-        # Need to make sure the other side is a disconnected graph
-        self.imit_attribute.attribute.inverse.imit.exclude_edges << target_graph
       end
 
       def post_verify
@@ -281,7 +368,7 @@ module Domgen
       end
 
       def get_attribute_name_from_path_element?(path_element)
-        is_path_element_recursive?(path_element) ? path_element[1,path_element.length] : path_element
+        is_path_element_recursive?(path_element) ? path_element[1, path_element.length] : path_element
       end
 
       # The name of the attribute that is used in referenced entity. This
@@ -335,6 +422,11 @@ module Domgen
           return false if a.nullable?
         end
         return !a.nullable?
+      end
+
+      def post_verify
+        Domgen.error("Routing key #{self.name} on #{self.imit_attribute.attribute.qualified_name} specifies graph '#{self.graph.name}' that is not filtered.") unless self.graph.filtered?
+        Domgen.error("Routing key #{self.name} on #{self.imit_attribute.attribute.qualified_name} specifies graph '#{self.graph.name}' that entity is not currently part of.") unless self.graph.included_entities.include?(self.imit_attribute.attribute.entity.qualified_name)
       end
     end
 
@@ -439,9 +531,6 @@ module Domgen
       java_artifact :graph_enum, :comm, :shared, :imit, '#{repository.name}ReplicationGraph'
       java_artifact :session, :comm, :server, :imit, '#{repository.name}Session'
       java_artifact :session_manager, :comm, :server, :imit, '#{repository.name}SessionManagerEJB'
-      # TODO: Consider making server_session_context a regular ejb service created in pre_verify
-      java_artifact :server_session_context, :comm, :server, :imit, '#{repository.name}SessionContext'
-      java_artifact :server_session_context_test, :comm, :server, :imit, 'Abstract#{repository.name}SessionContextEJBTest'
       java_artifact :session_exception_mapper, :rest, :server, :imit, '#{repository.name}BadSessionExceptionMapper'
       java_artifact :router_interface, :comm, :server, :imit, '#{repository.name}Router'
       java_artifact :router_impl, :comm, :server, :imit, '#{repository.name}RouterImpl'
@@ -465,6 +554,14 @@ module Domgen
 
       def qualified_client_session_context_impl_name
         "#{qualified_client_session_context_name}Impl"
+      end
+
+      def abstract_session_context_impl_name
+        qualified_abstract_session_context_impl_name.gsub(/^.*\.([^.]+)$/, '\1')
+      end
+
+      def qualified_abstract_session_context_impl_name
+        "#{repository.service_by_name(self.session_context_service).ejb.qualified_service_name.gsub(/^(.*)\.([^.]+$)/, '\1.Abstract\2Impl')}"
       end
 
       def extra_test_modules
@@ -519,19 +616,30 @@ module Domgen
       end
 
       def subscription_manager=(subscription_manager)
+        Domgen.error('subscription_manager invalid. Expected to be in format DataModule.ServiceName') if self.subscription_manager.to_s.split('.').length != 2
         @subscription_manager = subscription_manager
       end
 
       def subscription_manager
-        @subscription_manager
+        @subscription_manager || "#{self.imit_control_data_module}.SubscriptionService"
       end
 
       def invalid_session_exception=(invalid_session_exception)
+        Domgen.error('invalid_session_exception invalid. Expected to be in format DataModule.Exception') if invalid_session_exception.to_s.split('.').length != 2
         @invalid_session_exception = invalid_session_exception
       end
 
       def invalid_session_exception
-        @invalid_session_exception
+        @invalid_session_exception || "#{self.imit_control_data_module}.BadSession"
+      end
+
+      def session_context_service=(session_context_service)
+        Domgen.error('invalid_session_exception invalid. Expected to be in format DataModule.SessionContext') if session_context_service.to_s.split('.').length != 2
+        @session_context_service = session_context_service
+      end
+
+      def session_context_service
+        @session_context_service || "#{self.imit_control_data_module}.SessionContext"
       end
 
       def imit_control_data_module=(imit_control_data_module)
@@ -539,7 +647,7 @@ module Domgen
       end
 
       def imit_control_data_module
-        @imit_control_data_module
+        @imit_control_data_module || (self.repository.data_module_by_name?(self.repository.name) ? self.repository.name : Domgen.error('imit_control_data_module unspecified and unable to derive default.'))
       end
 
       def pre_verify
@@ -547,46 +655,136 @@ module Domgen
         if self.graphs.size == 0
           Domgen.error('imit facet enabled but no graphs defined')
         end
-        if self.imit_control_data_module.nil? && self.repository.data_module_by_name?(self.repository.name)
-          self.imit_control_data_module = self.repository.name
-        end
-        if self.subscription_manager.nil?
-          if self.imit_control_data_module
-            self.subscription_manager = "#{self.imit_control_data_module}.SubscriptionService"
-          else
-            Domgen.error('subscription_manager not specified (and unable to be derived) when graphs defined')
-          end
-        end
-        sm_name_parts = self.subscription_manager.to_s.split('.')
-        Domgen.error('subscription_manager invalid. Expected to be in format DataModule.ServiceName') if sm_name_parts.length != 2
-        self.repository.data_module_by_name(sm_name_parts[0]).service(sm_name_parts[1]) do |s|
-          (s.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
-            s.disable_facet(facet_key) if s.facet_enabled?(facet_key)
+
+        self.repository.exception(self.invalid_session_exception) unless self.repository.exception_by_name?(self.invalid_session_exception)
+        self.repository.exception_by_name(self.invalid_session_exception).tap do |e|
+          e.ejb.rollback = false
+          (e.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
+            e.disable_facet(facet_key) if e.facet_enabled?(facet_key)
           end
         end
 
-        if self.invalid_session_exception.nil?
-          if self.imit_control_data_module
-            self.invalid_session_exception = "#{self.imit_control_data_module}.BadSession"
-          else
-            Domgen.error('invalid_session_exception not specified (and unable to be derived) when graphs defined')
+        self.repository.service(self.session_context_service) unless self.repository.service_by_name?(self.session_context_service)
+        self.repository.service_by_name(self.session_context_service).tap do |s|
+          (s.all_enabled_facets - [:java, :ee, :ejb]).each do |facet_key|
+            s.disable_facet(facet_key) if s.facet_enabled?(facet_key)
+          end
+          repository.imit.graphs.each do |graph|
+            s.method("FilterMessageOfInterestIn#{graph.name}Graph") do |m|
+              m.parameter(:Message, 'org.realityforge.replicant.server.EntityMessage')
+              m.parameter(:Session, self.repository.imit.qualified_session_name)
+              if graph.instance_root?
+                entity = repository.entity_by_name(graph.instance_root)
+                m.parameter("#{entity.name}#{entity.primary_key.name}", entity.primary_key.jpa.non_primitive_java_type)
+              end
+              m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph)) if graph.filter_parameter?
+
+              if graph.filtered?
+                graph.routing_keys.each do |routing_key|
+                  options =
+                    {
+                      :collection_type => routing_key.multivalued? ? :sequence : :none,
+                      :nullable => !graph.instance_root? || !(routing_key.imit_attribute.attribute.entity.qualified_name == graph.instance_root)
+                    }
+                  options[:referenced_entity] = routing_key.target_attribute.referenced_entity if routing_key.target_attribute.reference?
+                  options[:referenced_struct] = routing_key.target_attribute.referenced_struct if routing_key.target_attribute.struct?
+                  m.parameter(routing_key.target_attribute.qualified_name.gsub('.', ''),
+                              routing_key.target_attribute.attribute_type,
+                              options)
+                end
+              end
+
+              m.returns('org.realityforge.replicant.server.EntityMessage', :nullable => true)
+            end
+          end
+
+          repository.imit.graphs.each do |graph|
+            if !graph.instance_root?
+              if graph.cacheable? && graph.external_cache_management?
+                s.method("Get#{graph.name}CacheKey") do |m|
+                  m.returns(:text, :nullable => true)
+                end
+              end
+              if graph.filter_parameter? && !graph.filter_parameter.immutable?
+                s.method("CollectForFilterChange#{graph.name}") do |m|
+                  m.parameter(:Messages, 'org.realityforge.replicant.server.EntityMessageSet')
+                  m.parameter(:OriginalFilter, graph.filter_parameter.filter_type, filter_options(graph))
+                  m.parameter(:CurrentFilter, graph.filter_parameter.filter_type, filter_options(graph))
+                end
+              end
+              if graph.external_data_load? || graph.filter_parameter?
+                s.method("Collect#{graph.name}") do |m|
+                  m.parameter(:Messages, 'org.realityforge.replicant.server.EntityMessageSet')
+                  m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph))
+                end
+              end
+            else
+              if graph.filter_parameter?
+                unless graph.filter_parameter.immutable?
+                  s.method("CollectForFilterChange#{graph.name}") do |m|
+                    m.parameter(:Messages, 'org.realityforge.replicant.server.EntityMessageSet')
+                    m.reference(graph.instance_root, :name => :Entity)
+                    m.parameter(:OriginalFilter, graph.filter_parameter.filter_type, filter_options(graph))
+                    m.parameter(:CurrentFilter, graph.filter_parameter.filter_type, filter_options(graph))
+                  end
+                end
+
+                graph.reachable_entities.collect { |n| repository.entity_by_name(n) }.select { |entity| entity.imit? && entity.concrete? }.each do |entity|
+                  outgoing_links = entity.referencing_attributes.select { |a| a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && a.inverse.imit.replication_edges.include?(graph.name) }
+                  outgoing_links.each do |a|
+                    if a.inverse.multiplicity == :many
+                      s.method("Get#{a.inverse.attribute.qualified_name.gsub('.','')}In#{graph.name}Graph") do |m|
+                        m.reference(a.referenced_entity.qualified_name, :name => :Entity)
+                        m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph))
+                        m.returns(:reference, :referenced_entity => a.entity.qualified_name, :collection_type => :sequence)
+                      end
+                    elsif a.inverse.multiplicity == :one || a.inverse.multiplicity == :zero_or_one
+                      s.method("Get#{a.inverse.attribute.qualified_name.gsub('.','')}In#{graph.name}Graph") do |m|
+                        m.reference(a.referenced_entity.qualified_name, :name => :Entity)
+                        m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph))
+                        m.returns(:reference, :referenced_entity => a.entity.qualified_name, :nullable => (a.inverse.multiplicity == :zero_or_one))
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+
+          processed = []
+          repository.imit.graphs.select { |g| g.instance_root? }.collect { |g| g.inward_graph_links }.flatten.each do |graph_link|
+            source_graph = repository.imit.graph_by_name(graph_link.source_graph)
+            target_graph = repository.imit.graph_by_name(graph_link.target_graph)
+            next unless target_graph.filtered?
+            key = "#{graph_link.source_graph}=>#{graph_link.target_graph}"
+            next if processed.include?(key)
+            processed << key
+            instance_root = repository.entity_by_name(target_graph.instance_root)
+
+            s.method(:"ShouldFollowLinkFrom#{graph_link.source_graph}To#{target_graph.name}") do |m|
+              m.reference(instance_root.qualified_name, :name => :Entity)
+              m.parameter(:Filter, source_graph.filter_parameter.filter_type, filter_options(source_graph))
+              m.returns(:boolean)
+            end
+
+            s.method(:"GetLinksToUpdateFor#{graph_link.source_graph}To#{target_graph.name}") do |m|
+              m.reference(repository.entity_by_name(source_graph.instance_root).qualified_name, :name => :Entity)
+              m.parameter(:Filter, source_graph.filter_parameter.filter_type, filter_options(source_graph))
+              m.returns(:reference, :referenced_entity => instance_root, :collection_type => :sequence)
+            end
           end
         end
-        e_name_parts = self.invalid_session_exception.to_s.split('.')
-        Domgen.error('invalid_session_exception invalid. Expected to be in format DataModule.Exception') if e_name_parts.length != 2
-        exception_data_module = self.repository.data_module_by_name(e_name_parts[0])
-        e = exception_data_module.exception_by_name?(e_name_parts[1]) ? exception_data_module.exception_by_name(e_name_parts[1]) : exception_data_module.exception(e_name_parts[1])
-        e.ejb.rollback = false
-        (e.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
-          e.disable_facet(facet_key) if e.facet_enabled?(facet_key)
-        end
-        repository.service_by_name(self.subscription_manager).tap do |s|
+
+        self.repository.service(self.subscription_manager) unless self.repository.service_by_name?(self.subscription_manager)
+        self.repository.service_by_name(self.subscription_manager).tap do |s|
+          (s.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
+            s.disable_facet(facet_key) if s.facet_enabled?(facet_key)
+          end
           s.ejb.standard_implementation = false
+
+          s.method(:RemoveIdleSessions, 'ejb.schedule.hour' => '*', 'ejb.schedule.minute' => '*', 'ejb.schedule.second' => '30')
+
           repository.imit.graphs.each do |graph|
-            filter_options = {}
-            if graph.filtered? && graph.filter_parameter.filter_type == :struct
-              filter_options[:referenced_struct] = graph.filter_parameter.referenced_struct
-            end
             s.method(:"SubscribeTo#{graph.name}") do |m|
               m.string(:ClientID, 50)
               if graph.cacheable?
@@ -595,14 +793,14 @@ module Domgen
                 m.returns(:boolean)
               end
               m.reference(graph.instance_root) if graph.instance_root?
-              m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options) if graph.filtered?
+              m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph)) if graph.filtered?
               m.exception(self.invalid_session_exception)
             end
             if graph.filtered? && !graph.filter_parameter.immutable?
               s.method(:"Update#{graph.name}Subscription") do |m|
                 m.string(:ClientID, 50)
                 m.reference(graph.instance_root) if graph.instance_root?
-                m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options)
+                m.parameter(:Filter, graph.filter_parameter.filter_type, filter_options(graph))
                 m.exception(self.invalid_session_exception)
               end
             end
@@ -631,11 +829,11 @@ module Domgen
         end
       end
 
-      def post_verify
+      def post_complete
         index = 0
         repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
           data_module.entities.each do |entity|
-            if entity.imit? && !entity.abstract?
+            if entity.imit? && entity.concrete?
               entity.imit.transport_id = index
               index += 1
             end
@@ -661,6 +859,21 @@ module Domgen
 
       private
 
+      def filter_options(graph)
+        filter_options = {}
+        if graph.filter_parameter?
+          filter_options =
+            {
+              :collection_type => graph.filter_parameter.collection_type,
+              :nullable => graph.filter_parameter.nullable?
+            }
+          filter_options[:referenced_entity] = graph.filter_parameter.referenced_entity if graph.filter_parameter.reference?
+          filter_options[:referenced_struct] = graph.filter_parameter.referenced_struct if graph.filter_parameter.struct?
+        end
+        filter_options
+      end
+
+
       def register_graph(name, graph)
         graph_map[name.to_s] = graph
       end
@@ -677,7 +890,7 @@ module Domgen
       attr_writer :short_test_code
 
       def short_test_code
-        Domgen::Naming.split_into_words(data_module.name.to_s).collect{|w|w[0,1]}.join.downcase
+        @short_test_code || Domgen::Naming.split_into_words(data_module.name.to_s).collect { |w| w[0, 1] }.join.downcase
       end
 
       java_artifact :mapper, :entity, :client, :imit, '#{data_module.name}Mapper'
@@ -686,7 +899,7 @@ module Domgen
       attr_writer :test_factory_name
 
       def test_factory_name
-        @test_factory_name || abstract_test_factory_name.gsub(/^Abstract/,'')
+        @test_factory_name || abstract_test_factory_name.gsub(/^Abstract/, '')
       end
 
       def qualified_test_factory_name
@@ -779,6 +992,14 @@ module Domgen
         graph.type_roots.concat([k.to_s]) if :type == replication_type
       end
 
+      def test_create_default(defaults)
+        (@test_create_defaults ||= []) << Domgen::Imit::DefaultValues.new(entity, defaults)
+      end
+
+      def test_create_defaults
+        @test_create_defaults.nil? ? [] : @test_create_defaults.dup
+      end
+
       #
       # subgraph_roots are parts of the graph that are exposed by encoder
       # Useful when collecting entities when a filter is present
@@ -802,7 +1023,7 @@ module Domgen
         entity.data_module.repository.imit.graphs.select do |graph|
           (graph.instance_root? && graph.reachable_entities.include?(entity.qualified_name.to_s)) ||
             (!graph.instance_root? && graph.type_roots.include?(entity.qualified_name.to_s)) ||
-            entity.attributes.any? { |a| a.imit? && a.imit.routing_keys.any?{|routing_key|routing_key.graph.name.to_s == graph.name.to_s} }
+            entity.attributes.any? { |a| a.imit? && a.imit.routing_keys.any? { |routing_key| routing_key.graph.name.to_s == graph.name.to_s } }
         end
       end
 
@@ -817,7 +1038,7 @@ module Domgen
         end
       end
 
-      def post_verify
+      def pre_verify
         if entity.data_module.repository.imit.auto_register_change_listener? && entity.jpa?
           entity.jpa.entity_listeners << entity.data_module.repository.imit.qualified_change_listener_name
         end
@@ -851,7 +1072,7 @@ module Domgen
 
       def routing_key(graph, options = {})
         params = options.dup
-        name = params.delete(:name) || attribute.qualified_name.gsub('.','_')
+        name = params.delete(:name) || attribute.qualified_name.gsub('.', '_')
         routing_keys_map["#{graph}#{name}"] = Domgen::Imit::RoutingKey.new(self, name, graph, params)
       end
 
@@ -871,15 +1092,12 @@ module Domgen
 
       include Domgen::Java::ImitJavaCharacteristic
 
-      def pre_verify
-        self.graph_links.each do |graph_link|
-          graph_link.pre_verify
-        end
-      end
-
       def post_verify
         self.graph_links.each do |graph_link|
           graph_link.post_verify
+        end
+        self.routing_keys.each do |routing_key|
+          routing_key.post_verify
         end
       end
 

@@ -21,7 +21,11 @@ Domgen::TypeDB.config_element('jpa.pgsql') do
 end
 
 Domgen::TypeDB.config_element('jpa') do
-  attr_accessor :converter
+  attr_writer :converter
+
+  def converter(dialect)
+    @converter || (dialect.is_a?(Domgen::Mssql::MssqlDialect) ? self.mssql.converter : self.pgsql.converter)
+  end
 end
 
 [:point, :multipoint, :linestring, :multilinestring, :polygon, :multipolygon, :geometry,
@@ -33,6 +37,53 @@ end
 
 module Domgen
   module JPA
+    class DefaultValues < Domgen.ParentedElement(:entity)
+      def initialize(entity, defaults, options = {}, &block)
+        raise "Attempted to define test_default on abstract entity #{entity.qualified_name}" if entity.abstract?
+        raise "Attempted to define test_default on #{entity.qualified_name} with no values" if defaults.empty?
+        defaults.keys.each do |key|
+          raise "Attempted to define test_default on #{entity.qualified_name} with key '#{key}' that is not an attribute value" unless entity.attribute_by_name?(key)
+          a = entity.attribute_by_name(key)
+          raise "Attempted to define test_default on #{entity.qualified_name} for attribute '#{key}' when attribute has no jpa facet defined. Defaults = #{defaults.inspect}" unless a.jpa?
+          raise "Attempted to define test_default on #{entity.qualified_name} for attribute '#{key}' when attribute when non persistent. Defaults = #{defaults.inspect}" unless a.jpa.persistent?
+          raise "Attempted to define test_default on #{entity.qualified_name} for attribute '#{key}' when attribute when generated. Defaults = #{defaults.inspect}" if a.generated_value?
+        end
+        values = {}
+        defaults.each_pair do |k, v|
+          values[k.to_s] = v
+        end
+        @values = values
+
+        super(entity, options, &block)
+      end
+
+      def has_attribute?(name)
+        @values.keys.include?(name.to_s)
+      end
+
+      def value_for(name)
+        @values[name.to_s]
+      end
+
+      def values
+        @values.dup
+      end
+    end
+
+    class UpdateDefaultValues < DefaultValues
+      attr_writer :factory_method_name
+
+      def factory_method_name
+        @factory_method_name.nil? ? "update#{entity.name}" : @factory_method_name
+      end
+
+      def force_refresh?
+        @force_refresh.nil? ? false : !!@force_refresh
+      end
+
+      attr_writer :force_refresh
+    end
+
     module BaseJpaField
       def cascade
         @cascade || []
@@ -136,10 +187,16 @@ module Domgen
         @base_entity_test_name || abstract_entity_test_name.gsub(/^Abstract/,'')
       end
 
+      attr_writer :standalone
+
+      def standalone?
+        @standalone.nil? ? true : !!@standalone
+      end
+
       attr_writer :data_source
 
       def data_source
-        @data_source || "jdbc/#{repository.name}"
+        @data_source || "#{Domgen::Naming.underscore(repository.name)}/jdbc/#{repository.name}"
       end
 
       attr_writer :exclude_unlisted_classes
@@ -148,7 +205,11 @@ module Domgen
         @exclude_unlisted_classes.nil? ? true : @exclude_unlisted_classes
       end
 
-      attr_accessor :provider
+      attr_writer :provider
+
+      def provider
+        @provider.nil? ? :eclipselink : @provider
+      end
 
       def provider_class
         return 'org.eclipse.persistence.jpa.PersistenceProvider' if provider == :eclipselink
@@ -160,9 +221,23 @@ module Domgen
         @persistence_file_fragments ||= []
       end
 
+      def resolved_persistence_file_fragments
+        self.persistence_file_fragments.collect do |fragment|
+          repository.resolve_file(fragment)
+        end
+      end
+
       def orm_file_fragments
         @orm_file_fragments ||= []
       end
+
+      def resolved_orm_file_fragments
+        self.orm_file_fragments.collect do |fragment|
+          repository.resolve_file(fragment)
+        end
+      end
+
+      attr_accessor :default_jpql_criterion
     end
 
     facet.enhance(DataModule) do
@@ -172,7 +247,7 @@ module Domgen
       attr_writer :short_test_code
 
       def short_test_code
-        Domgen::Naming.split_into_words(data_module.name.to_s).collect{|w|w[0,1]}.join.downcase
+        @short_test_code || Domgen::Naming.split_into_words(data_module.name.to_s).collect{|w|w[0,1]}.join.downcase
       end
 
       java_artifact :abstract_test_factory, :test, :server, :jpa, 'Abstract#{data_module.name}Factory', :sub_package => 'util'
@@ -198,10 +273,18 @@ module Domgen
       def server_internal_dao_entity_package
         "#{server_entity_package}.dao.internal"
       end
+
+      attr_writer :default_jpql_criterion
+
+      def default_jpql_criterion
+        @default_jpql_criterion.nil? ? data_module.repository.jpa.default_jpql_criterion : @default_jpql_criterion
+      end
     end
 
     facet.enhance(DataAccessObject) do
       include Domgen::Java::BaseJavaGenerator
+
+      attr_accessor :persistence_unit_name
 
       def transaction_type
         @transaction_type || :mandatory
@@ -227,7 +310,9 @@ module Domgen
       attr_writer :table_name
 
       def table_name
-        @table_name || entity.sql.table_name
+        return @table_name unless @table_name.nil?
+        Domgen.error("Attempted to call 'jpa.table_name' on subclass #{entity.qualified_name}") unless entity.extends.nil?
+        entity.sql.view? ? entity.sql.view_name : entity.sql.table_name
       end
 
       attr_writer :jpql_name
@@ -244,7 +329,9 @@ module Domgen
       def cacheable?
         return @cacheable unless @cacheable.nil?
         return true if entity.read_only?
-        entity.attributes.all?{|a| a.immutable? || a.primary_key? }
+        # Eclipselink caches entity instances so all referenced and referencing entities must also be cacheable
+        # This is to expensive to calculate so we require explicit configuration except in the most obvious of cases
+        entity.referencing_attributes.empty? && entity.attributes.all?{|a| (a.immutable? || a.primary_key?) && !a.reference?  }
       end
 
       attr_writer :detachable
@@ -257,10 +344,34 @@ module Domgen
         @entity_listeners ||= []
       end
 
+      def test_create_default(defaults)
+        (@test_create_defaults ||= []) << Domgen::JPA::DefaultValues.new(entity, defaults)
+      end
+
+      def test_create_defaults
+        @test_create_defaults.nil? ? [] : @test_create_defaults.dup
+      end
+
+      def test_update_default(defaults, options = {})
+        test_config = Domgen::JPA::UpdateDefaultValues.new(entity, defaults, options)
+        (@test_update_defaults ||= []) << test_config
+        test_config
+      end
+
+      def test_update_defaults
+        @test_update_defaults.nil? ? [] : @test_update_defaults.dup
+      end
+
+      attr_writer :default_jpql_criterion
+
+      def default_jpql_criterion
+        @default_jpql_criterion.nil? ? entity.data_module.jpa.default_jpql_criterion : @default_jpql_criterion
+      end
+
       def pre_verify
-        entity.query(:FindAll, 'jpa.standard_query' => true)
-        entity.query("FindBy#{entity.primary_key.name}", 'jpa.standard_query' => true)
-        entity.query("GetBy#{entity.primary_key.name}", 'jpa.standard_query' => true)
+        entity.query(:FindAll, 'jpa.standard_query' => true, 'jpa.jpql' => self.default_jpql_criterion)
+        entity.query("FindBy#{entity.primary_key.name}")
+        entity.query("GetBy#{entity.primary_key.name}")
         entity.queries.select { |query| query.jpa? && query.jpa.no_ql? }.each do |query|
           jpql = ''
           query_text = nil
@@ -268,6 +379,7 @@ module Domgen
           query_text = $1 if query.name =~ /^[fF]indBy(.+)$/
           query_text = $1 if query.name =~ /^[gG]etBy(.+)$/
           query_text = $1 if query.name =~ /^[dD]eleteBy(.+)$/
+          query_text = $1 if query.name =~ /^[cC]ountBy(.+)$/
           next unless query_text
 
           entity_prefix = 'O.'
@@ -275,24 +387,40 @@ module Domgen
           while true
             if query_text =~ /(.+)(And|Or)(.+)/
               parameter_name = $3
-              query_text = $1
-              if !entity.attribute_exists?(parameter_name)
-                jpql = nil
-                break
-              end
               operation = $2.upcase
-              jpql = "#{operation} #{entity_prefix}#{Domgen::Naming.camelize(parameter_name)} = :#{parameter_name} #{jpql}"
+              query_text = $1
+              if entity.attribute_by_name?(parameter_name)
+                jpql = "#{operation} #{entity_prefix}#{Domgen::Naming.camelize(parameter_name)} = :#{parameter_name} #{jpql}"
+              else
+                # Handle parameters that are the primary keys of related entities
+                found = false
+                entity.attributes.select{|a|a.reference? && a.referencing_link_name == parameter_name }.each do |a|
+                  jpql = "#{operation} #{entity_prefix}#{Domgen::Naming.camelize(a.name)}.#{Domgen::Naming.camelize(a.referenced_entity.primary_key.name)} = :#{parameter_name} #{jpql}"
+                  found = true
+                end
+                unless found
+                  jpql = nil
+                  break
+                end
+              end
             else
               parameter_name = query_text
-              if !entity.attribute_exists?(parameter_name)
-                jpql = nil
-                break
+              if entity.attribute_by_name?(parameter_name)
+                jpql = "#{entity_prefix}#{Domgen::Naming.camelize(parameter_name)} = :#{parameter_name} #{jpql}"
+              else
+                # Handle parameters that are the primary keys of related entities
+                found = false
+                entity.attributes.select{|a|a.reference? && a.referencing_link_name == parameter_name }.each do |a|
+                  jpql = "#{entity_prefix}#{Domgen::Naming.camelize(a.name)}.#{Domgen::Naming.camelize(a.referenced_entity.primary_key.name)} = :#{parameter_name} #{jpql}"
+                  found = true
+                end
+                jpql = nil unless found
               end
-              jpql = "#{entity_prefix}#{Domgen::Naming.camelize(parameter_name)} = :#{parameter_name} #{jpql}"
               break
             end
           end
           if jpql
+            jpql = "(#{jpql}) AND (#{self.default_jpql_criterion})" if self.default_jpql_criterion
             query.jpa.jpql = jpql
             query.jpa.standard_query = true
           end
@@ -301,6 +429,11 @@ module Domgen
     end
 
     facet.enhance(EnumerationSet) do
+      def converter_name
+        raise "converter_name invoked for #{enumeration.qualified_name} when no converter required" unless requires_converter?
+        "#{enumeration.ee.qualified_name}$Converter"
+      end
+
       def requires_converter?
         enumeration.textual_values? && enumeration.values.any?{|v| v.name != v.value}
       end
@@ -326,13 +459,9 @@ module Domgen
 
       def converter
         return nil if attribute.reference?
-        return "#{attribute.enumeration.ee.qualified_name}$Converter" if attribute.enumeration? && attribute.enumeration.jpa.requires_converter?
+        return attribute.enumeration.jpa.converter_name if attribute.enumeration? && attribute.enumeration.jpa.requires_converter?
         return nil if attribute.enumeration?
-        @converter ||
-          attribute.characteristic_type.jpa.converter ||
-          (attribute.sql.dialect.is_a?(Domgen::Mssql::MssqlDialect) ?
-            attribute.characteristic_type.jpa.mssql.converter :
-            attribute.characteristic_type.jpa.pgsql.converter)
+        @converter || attribute.characteristic_type.jpa.converter(attribute.sql.dialect)
       end
 
       def field_name
@@ -414,12 +543,24 @@ module Domgen
 
         expected_parameters = query_parameters.uniq
         expected_parameters.each do |parameter_name|
-          if !query.parameter_exists?(parameter_name) && query.entity.attribute_exists?(parameter_name)
-            attribute = query.entity.attribute_by_name(parameter_name)
-            characteristic_options = {}
-            characteristic_options[:enumeration] = attribute.enumeration if attribute.enumeration?
-            characteristic_options[:referenced_entity] = attribute.referenced_entity if attribute.reference?
-            query.parameter(attribute.name, attribute.attribute_type, characteristic_options)
+          if !query.parameter_by_name?(parameter_name) && (query.dao.repository? || query.result_entity?)
+            if query.entity.attribute_by_name?(parameter_name)
+              attribute = query.entity.attribute_by_name(parameter_name)
+              characteristic_options = {}
+              characteristic_options[:enumeration] = attribute.enumeration if attribute.enumeration?
+              characteristic_options[:referenced_entity] = attribute.referenced_entity if attribute.reference?
+              query.parameter(attribute.name, attribute.attribute_type, characteristic_options)
+            else
+              # Handle parameters that are the primary keys of related entities
+              query.entity.attributes.select { |a| a.reference? && a.referencing_link_name == parameter_name }.each do |a|
+                attribute = a.referenced_entity.primary_key
+                characteristic_options = {}
+                characteristic_options[:enumeration] = attribute.enumeration if attribute.enumeration?
+                characteristic_options[:referenced_entity] = attribute.referenced_entity if attribute.reference?
+                a.referenced_entity.primary_key
+                query.parameter(parameter_name, attribute.attribute_type, characteristic_options)
+              end
+            end
           end
         end
 
@@ -513,16 +654,24 @@ module Domgen
 
       def query_string
         order_by_clause = order_by ? " ORDER BY #{order_by}" : ""
-        criteria_clause = "#{no_ql? ? '' : "WHERE "}#{ql}"
         q = nil
         if self.query_spec == :statement
           q = self.ql
         elsif self.query_spec == :criteria
+          criteria_clause = "#{no_ql? ? '' : "WHERE "}#{ql}"
           if query.query_type == :select
-            if self.native?
-              q = "SELECT O.* FROM #{derive_table_name} O #{criteria_clause}#{order_by_clause}"
+            if query.name =~ /^[cC]ount(.*)$/
+              if self.native?
+                q = "SELECT COUNT(O.*) FROM #{derive_table_name} O #{criteria_clause}"
+              else
+                q = "SELECT COUNT(O) FROM #{derive_table_name} O #{criteria_clause}"
+              end
             else
-              q = "SELECT O FROM #{derive_table_name} O #{criteria_clause}#{order_by_clause}"
+              if self.native?
+                q = "SELECT O.* FROM #{derive_table_name} O #{criteria_clause}#{order_by_clause}"
+              else
+                q = "SELECT O FROM #{derive_table_name} O #{criteria_clause}#{order_by_clause}"
+              end
             end
           elsif query.query_type == :update
             Domgen.error('The combination of query.query_type == :update and query_spec == :criteria is not supported')
