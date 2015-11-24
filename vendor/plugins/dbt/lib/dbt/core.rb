@@ -54,6 +54,7 @@ class Dbt
   def self.add_artifact_based_database(database_key, artifact, options = {})
     add_database(database_key) do |database|
       database.rake_integration = false
+      database.packaged = true
       define_tasks_for_artifact_database(database, artifact, options)
     end
   end
@@ -67,7 +68,7 @@ class Dbt
       begin
         return Dbt.configuration_for_key(database_key, env).build_jdbc_url(:credentials_inline => true)
       rescue
-        info("Unable to determine jdbc url from #{Dbt::Config.config_filename} as configuration is not present.")
+        info("Unable to determine jdbc url for key '#{database_key}' in environment '#{env}' from #{Dbt::Config.config_filename} as configuration is not present.")
         return default_value
       end
     else

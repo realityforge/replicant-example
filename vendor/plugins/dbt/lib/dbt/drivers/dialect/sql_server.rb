@@ -172,6 +172,8 @@ ORDER BY t.Ordinal, t.Name
       end
 
       def drop(database, configuration)
+        execute('SET DEADLOCK_PRIORITY HIGH')
+        execute("EXEC msdb.dbo.sp_delete_database_backuphistory @database_name = N'#{configuration.catalog_name}'")
         if configuration.force_drop?
           execute(<<SQL)
   IF EXISTS

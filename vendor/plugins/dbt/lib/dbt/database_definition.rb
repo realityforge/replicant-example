@@ -45,7 +45,7 @@ class Dbt #nodoc
       super(key, options, &block)
     end
 
-    def add_import(import_key, import_config = {})
+    def add_import(import_key = :default, import_config = {})
       @imports[import_key.to_s] = ImportDefinition.new(self, import_key, import_config)
     end
 
@@ -100,8 +100,14 @@ class Dbt #nodoc
       @rake_integration.nil? ? true : @rake_integration
     end
 
+    attr_writer :packaged
+
+    def packaged?
+      @packaged.nil? ? false : @packaged
+    end
+
     def task_prefix
-      raise "task_prefix invoked" unless enable_rake_integration?
+      raise 'task_prefix invoked' unless enable_rake_integration? || packaged?
       "#{Dbt::Config.task_prefix}#{Dbt::Config.default_database?(self.key) ? '' : ":#{self.key}"}"
     end
 
@@ -162,6 +168,12 @@ class Dbt #nodoc
 
     attr_accessor :resource_prefix
 
+    attr_writer :local_repository
+
+    def local_repository?
+      @local_repository.nil? ? true : @local_repository
+    end
+
     attr_writer :search_dirs
 
     def search_dirs
@@ -200,6 +212,10 @@ class Dbt #nodoc
     # List of datasets that should be defined.
     def datasets
       @datasets || []
+    end
+
+    def add_datasets(*datasets)
+      (@datasets ||= []).concat(datasets)
     end
 
     attr_writer :separate_import_task

@@ -206,9 +206,24 @@ TXT
     end
 
     def emit_fixture(fixture_filename, records)
+      if !records.respond_to?(:values)
+        # Old versions of JRuby do not support values
+        records.each do |record|
+          record[1].each do |k, v|
+            record[1][k] = db.convert_value_for_fixture(v)
+          end
+        end
+      else
+        records.values.each do |row|
+          row.each_pair do |k, v|
+            row[k] = db.convert_value_for_fixture(v)
+          end
+        end
+      end
+
       FileUtils.mkdir_p File.dirname(fixture_filename)
       File.open(fixture_filename, 'wb') do |file|
-        file.write records.to_yaml
+        file.write records.to_yaml.gsub(/ *$/,'')
       end
     end
 
@@ -251,7 +266,9 @@ TXT
             definition.merge!(RepositoryDefinition.new.from_yaml(content))
           end
 
-          raise "#{Dbt::Config.repository_config_file} not located in base directory of database search path and no modules defined" unless processed_config_file
+          if database.local_repository? && processed_config_file.nil?
+            raise "#{Dbt::Config.repository_config_file} not located in base directory of database search path and no modules defined"
+          end
 
           database.repository.merge!(definition)
         end
@@ -331,7 +348,7 @@ TXT
         migration_name = File.basename(filename, '.sql')
         if [:record, :force].include?(action) || db.should_migrate?(database.key.to_s, migration_name)
           should_run = (:record != action && !(version_index && version_index >= i))
-          run_sql_file(database, "Migration: ", filename, false) if should_run
+          run_sql_file(database, 'Migration: ', filename, false) if should_run
           db.mark_migration_as_run(database.key.to_s, migration_name)
         end
       end
@@ -450,12 +467,12 @@ TXT
 
       prefix = relative_dir.gsub("/./","").gsub(/\/\.$/,"")
       matcher = /^#{prefix}\/[^\/]*\.#{extension}$/
-      index_filename = "#{prefix}#{Dbt::Config.index_file_name}"
+      index_filename = "#{prefix}/#{Dbt::Config.index_file_name}"
       database.post_db_artifacts.each do |artifact|
         pkg = Dbt.cache.package(artifact)
         if pkg.files.include?(index_filename)
           content = pkg.contents(index_filename)
-          index += content.readlines.collect { |filename| filename.strip }
+          index += content.split.collect { |filename| filename.strip }
         end
         file_additions = pkg.files.select { |f| f =~ matcher }.collect { |f| "zip:#{artifact}:#{f}" }
         file_additions.each do |f|

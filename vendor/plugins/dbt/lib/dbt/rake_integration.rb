@@ -30,23 +30,9 @@ class Dbt #nodoc
       desc 'Verify constraints on database.'
       task "#{task_prefix}:verify_constraints" => ["#{task_prefix}:load_config"] do
         Dbt.banner('Verifying database', key)
+        repository = get_domgen_repository(repository_key)
+
         failed_constraints = []
-
-        repository = nil
-        if repository_key
-          repository = Domgen.repository_by_name(repository_key)
-          if Domgen.repositorys.size == 1
-            Domgen.warn("Dbt database #{key} specifies a repository_key parameter in the domgen integration but it can be be derived as there is only a single repository. The parameter should be removed.")
-          end
-        elsif repository_key.nil?
-          repositorys = Domgen.repositorys
-          if repositorys.size == 1
-            repository = repositorys[0]
-          else
-            Domgen.error("Dbt database #{key} does not specify a repository_key parameter and it can not be derived. Candidate repositories include #{repositorys.collect { |r| r.name }.inspect}")
-          end
-        end
-
         repository.data_modules.select { |data_module| data_module.sql? }.each do |data_module|
           failed_constraints += Dbt.runtime.query(self, "EXEC #{data_module.sql.schema}.spCheckConstraints")
         end
@@ -57,6 +43,42 @@ class Dbt #nodoc
           raise error_message
         end
         Dbt.banner('Database verified', key)
+      end
+
+      task "#{task_prefix}:emit_standard_imports" => ["#{task_prefix}:prepare"] do
+        base_dir = ENV['IMPORTS_OUTPUT_DIR'] || 'tmp/imports'
+
+        Dbt.banner("Emit standard imports to IMPORTS_OUTPUT_DIR=#{base_dir}", key)
+
+        repository = get_domgen_repository(repository_key)
+
+        repository.data_modules.select { |data_module| data_module.sql? }.each do |data_module|
+          data_module.entities.select{|entity| entity.sql? && entity.concrete? && !entity.sql.load_from_fixture? }.each do |entity|
+            file = File.expand_path("#{base_dir}/#{data_module.name}/import/#{entity.sql.qualified_table_name.to_s.gsub('[','').gsub(']','').gsub('"','')}.sql")
+            FileUtils.mkdir_p File.dirname(file)
+            File.open(file, 'wb') do |f|
+              f.write <<-SQL
+INSERT INTO @@TARGET@@.#{entity.sql.qualified_table_name}(#{entity.attributes.select{|a|a.sql?}.collect{|a|a.sql.quoted_column_name }.join(', ')})
+  SELECT #{entity.attributes.select{|a|a.sql?}.collect{|a|a.sql.quoted_column_name }.join(', ')}
+  FROM @@SOURCE@@.#{entity.sql.qualified_table_name}
+              SQL
+            end
+          end
+        end
+      end
+    end
+
+    def add_pre_db_artifacts(*artifacts)
+      ::Buildr.artifacts(artifacts).each do |a|
+        self.pre_db_artifacts << a.to_s
+        task "#{self.task_prefix}:pre_build" => [a]
+      end
+    end
+
+    def add_post_db_artifacts(*artifacts)
+      ::Buildr.artifacts(artifacts).each do |a|
+        self.post_db_artifacts << a.to_s
+        task "#{self.task_prefix}:pre_build" => [a]
       end
     end
 
@@ -72,16 +94,37 @@ class Dbt #nodoc
         end
       end
     end
+
+    private
+
+    def get_domgen_repository(repository_key)
+      if repository_key
+        repository = Domgen.repository_by_name(repository_key)
+        if Domgen.repositorys.size == 1
+          Domgen.warn("Dbt database #{key} specifies a repository_key parameter in the domgen integration but it can be be derived as there is only a single repository. The parameter should be removed.")
+        end
+        return repository
+      elsif repository_key.nil?
+        repositorys = Domgen.repositorys
+        if repositorys.size == 1
+          return repositorys[0]
+        else
+          Domgen.error("Dbt database #{key} does not specify a repository_key parameter and it can not be derived. Candidate repositories include #{repositorys.collect { |r| r.name }.inspect}")
+        end
+      end
+    end
   end
 
   private
 
   def self.define_tasks_for_artifact_database(database, artifact, options)
+    self.define_common_tasks_for_database(database)
+
     extra_actions = options[:extra_actions] || []
     (%w(create drop) + extra_actions).each do |action|
       desc "#{action} the #{database.key} database"
-      task "dbt:#{database.key}:#{action}" do
-        banner('Creating database from package', database.key)
+      task "#{database.task_prefix}:#{action}" => ["#{database.task_prefix}:prepare"] do
+        banner("Running #{action} on package", database.key)
         a = ::Buildr.artifact(artifact)
         a.invoke
         Java::Commands.java '-jar',
@@ -97,7 +140,7 @@ class Dbt #nodoc
     end
   end
 
-  def self.define_tasks_for_database(database)
+  def self.define_common_tasks_for_database(database)
     self.define_basic_tasks
     task "#{database.task_prefix}:load_config" => ["#{Dbt::Config.task_prefix}:global:load_config"]
 
@@ -113,11 +156,17 @@ class Dbt #nodoc
 
     task "#{database.task_prefix}:pre_build" => ["#{Dbt::Config.task_prefix}:all:pre_build"]
 
-    task "#{database.task_prefix}:prepare_fs" => ["#{database.task_prefix}:pre_build"] do
-      @@runtime.load_database_config(database)
-    end
+    task "#{database.task_prefix}:prepare_fs" => ["#{database.task_prefix}:pre_build"]
 
     task "#{database.task_prefix}:prepare" => ["#{database.task_prefix}:load_config", "#{database.task_prefix}:prepare_fs"]
+  end
+
+  def self.define_tasks_for_database(database)
+    self.define_common_tasks_for_database(database)
+
+    task "#{database.task_prefix}:prepare_fs" do
+      @@runtime.load_database_config(database)
+    end
 
     desc "Create the #{database.key} database."
     task "#{database.task_prefix}:create" => ["#{database.task_prefix}:prepare"] do
@@ -218,10 +267,24 @@ class Dbt #nodoc
   end
 
   def self.define_basic_tasks
-    if !@@defined_init_tasks
-      task "#{Dbt::Config.task_prefix}:global:load_config" do
+    unless @@defined_init_tasks
+      task "#{Dbt::Config.task_prefix}:global:load_config" => [Dbt::Config.config_filename] do
         unless @@repository.load_configuration_data
           raise "unable to load database configuration data."
+        end
+      end
+
+      task Dbt::Config.config_filename do
+        target = Dbt::Config.config_filename
+        unless File.exist?(target)
+          target_ext = File.extname(target)
+          if '' != target_ext
+            source = "#{target[0, target.size-target_ext.size]}.example#{target_ext}"
+            if File.exist?(source)
+              @@runtime.info("Copying sample configuration file from #{source} to #{target}")
+              FileUtils.cp source, target
+            end
+          end
         end
       end
 
