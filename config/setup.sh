@@ -35,8 +35,8 @@ if [ "$R" != 'yes' ]; then
   asadmin restart-domain tyrell
 fi
 
-asadmin delete-jdbc-resource jdbc/Tyrell
-asadmin delete-jdbc-connection-pool TyrellPool
+asadmin delete-jdbc-resource tyrell/jdbc/Tyrell
+asadmin delete-jdbc-connection-pool tyrell/jdbc/TyrellConnectionPool
 
 asadmin create-jdbc-connection-pool\
   --datasourceclassname org.postgresql.ds.PGSimpleDataSource\
@@ -45,8 +45,8 @@ asadmin create-jdbc-connection-pool\
   --validationmethod auto-commit\
   --ping true\
   --description "Tyrell Connection Pool"\
-  --property "ServerName=127.0.0.1:User=${USER}:Password=letmein:PortNumber=5432:DatabaseName=${USER}_TYRELL_DEV" TyrellPool
-asadmin create-jdbc-resource --connectionpoolid TyrellPool jdbc/Tyrell
+  --property "ServerName=127.0.0.1:User=${USER}:Password=letmein:PortNumber=5432:DatabaseName=${USER}_TYRELL_DEV" tyrell/jdbc/TyrellConnectionPool
+asadmin create-jdbc-resource --connectionpoolid tyrell/jdbc/TyrellConnectionPool tyrell/jdbc/Tyrell
 
 asadmin set domain.resources.jdbc-connection-pool.TyrellPool.property.JDBC30DataSource=true
 
