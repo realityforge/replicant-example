@@ -24,7 +24,7 @@ define 'replicant-example' do
   compile.options.lint = 'all'
 
   # Expanded "imit" template_set to avoid bringing in test classes
-  Domgen::Build.define_generate_task([:ee, :gwt, :gwt_rpc, :imit])
+  Domgen::Build.define_generate_task([:ee, :gwt, :gwt_rpc, :imit_shared, :imit_server_service, :imit_server_entity, :imit_client_service, :imit_client_entity])
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
