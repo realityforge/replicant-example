@@ -10,12 +10,12 @@ Domgen.repository(:Tyrell) do |repository|
   repository.java.base_package = 'org.realityforge.replicant.example'
 
   repository.imit.graph(:MetaData, :cacheable => true)
-  repository.imit.graph(:RosterList)
-  repository.imit.graph(:ShiftList)
-  repository.imit.graph(:Shift)
-  repository.imit.graph(:People)
-  repository.imit.graph(:Person)
-  repository.imit.graph(:PersonDetails)
+  repository.imit.graph(:RosterList, :require_type_graphs => [:MetaData])
+  repository.imit.graph(:ShiftList, :require_type_graphs => [:MetaData])
+  repository.imit.graph(:Shift, :require_type_graphs => [:MetaData])
+  repository.imit.graph(:People, :require_type_graphs => [:MetaData])
+  repository.imit.graph(:Person, :require_type_graphs => [:MetaData])
+  repository.imit.graph(:PersonDetails, :require_type_graphs => [:MetaData])
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|
