@@ -66,6 +66,8 @@ define 'replicant-example' do
 
   ipr.add_glassfish_configuration(project, :server_name => 'Payara 4.1.154', :domain => 'tyrell', :exploded => [project.name])
 
+  ipr.add_component_from_artifact(:idea_codestyle)
+
   ipr.add_gwt_configuration(project,
                             :gwt_module => 'org.realityforge.replicant.example.ExampleDev',
                             :vm_parameters => '-Xmx3G',
