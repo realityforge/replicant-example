@@ -1,14 +1,14 @@
 {
-  "vendor/plugins/dbt": {
+  "vendor/tools/dbt": {
     "url": "https://github.com/realityforge/dbt.git",
-    "remote": "master/braid/vendor/plugins/dbt",
+    "remote": "master/braid/vendor/tools/dbt",
     "branch": "master",
     "squashed": true,
     "revision": "7d744acb677fff02a0c61fce6c5b6323eae13b94"
   },
-  "vendor/plugins/domgen": {
+  "vendor/tools/domgen": {
     "url": "https://github.com/realityforge/domgen.git",
-    "remote": "master/braid/vendor/plugins/domgen",
+    "remote": "master/braid/vendor/tools/domgen",
     "branch": "master",
     "squashed": true,
     "revision": "e26bf6990815aca4e81b2eb23a266c60558ce830"
