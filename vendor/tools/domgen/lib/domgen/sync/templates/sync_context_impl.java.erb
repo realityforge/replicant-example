@@ -8,12 +8,23 @@ package <%= to_package(data_module.sync.qualified_sync_context_impl_name) %>;
 <code>
 <pre>
 @Singleton( name = SynchronizationContext.NAME )
-@TransactionManagement( TransactionManagementType.BEAN )
+@TransactionAttribute( TransactionAttributeType.NOT_SUPPORTED )
 @ConcurrencyManagement( ConcurrencyManagementType.BEAN )
 @Local( SynchronizationContext.class )
 public class SynchronizationContextEJB
   extends AbstractSynchronizationContext
 {
+<%
+data_module.repository.data_module_by_name(data_module.repository.sync.master_data_module).sync.entities_to_synchronize.collect do |e|
+  e.sync.references_requiring_manual_sync.each do |a|
+%>
+  @TransactionAttribute( TransactionAttributeType.REQUIRED )
+  @Override
+  public void remove<%= a.entity.data_module.name %><%= a.entity.name %>RelatedTo<%= a.referenced_entity.data_module.name %><%= a.referenced_entity.name %>Via<%= a.name %>(...) {...}
+<%
+  end
+end
+%>
 }
 </pre>
 </code>
@@ -43,7 +54,7 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
     {
 <% end -%>
       return (Integer) _entityManager.
-        createNativeQuery( "SELECT <%= entity.sync.master_entity.attribute_by_name( attribute.primary_key? ? attribute.entity.name : attribute.name ).sql.quoted_column_name %> FROM <%= entity.sync.master_entity.sql.qualified_table_name %> WHERE <%= data_module.sql.dialect.quote('MasterID') %> = ?1" ).
+        createNativeQuery( "<%= j_escape_string( "SELECT #{ entity.sync.master_entity.attribute_by_name( attribute.primary_key? ? attribute.entity.name : attribute.name ).sql.quoted_column_name } FROM #{ entity.sync.master_entity.sql.qualified_table_name } WHERE #{ data_module.sql.dialect.quote('MasterID') } = ?1" ) %>" ).
         setParameter( 1, value ).
         getSingleResult();
 <% if attribute.nullable? -%>
@@ -64,12 +75,8 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
   }
 <% end -%>
 
-  @javax.annotation.Nonnull
-  @java.lang.Override
-  public String getSqlToRetrieve<%= fn %>ListToUpdate( @javax.annotation.Nonnull final String mappingSourceCode )
-  {
 <%
-  common_criteria = "M.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 0 AND M.#{entity.sync.master_entity.attribute_by_name(:MappingSource).sql.quoted_column_name} = ?"
+  common_criteria = "M.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = #{entity.sql.dialect.false_sql} AND M.#{entity.sync.master_entity.attribute_by_name(:MappingSource).sql.quoted_column_name} = ?"
   criteria = "#{common_criteria} AND M.#{entity.sync.master_entity.attribute_by_name(:DeletedAt).sql.quoted_column_name} IS NULL"
   remove_criteria = "#{common_criteria} AND M.#{entity.sync.master_entity.attribute_by_name(:DeletedAt).sql.quoted_column_name} IS NOT NULL"
   create_criteria = ''
@@ -98,14 +105,14 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
     if a.referenced_entity.abstract?
       ids = []
       a.referenced_entity.concrete_subtypes.each_with_index do |subtype, index|
-        joins += "      \" LEFT JOIN #{subtype.sql.qualified_table_name} R#{ref_index}#{index} ON R#{ref_index}#{index}.#{subtype.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}#{index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 1 \" +\n"
+        joins += "      \" #{ j_escape_string("LEFT JOIN #{subtype.sql.qualified_table_name} R#{ref_index}#{index} ON R#{ref_index}#{index}.#{subtype.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}#{index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = #{entity.sql.dialect.true_sql}") } \" +\n"
         ids << "R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name}"
       end
       if a.nullable?
         create_criteria += " AND (M.#{a.sql.quoted_column_name} IS NULL OR COALESCE(#{ids.join(', ')}) IS NOT NULL)"
       end
     else
-      joins += "      \" #{a.nullable? ? 'LEFT ' : ''}JOIN #{a.referenced_entity.sql.qualified_table_name} R#{ref_index} ON R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = 1 \" +\n"
+      joins += "      \" #{ j_escape_string("#{a.nullable? ? 'LEFT ' : ''}JOIN #{a.referenced_entity.sql.qualified_table_name} R#{ref_index} ON R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name} = M.#{a.sql.quoted_column_name} AND R#{ref_index}.#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = #{entity.sql.dialect.true_sql}") } \" +\n"
       if a.nullable?
         create_criteria += " AND (M.#{a.sql.quoted_column_name} IS NULL OR R#{ref_index}.#{a.referenced_entity.primary_key.sql.quoted_column_name} IS NOT NULL)"
       end
@@ -137,14 +144,81 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
   end
 
 -%>
+<% if entity.sync.update_via_sync? -%>
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public String getSqlToDirectlyUpdate<%= fn %>( @javax.annotation.Nonnull final String mappingSourceCode )
+  {
+<%   attr_set = entity.sync.attributes_to_update.collect {|a| a.sql.quoted_column_name } -%>
+    return
+      "UPDATE O\n" +
+      "SET\n" +
+      "  <%= j_escape_string(attr_set.collect{|a| "#{a} = M.#{a}"}.join(", ")) -%>\n" +
+      "FROM <%= j_escape_string( entity.sql.qualified_table_name ) %> O \n" +
+      "JOIN ( \n" +
+      getSqlToRetrieve<%= fn %>ListToUpdate( mappingSourceCode ) + "\n" +
+      ") M ON M.<%= j_escape_string(entity.sync.master_entity.attribute_by_name(entity.root_entity.name).sql.quoted_column_name) %> = O.<%= j_escape_string(entity.primary_key.sql.quoted_column_name) %>";
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public String getSqlToMarkUpdated<%= fn %>AsSynchronized( @javax.annotation.Nonnull final String mappingSourceCode )
+  {
+    return
+      "UPDATE O\n" +
+      "SET\n" +
+      "  <%= j_escape_string("#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = #{entity.sql.dialect.true_sql}") -%>\n" +
+      "FROM <%= j_escape_string( table ) %> O \n" +
+      "JOIN ( \n" +
+      getSqlToRetrieve<%= fn %>ListToUpdate( mappingSourceCode ) + "\n" +
+      ") M ON M.<%= j_escape_string(entity.sync.master_entity.attribute_by_name(entity.root_entity.name).sql.quoted_column_name) %> = O.<%= j_escape_string(entity.primary_key.sql.quoted_column_name) %>";
+  }
+
+<% end -%>
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public String getSqlToDirectlyDelete<%= fn %>( @javax.annotation.Nonnull final String mappingSourceCode )
+  {
+    return
+<% if entity.sync.transaction_time? -%>
+      "UPDATE O\n" +
+      "SET\n" +
+      "  <%= j_escape_string(entity.attribute_by_name(:DeletedAt).sql.quoted_column_name) %> = GETDATE()\n" +
+<% else -%>
+      "DELETE O\n" +
+<% end -%>
+      "FROM <%= j_escape_string( entity.sql.qualified_table_name ) %> O \n" +
+      "JOIN ( \n" +
+      getSqlToRetrieve<%= fn %>ListToRemove( mappingSourceCode ) + "\n" +
+      ") M ON M.<%= j_escape_string(entity.sync.master_entity.attribute_by_name(entity.root_entity.name).sql.quoted_column_name) %> = O.<%= j_escape_string(entity.primary_key.sql.quoted_column_name) %>";
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public String getSqlToMarkDeleted<%= fn %>AsSynchronized( @javax.annotation.Nonnull final String mappingSourceCode )
+  {
+    return
+      "UPDATE O\n" +
+      "SET\n" +
+      "  <%= j_escape_string("#{entity.sync.master_entity.attribute_by_name(:MasterSynchronized).sql.quoted_column_name} = #{entity.sql.dialect.true_sql}") -%>\n" +
+      "FROM <%= j_escape_string( table ) %> O \n" +
+      "JOIN ( \n" +
+      getSqlToRetrieve<%= fn %>ListToRemove( mappingSourceCode ) + "\n" +
+      ") M ON M.<%= j_escape_string(entity.sync.master_entity.attribute_by_name(entity.root_entity.name).sql.quoted_column_name) %> = O.<%= j_escape_string(entity.primary_key.sql.quoted_column_name) %>";
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public String getSqlToRetrieve<%= fn %>ListToUpdate( @javax.annotation.Nonnull final String mappingSourceCode )
+  {
     return
 <% if recursive_attributes.size <= 1 -%>
 <%= cte -%>
-      "SELECT <%= attr_select -%> " +
-      "FROM <%= table %> M " +
+      "SELECT <%= j_escape_string( attr_select ) -%> " +
+      "FROM <%= j_escape_string( table ) %> M " +
 <%= joins -%>
-      "WHERE <%= criteria %><%= create_criteria %> " +
-      "<%= order_by %>";
+      "WHERE <%= j_escape_string( criteria ) %><%= j_escape_string( create_criteria ) %> " +
+      "<%= j_escape_string( order_by ) %>";
 <% else -%>
     /*
 <%= cte -%>
@@ -165,11 +239,11 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
 <% if recursive_attributes.size <= 1 -%>
     return
 <%= cte -%>
-      "SELECT M.<%= entity.sync.master_entity.primary_key.sql.quoted_column_name %>, M.<%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> " +
-      "FROM <%= table %> M " +
-      "JOIN <%= entity.sql.qualified_table_name %> O ON M.<%= entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name %> = O.<%= entity.primary_key.sql.quoted_column_name %> " +
-      "WHERE <%= remove_criteria %> " +
-      "<%= order_by %>";
+      "<%= j_escape_string( "SELECT M.#{ entity.sync.master_entity.primary_key.sql.quoted_column_name }, M.#{ entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name } " ) %>" +
+      "<%= j_escape_string( "FROM #{ table } M " ) %>" +
+      "<%= j_escape_string( "JOIN #{ entity.sql.qualified_table_name } O ON M.#{ entity.sync.master_entity.attribute_by_name( entity.root_entity.name ).sql.quoted_column_name } = O.#{ entity.primary_key.sql.quoted_column_name } " ) %>" +
+      "<%= j_escape_string( "WHERE #{ remove_criteria } " ) %>" +
+      "<%= j_escape_string( "#{ order_by }" ) %>";
 <% else -%>
     /*
     return
@@ -182,6 +256,5 @@ public abstract class <%= data_module.sync.sync_context_impl_name %>
     throw new IllegalStateException( "Override getSqlToRetrieve<%= fn %>ListToRemove() due to multiple recursive attributes." );
 <% end -%>
   }
-
 <% end -%>
 }

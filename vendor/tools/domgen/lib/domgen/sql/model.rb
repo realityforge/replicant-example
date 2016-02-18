@@ -23,6 +23,14 @@ module Domgen
 
       attr_reader :name
       attr_accessor :sql_type
+
+      def quoted_sequence_name
+        schema.dialect.quote(self.name)
+      end
+
+      def qualified_sequence_name
+        "#{schema.quoted_schema}.#{quoted_sequence_name}"
+      end
     end
 
     class Index < Domgen.ParentedElement(:table)
@@ -1030,6 +1038,7 @@ SQL
 
       def generator_type=(generator_type)
         Domgen.error("generator_type supplied #{generator_type} not valid") unless [:none, :identity, :sequence].include?(generator_type)
+        attribute.generated_value = true
         @generator_type = generator_type
       end
 
@@ -1043,7 +1052,7 @@ SQL
 
       def sequence_name
         Domgen.error("sequence_name called on #{attribute.qualified_name} when not a sequence") unless self.sequence?
-        @sequence_name || "#{attribute.entity.sql.table_name}#{attribute.name}Seq"
+        @sequence_name || "#{attribute.entity.abstract? ? sql_name(:table, attribute.entity.name) : attribute.entity.sql.table_name}#{attribute.name}Seq"
       end
 
       def sequence_name=(sequence_name)

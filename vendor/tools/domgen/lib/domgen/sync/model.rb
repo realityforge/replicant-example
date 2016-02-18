@@ -14,8 +14,8 @@
 
 module Domgen
   class Sync
-    VALID_MASTER_FACETS = [:sql, :mssql, :ee, :ejb, :java, :jpa, :sync]
-    VALID_SYNC_TEMP_FACETS = [:sql, :mssql, :sync]
+    VALID_MASTER_FACETS = [:sql, :mssql, :pgsql, :ee, :ejb, :java, :jpa, :sync]
+    VALID_SYNC_TEMP_FACETS = [:sql, :mssql, :pgsql, :sync]
   end
 
   FacetManager.facet(:sync => [:sql]) do |facet|
@@ -68,6 +68,47 @@ module Domgen
           t.sync.synchronize = false
           t.string(:Code, 5, :primary_key => true)
         end unless master_data_module.entity_by_name?(self.mapping_source_attribute)
+
+        master_data_module.service(:SyncTempPopulationService) do |s|
+          s.disable_facets_not_in(Domgen::Sync::VALID_MASTER_FACETS)
+          if s.ejb?
+            s.ejb.generate_boundary = false
+            s.ejb.standard_implementation = false
+          end
+
+          s.method(:PreSync) do |m|
+            m.text(:MappingSourceCode)
+          end
+          s.method(:PostSync) do |m|
+            m.text(:MappingSourceCode)
+          end
+
+          master_data_module.sync.entities_to_synchronize.collect do |entity|
+            s.method("Count#{entity.qualified_name.gsub('.', '')}") do |m|
+              m.text(:MappingSourceCode)
+              m.returns(:integer)
+            end
+            s.method("Verify#{entity.qualified_name.gsub('.', '')}") do |m|
+              m.text(:MappingSourceCode)
+              m.parameter(:Recorder, 'iris.syncrecord.server.service.SynchronizationRecorder')
+            end
+            s.method("Populate#{entity.qualified_name.gsub('.', '')}") do |m|
+              m.text(:MappingSourceCode)
+              m.datetime(:At)
+              m.parameter(:Recorder, 'iris.syncrecord.server.service.SynchronizationRecorder')
+            end
+            s.method("Reset#{entity.qualified_name.gsub('.', '')}") do |m|
+              m.text(:MappingSourceCode)
+              m.datetime(:At)
+              m.parameter(:Recorder, 'iris.syncrecord.server.service.SynchronizationRecorder')
+            end
+            s.method("Finalize#{entity.qualified_name.gsub('.', '')}") do |m|
+              m.text(:MappingSourceCode)
+              m.datetime(:At)
+              m.parameter(:Recorder, 'iris.syncrecord.server.service.SynchronizationRecorder')
+            end
+          end
+        end unless master_data_module.service_by_name?(:SyncTempPopulationService)
 
         if self.sync_out_of_master?
           master_data_module.service(:SynchronizationService) do |s|
@@ -124,6 +165,25 @@ module Domgen
                 m.text(:MappingSourceCode)
                 m.returns(:text)
               end
+              if entity.sync.update_via_sync?
+                # The following methods are an in progress implementation of bulk sync actions
+                s.method(:"GetSqlToDirectlyUpdate#{entity.data_module.name}#{entity.name}") do |m|
+                  m.text(:MappingSourceCode)
+                  m.returns(:text)
+                end
+                s.method(:"GetSqlToMarkUpdated#{entity.data_module.name}#{entity.name}AsSynchronized") do |m|
+                  m.text(:MappingSourceCode)
+                  m.returns(:text)
+                end
+              end
+              s.method(:"GetSqlToDirectlyDelete#{entity.data_module.name}#{entity.name}") do |m|
+                m.text(:MappingSourceCode)
+                m.returns(:text)
+              end
+              s.method(:"GetSqlToMarkDeleted#{entity.data_module.name}#{entity.name}AsSynchronized") do |m|
+                m.text(:MappingSourceCode)
+                m.returns(:text)
+              end
               s.method(:"GetSqlToRetrieve#{entity.data_module.name}#{entity.name}ListToRemove") do |m|
                 m.text(:MappingSourceCode)
                 m.returns(:text)
@@ -163,6 +223,7 @@ module Domgen
       # Artifacts to sync into Master
       java_artifact :sync_temp_factory, :service, :server, :sync, 'SyncTempFactory'
       java_artifact :abstract_master_sync_ejb, :service, :server, :sync, 'AbstractMasterSyncServiceEJB'
+      java_artifact :abstract_sync_temp_population_impl, :service, :server, :sync, 'AbstractSyncTempPopulationServiceImpl'
       java_artifact :master_sync_service_test, :service, :server, :sync, 'AbstractMasterSyncServiceEJBTest'
 
       def entities_to_synchronize
@@ -292,6 +353,18 @@ module Domgen
         end
       end
 
+      def attributes_to_update
+        attributes_to_synchronize.select{|a|!a.immutable?}
+      end
+
+      def update_via_sync?
+        entity.attributes.select do |a|
+          a.sync? && !a.primary_key? &&
+          (!entity.sync.transaction_time? || ![:CreatedAt, :DeletedAt].include?(a.name)) &&
+            !(a.reference? && !a.referenced_entity.sync.master?)
+        end
+      end
+
       def master_data_module
         entity.data_module.repository.sync.master_data_module
       end
@@ -311,7 +384,7 @@ module Domgen
           self.entity.unique_constraints.each do |constraint|
             # Force the creation of the index with filter specified. Parallels behavious in sql facet.
             index = self.entity.sql.index(constraint.attribute_names, :unique => true)
-            index.filter = 'DeletedAt IS NULL'
+            index.filter = "#{self.entity.sql.dialect.quote(:DeletedAt)} IS NULL"
           end
         end
         self.entity.jpa.detachable = true if self.entity.jpa?
@@ -332,7 +405,11 @@ module Domgen
           e.extends = self.entity.extends
 
           if self.entity.extends.nil?
-            e.integer(:SyncTempID, :primary_key => true, :generated_value => true)
+            e.integer(:SyncTempID,
+                      :primary_key => true,
+                      :generated_value => true,
+                      'sql.generator_type' => :sequence,
+                      'sql.sequence_name' => "#{sql_name(:table, self.entity.name)}Seq")
 
             e.reference("#{self.master_data_module}.#{self.entity.data_module.repository.sync.mapping_source_attribute}", :name => :MappingSource, 'sql.column_name' => 'MappingSource', :description => 'A reference for originating system')
             e.string(:MappingKey, 255, :immutable => true, :description => 'Change to cause an instance with the same MappingID and MappingSource, to be recreated in Master.')
@@ -369,6 +446,11 @@ module Domgen
             options[:abstract] = a.abstract?
 
             e.attribute(name, attribute_type, options)
+
+            if a.reference?
+              filter = a.nullable? ? "#{e.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL" : nil
+                e.sql.index([:MappingSource, name], :filter => filter, :include_attribute_names => [:MappingKey, :MappingID])
+            end
           end
         end
 
@@ -382,23 +464,19 @@ module Domgen
           e.extends = self.entity.extends
 
           if self.entity.extends.nil?
-
-            if self.entity.direct_subtypes.empty?
-              e.integer(:ID, :primary_key => true, :generated_value => true)
-            else
-              e.integer(:ID,
-                        :primary_key => true,
-                        :generated_value => true,
-                        'sql.generator_type' => :sequence,
-                        'sql.sequence_name' => "#{self.entity.qualified_name.gsub('.', '')}Seq")
-            end
+            e.integer(:ID,
+                      :primary_key => true,
+                      :generated_value => true,
+                      'sql.generator_type' => :sequence,
+                      'sql.sequence_name' => "#{sql_name(:table, self.entity.name)}Seq")
 
             e.reference(self.entity.data_module.repository.sync.mapping_source_attribute, :name => :MappingSource, :immutable => true, 'sql.column_name' => 'MappingSource', :description => 'A reference for originating system')
             e.string(:MappingKey, 255, :immutable => true, :description => 'Uniquely defines an instance with same MappingID and MappingSource.')
             e.string(:MappingID, 50, :immutable => true, :description => 'The ID of entity in originating system')
             e.boolean(:MasterSynchronized, :description => 'Set to true if synchronized from master tables into the main data area')
 
-            e.sql.index([:MappingSource, :MappingID], :unique => true, :filter => 'DeletedAt IS NULL')
+            e.sql.index([:MappingID, :MappingKey, :MappingSource], :unique => true, :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
+            e.sql.index([:MappingSource, :MappingID], :include_attribute_names => [:ID], :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
           end
 
           self.entity.attributes.select { |a| !a.inherited? || a.primary_key? }.each do |a|
@@ -443,9 +521,15 @@ module Domgen
             if a.primary_key?
               e.sql.index([name], :unique => true, :filter => "#{e.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL")
             end
+
+            if a.reference?
+              # Create an index to speed up validity checking when column is sparsely populated
+              prefix = a.nullable? ? "#{e.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL AND " : ''
+              e.sql.index([name], :filter => "#{prefix}#{e.sql.dialect.quote(:DeletedAt)} IS NULL", :include_attribute_names => [:MappingKey, :MappingID])
+            end
           end
           self.entity.unique_constraints.each do |constraint|
-            e.sql.index(constraint.attribute_names, :unique => true, :filter => 'DeletedAt IS NULL')
+            e.sql.index(constraint.attribute_names, :unique => true, :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
           end
 
           unless entity.sync.transaction_time?
