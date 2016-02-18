@@ -45,6 +45,7 @@ class Dbt #nodoc
         Dbt.banner('Database verified', key)
       end
 
+      desc 'Support task that emits a copy of import scripts in Directory specified by IMPORTS_OUTPUT_DIR.'
       task "#{task_prefix}:emit_standard_imports" => ["#{task_prefix}:prepare"] do
         base_dir = ENV['IMPORTS_OUTPUT_DIR'] || 'tmp/imports'
 
@@ -268,23 +269,9 @@ INSERT INTO @@TARGET@@.#{entity.sql.qualified_table_name}(#{entity.attributes.se
 
   def self.define_basic_tasks
     unless @@defined_init_tasks
-      task "#{Dbt::Config.task_prefix}:global:load_config" => [Dbt::Config.config_filename] do
+      task "#{Dbt::Config.task_prefix}:global:load_config" do
         unless @@repository.load_configuration_data
-          raise "unable to load database configuration data."
-        end
-      end
-
-      task Dbt::Config.config_filename do
-        target = Dbt::Config.config_filename
-        unless File.exist?(target)
-          target_ext = File.extname(target)
-          if '' != target_ext
-            source = "#{target[0, target.size-target_ext.size]}.example#{target_ext}"
-            if File.exist?(source)
-              @@runtime.info("Copying sample configuration file from #{source} to #{target}")
-              FileUtils.cp source, target
-            end
-          end
+          raise 'unable to load database configuration data.'
         end
       end
 

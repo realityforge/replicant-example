@@ -149,15 +149,21 @@ TXT
       data_set = options[:data_set]
       init_database(database.key) do
         database.repository.modules.each do |module_name|
+          prefix = data_set ?
+              "#{base_fixture_dir}/#{module_name}/#{database.datasets_dir_name}/#{data_set}/" :
+              "#{base_fixture_dir}/#{module_name}/#{database.fixture_dir_name}/"
           database.repository.table_ordering(module_name).select{|t| filter ? filter.call(t) : true}.each do |table_name|
-            info("Dumping #{table_name}")
+            filename = "#{prefix}#{clean_table_name(table_name)}.yml"
+
+            info("Exporting fixture for #{clean_table_name(table_name)}")
             records = load_query_into_yaml(dump_table_sql(table_name))
 
-            fixture_filename =
-              data_set ?
-                "#{base_fixture_dir}/#{module_name}/#{database.datasets_dir_name}/#{data_set}/#{clean_table_name(table_name)}.yml" :
-                "#{base_fixture_dir}/#{module_name}/#{database.fixture_dir_name}/#{clean_table_name(table_name)}.yml"
-            emit_fixture(fixture_filename, records)
+            emit_fixture(filename, records)
+          end
+          database.repository.sequence_ordering(module_name).select{|t| filter ? filter.call(t) : true}.each do |sequence_name|
+            info("Dumping #{sequence_name}")
+            sequence_value = db.query(dump_sequence_sql(sequence_name))[0]['']
+            emit_yaml_file("#{prefix}#{clean_table_name(sequence_name)}.yml", sequence_value)
           end
         end
       end
@@ -186,14 +192,33 @@ TXT
 
     private
 
-    def dump_table_sql(table_name)
+    def dump_sequence_sql(table_name)
       const_name = :"DUMP_SQL_FOR_#{clean_table_name(table_name).gsub('.', '_')}"
 
-      if Object.const_defined?(const_name)
-        return Object.const_get(const_name)
-      else
-        return "SELECT * FROM #{table_name}"
-      end
+      Object.const_defined?(const_name) ? Object.const_get(const_name) : "SELECT CAST(current_value AS BIGINT) FROM sys.sequences WHERE object_id = OBJECT_ID('#{table_name}')"
+    end
+
+    def dump_table_sql(table_name)
+      clean_table_name = clean_table_name(table_name)
+      const_name = :"DUMP_SQL_FOR_#{clean_table_name.gsub('.', '_')}"
+      return Object.const_get(const_name) if Object.const_defined?(const_name)
+
+      name_split = clean_table_name.split('.')
+      schema = name_split[0]
+      table = name_split[1]
+      sql_for_primary_key = <<-SQL
+        SELECT
+          U.COLUMN_NAME
+        FROM
+          INFORMATION_SCHEMA.TABLE_CONSTRAINTS C
+        JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE U ON  U.CONSTRAINT_CATALOG = C.CONSTRAINT_CATALOG AND U.CONSTRAINT_SCHEMA = C.CONSTRAINT_SCHEMA AND U.CONSTRAINT_NAME = C.CONSTRAINT_NAME
+        WHERE C.CONSTRAINT_TYPE = 'PRIMARY KEY' AND C.TABLE_NAME = '#{table}' AND C.TABLE_SCHEMA = '#{schema}'
+        ORDER BY U.COLUMN_NAME
+      SQL
+
+      primary_keys = db.query(sql_for_primary_key).collect { |row| row['COLUMN_NAME'] }.join(',')
+
+      "SELECT * FROM #{table_name} ORDER BY #{primary_keys}"
     end
 
     def load_query_into_yaml(sql)
@@ -221,9 +246,13 @@ TXT
         end
       end
 
+      emit_yaml_file(fixture_filename, records)
+    end
+
+    def emit_yaml_file(fixture_filename, value)
       FileUtils.mkdir_p File.dirname(fixture_filename)
       File.open(fixture_filename, 'wb') do |file|
-        file.write records.to_yaml.gsub(/ *$/,'')
+        file.write value.to_yaml.gsub(/ *$/, '')
       end
     end
 
@@ -368,6 +397,8 @@ TXT
 
     def import(imp, module_name, should_perform_delete)
       ordered_tables = imp.database.repository.table_ordering(module_name)
+      ordered_sequences = imp.database.repository.sequence_ordering(module_name)
+      ordered_elements = ordered_tables + ordered_sequences
 
       # check the import configuration is set
       configuration_for_key(config_key(imp.database.key, 'import'))
@@ -381,7 +412,7 @@ TXT
       unless imp.database.load_from_classloader?
         dirs = imp.database.search_dirs.map { |d| "#{d}/#{module_name}/#{imp.dir}" }
         filesystem_files = dirs.collect { |d| Dir["#{d}/*.yml"] + Dir["#{d}/*.sql"] }.flatten.compact
-        tables.each do |table_name|
+        ordered_elements.each do |table_name|
           table_name = clean_table_name(table_name)
           sql_file = /#{table_name}.sql$/
           yml_file = /#{table_name}.yml$/
@@ -407,6 +438,15 @@ TXT
           db.pre_table_import(imp, table)
           perform_import(imp.database, module_name, table, imp.dir)
           db.post_table_import(imp, table)
+        end
+      end
+
+      ordered_sequences.each do |sequence|
+        if ENV[IMPORT_RESUME_AT_ENV_KEY] == clean_table_name(sequence)
+          ENV[IMPORT_RESUME_AT_ENV_KEY] = nil
+        end
+        unless partial_import_completed?
+          perform_sequence_update(imp.database, module_name, sequence, imp.dir)
         end
       end
 
@@ -579,12 +619,13 @@ TXT
 
           if is_fixture_style_dir
             files = collect_files(database, relative_module_dir, 'yml')
-            tables = database.repository.table_ordering(module_name).collect{|table_name| clean_table_name(table_name)}
+            tables = database.repository.ordered_elements_for_module(module_name).collect{|table_name| clean_table_name(table_name)}
             files.delete_if {|fixture| !tables.include?(File.basename(fixture,'.yml'))}
             cp_files_to_dir(files, target_dir)
           elsif is_import_dir
             files = collect_files(database, relative_module_dir, 'yml') + collect_files(database, relative_module_dir, 'sql')
-            tables = database.repository.table_ordering(module_name).collect{|table_name| clean_table_name(table_name)}
+            tables =
+                database.repository.ordered_elements_for_module(module_name).collect{|table_name| clean_table_name(table_name)}
             files.delete_if do |fixture|
               !(tables.include?(File.basename(fixture, '.yml')) ||
                 tables.include?(File.basename(fixture, '.sql')))
@@ -659,8 +700,47 @@ TXT
       sql
     end
 
+    def generate_standard_sequence_import_sql(sequence_name)
+      sql = "DECLARE @Next VARCHAR(50);\n"
+      sql += "SELECT @Next = CAST(current_value AS BIGINT) + 1 FROM @@SOURCE@@.sys.sequences WHERE object_id = OBJECT_ID('[@@SOURCE@@].#{sequence_name}');\n"
+      sql += "SET @Next = COALESCE(@Next,'1');"
+      sql += "EXEC('USE @@TARGET@@; ALTER SEQUENCE #{sequence_name} RESTART WITH ' + @Next );"
+      sql
+    end
+
+    def perform_standard_sequence_import(database, sequence_name)
+      run_import_sql(database, sequence_name, generate_standard_sequence_import_sql(sequence_name))
+    end
+
     def perform_standard_import(database, table)
       run_import_sql(database, table, generate_standard_import_sql(table))
+    end
+
+    def perform_sequence_update(database, module_name, sequence, import_dir)
+      fixture_file = try_find_file_in_module(database, module_name, import_dir, sequence, 'yml')
+      sql_file = try_find_file_in_module(database, module_name, import_dir, sequence, 'sql')
+
+      info("#{'%-15s' % module_name}: Importing #{clean_table_name(sequence)} (By #{fixture_file ? 'F' : sql_file ? 'S' : 'D'})")
+      begin
+        if fixture_file && sql_file
+          raise "Unexpectedly found both fixture (#{fixture_file}) and sql (#{sql_file}) files for #{clean_table_name(sequence)}."
+        end
+
+        if fixture_file
+          load_sequence_fixture(sequence, load_data(database, fixture_file))
+        elsif sql_file
+          run_import_sql(database, sequence, load_data(database, sql_file), sql_file, true)
+        else
+          perform_standard_sequence_import(database, sequence)
+        end
+      rescue Exception => e
+
+        heading = "Problem importing #{clean_table_name(sequence)}."
+        puts "\n#{'#' * heading.length}\n#{heading}\n#{'#' * heading.length}\n\n" +
+               "Fix the problem and retry import specifying IMPORT_RESUME_AT=#{clean_table_name(sequence)} " +
+               "on the commandline to re-attempt import from current position.\n\n"
+        raise e
+      end
     end
 
     def perform_import(database, module_name, table, import_dir)
@@ -721,6 +801,9 @@ TXT
       database.repository.table_ordering(module_name).reverse.select {|table_name| !!fixtures[table_name] }.each do |table_name|
         run_sql_batch("DELETE FROM #{table_name}")
       end
+      database.repository.sequence_ordering(module_name).reverse.select {|table_name| !!fixtures[table_name] }.each do |sequence_name|
+        load_sequence_fixture(sequence_name, 1)
+      end
     end
 
     def up_fixtures(database, module_name, fixtures)
@@ -729,6 +812,12 @@ TXT
         next unless filename
         info("#{'%-15s' % 'Fixture'}: #{clean_table_name(table_name)}")
         load_fixture(table_name, load_data(database, filename))
+      end
+      database.repository.sequence_ordering(module_name).each do |sequence_name|
+        filename = fixtures[sequence_name]
+        next unless filename
+        info("#{'%-15s' % 'Fixture'}: #{clean_table_name(sequence_name)}")
+        load_sequence_fixture(sequence_name, load_data(database, filename))
       end
     end
 
@@ -741,18 +830,19 @@ TXT
     end
 
     def collect_fixtures_from_dirs(database, module_name, subdir, fixtures)
-      unless database.load_from_classloader?
-        dirs = database.search_dirs.map { |d| "#{d}/#{module_name}#{ subdir ? "/#{subdir}" : ''}" }
-        filesystem_files = dirs.collect { |d| Dir["#{d}/*.yml"] }.flatten.compact
-        filesystem_sql_files = dirs.collect { |d| Dir["#{d}/*.sql"] }.flatten.compact
-      end
-      database.repository.table_ordering(module_name).each do |table_name|
-        if database.load_from_classloader?
+      if database.load_from_classloader?
+        database.repository.ordered_elements_for_module(module_name).each do |table_name|
           filename = module_filename(module_name, subdir, table_name, 'yml')
           if resource_present?(database, filename)
             fixtures[table_name] = filename
           end
-        else
+        end
+      else
+        dirs = database.search_dirs.map { |d| "#{d}/#{module_name}#{ subdir ? "/#{subdir}" : ''}" }
+        filesystem_files = dirs.collect { |d| Dir["#{d}/*.yml"] }.flatten.compact
+        filesystem_sql_files = dirs.collect { |d| Dir["#{d}/*.sql"] }.flatten.compact
+
+        database.repository.ordered_elements_for_module(module_name).each do |table_name|
           dirs.each do |dir|
             filename = table_name_to_fixture_filename(dir, table_name)
             filesystem_files.delete(filename)
@@ -773,14 +863,14 @@ TXT
             end
           end unless fixtures[table_name]
         end
-      end
 
-      if !database.load_from_classloader? && !filesystem_files.empty?
-        raise "Unexpected fixtures found in database search paths. Fixtures do not match existing tables. Files: #{filesystem_files.inspect}"
-      end
+        unless filesystem_files.empty?
+          raise "Unexpected fixtures found in database search paths. Fixtures do not match existing tables. Files: #{filesystem_files.inspect}"
+        end
 
-      if !database.load_from_classloader? && !filesystem_sql_files.empty?
-        raise "Unexpected sql files found in fixture directories. SQL files are not processed. Files: #{filesystem_sql_files.inspect}"
+        unless filesystem_sql_files.empty?
+          raise "Unexpected sql files found in fixture directories. SQL files are not processed. Files: #{filesystem_sql_files.inspect}"
+        end
       end
 
       fixtures
@@ -794,10 +884,20 @@ TXT
       table_name.tr('[]"' '', '')
     end
 
+    def load_yaml(content)
+      YAML::load(ERB.new(content).result)
+    end
+
+    def load_sequence_fixture(sequence_name, content)
+      yaml = content.is_a?(Fixnum) ? content : load_yaml(content)
+      # Skip empty files
+      return unless yaml
+
+      db.update_sequence(sequence_name, yaml)
+    end
+
     def load_fixture(table_name, content)
-      require 'erb'
-      require 'yaml'
-      yaml = YAML::load(ERB.new(content).result)
+      yaml = load_yaml(content)
       # Skip empty files
       return unless yaml
       # NFI
@@ -938,7 +1038,7 @@ TXT
         end
         fixtures = {}
         collect_fixtures_from_dirs(database, module_name, database.fixture_dir_name, fixtures)
-        database.repository.table_ordering(module_name).each do |table_name|
+        database.repository.ordered_elements_for_module(module_name).each do |table_name|
           files << fixtures[table_name] if fixtures[table_name]
         end
       end
@@ -948,7 +1048,7 @@ TXT
           files << collect_dir_set(database, dir)
         end
         imp.modules.each do |module_name|
-          tables = database.repository.table_ordering(module_name)
+          tables = database.repository.ordered_elements_for_module(module_name)
           tables.each do |table|
             files << try_find_file_in_module(database, module_name, imp.dir, table, 'yml')
             files << try_find_file_in_module(database, module_name, imp.dir, table, 'sql')
