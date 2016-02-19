@@ -20,6 +20,8 @@ if [ "$R" != 'yes' ]; then
   STOP_DOMAIN=true
   asadmin start-domain tyrell
   if [ "$CREATED_DOMAIN" == 'true' ]; then
+    asadmin set configs.config.server-config.java-config.debug-enabled=false
+    asadmin set configs.config.server-config.java-config.debug-options=-agentlib:jdwp=transport=dt_socket,address=43228,server=n,suspend=y
     asadmin delete-jvm-options -XX\\:MaxPermSize=192m
     asadmin delete-jvm-options -Xmx512m
     asadmin create-jvm-options -XX\\:MaxPermSize=400m
