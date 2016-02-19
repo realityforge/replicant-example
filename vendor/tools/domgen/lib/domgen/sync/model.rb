@@ -274,6 +274,19 @@ module Domgen
     end
 
     facet.enhance(Entity) do
+      def core_entity=(core_entity)
+        @core_entity = core_entity
+      end
+
+      def core_entity
+        raise "Attempted to invoke core_entity on entity #{entity.qualified_name} when not a master entity" unless core_entity?
+        @core_entity
+      end
+
+      def core_entity?
+        !@core_entity.nil?
+      end
+
       def master_entity=(master_entity)
         @master_entity = master_entity
       end
@@ -283,12 +296,8 @@ module Domgen
         @master_entity
       end
 
-      def master=(master)
-        @master = master
-      end
-
       def master?
-        @master.nil? ? false : @master
+        self.core_entity?
       end
 
       def transaction_time=(transaction_time)
@@ -359,10 +368,11 @@ module Domgen
 
       def update_via_sync?
         entity.attributes.select do |a|
-          a.sync? && !a.primary_key? &&
-          (!entity.sync.transaction_time? || ![:CreatedAt, :DeletedAt].include?(a.name)) &&
-            !(a.reference? && !a.referenced_entity.sync.master?)
-        end
+          a.sync? &&
+            !a.primary_key? &&
+            ![:MasterSynchronized, :CreatedAt, :DeletedAt].include?(a.name) &&
+            !(a.reference? && a.referenced_entity.sync? && a.referenced_entity.sync.synchronize?)
+        end.size > 0
       end
 
       def master_data_module
@@ -458,7 +468,7 @@ module Domgen
           e.disable_facets_not_in(Domgen::Sync::VALID_MASTER_FACETS)
 
           self.entity.sync.master_entity = e
-          e.sync.master = true
+          e.sync.core_entity = self
           e.abstract = self.entity.abstract?
           e.final = self.entity.final?
           e.extends = self.entity.extends
