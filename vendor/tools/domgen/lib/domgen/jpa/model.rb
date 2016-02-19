@@ -103,7 +103,11 @@ module Domgen
       end
 
       def fetch_type
-        @fetch_type || :lazy
+        @fetch_type || default_fetch_type
+      end
+
+      def default_fetch_type
+        raise 'default_fetch_type not overridden'
       end
 
       def fetch_type=(fetch_type)
@@ -307,6 +311,14 @@ module Domgen
     facet.enhance(Entity) do
       include Domgen::Java::BaseJavaGenerator
 
+      def track_changes?
+        @track_changes.nil? ? entity.imit? && entity.attributes.any?{|a|!a.immutable?} : !!@track_changes
+      end
+
+      def track_changes=(track_changes)
+        @track_changes = track_changes
+      end
+
       attr_writer :table_name
 
       def table_name
@@ -442,6 +454,10 @@ module Domgen
     facet.enhance(Attribute) do
       include Domgen::JPA::BaseJpaField
 
+      def default_fetch_type
+        attribute.reference? ? :lazy : :eager
+      end
+
       attr_writer :persistent
 
       def persistent?
@@ -512,6 +528,10 @@ module Domgen
 
     facet.enhance(InverseElement) do
       include Domgen::JPA::BaseJpaField
+
+      def default_fetch_type
+        :lazy
+      end
 
       attr_writer :orphan_removal
 
