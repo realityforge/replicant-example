@@ -9,6 +9,8 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.java.base_package = 'org.realityforge.replicant.example'
 
+  repository.ee.web_xml_fragments << 'src/main/etc/web.fragment.xml'
+
   repository.imit.graph(:MetaData, :cacheable => true)
   repository.imit.graph(:RosterList, :require_type_graphs => [:MetaData])
   repository.imit.graph(:ShiftList, :require_type_graphs => [:MetaData])
