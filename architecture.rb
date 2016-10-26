@@ -4,7 +4,6 @@ Domgen.repository(:Tyrell) do |repository|
   repository.enable_facet(:ejb)
   repository.enable_facet(:imit)
 
-  repository.jpa.provider = :eclipselink
   repository.gwt_rpc.module_name = 'example'
 
   repository.java.base_package = 'org.realityforge.replicant.example'
