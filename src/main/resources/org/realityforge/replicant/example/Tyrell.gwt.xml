@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module rename-to='example'>
-  <inherits name="org.realityforge.replicant.example.TyrellModel"/>
+  <inherits name="org.realityforge.replicant.example.modules.TyrellModelSupport"/>
   <inherits name="org.realityforge.replicant.example.modules.TyrellEntrypointSupport"/>
 
   <source path='client'/>
+  <source path='shared'/>
 </module>
