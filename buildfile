@@ -40,8 +40,8 @@ define 'replicant-example' do
 
   clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
 
-  iml.add_gwt_facet({'org.realityforge.replicant.example.ExampleDev' => false,
-                     'org.realityforge.replicant.example.Example' => false},
+  iml.add_gwt_facet({'org.realityforge.replicant.example.modules.TyrellDev' => false,
+                     'org.realityforge.replicant.example.Tyrell' => false},
                     :settings => {:compilerMaxHeapSize => '1024'},
                     :gwt_dev_artifact => :gwt_dev)
 
