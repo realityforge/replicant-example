@@ -1,8 +1,5 @@
 Domgen.repository(:Tyrell) do |repository|
-  repository.enable_facet(:jpa)
-  repository.enable_facet(:pgsql)
-  repository.enable_facet(:ejb)
-  repository.enable_facet(:imit)
+  repository.enable_facets([:jpa, :pgsql, :ejb, :jaxrs, :imit])
 
   repository.gwt_rpc.module_name = 'example'
 
@@ -135,6 +132,12 @@ JPQL
         m.reference(:Position)
         m.reference(:Person)
       end
+    end
+  end
+
+  repository.data_modules.each do |data_module|
+    data_module.services.each do |service|
+      service.disable_facet(:jaxrs) if service.jaxrs?
     end
   end
 end
