@@ -15,14 +15,14 @@
 class Dbt
   class AbstractDbConfig < Dbt::DbConfig
 
-    def initialize(key, options)
+    def initialize(key, options, &block)
       ignore_elements = options.delete('ignore_elements') || []
       ignore_elements.each do |element|
         options.delete(element)
       end
       @key = key
       @no_create = nil
-      super(options)
+      super(options, &block)
     end
 
     attr_reader :key
@@ -40,7 +40,7 @@ class Dbt
       if no_create.nil?
         @no_create = nil
       else
-        raise "no_create must be true or false" unless %w(true false).include?(no_create.to_s)
+        raise 'no_create must be true or false' unless %w(true false).include?(no_create.to_s)
         @no_create = no_create.to_s == 'true'
       end
     end

@@ -28,24 +28,28 @@ class Dbt #nodoc
       @databases.keys
     end
 
+    def database_for_key?(database_key)
+      !@databases[database_key.to_s].nil?
+    end
+
     def database_for_key(database_key)
-      database = @databases[database_key]
+      database = @databases[database_key.to_s]
       raise "Missing database for key #{database_key}" unless database
       database
     end
 
     def add_database(database_key, options = {}, &block)
-      raise "Database with key #{database_key} already defined." if @databases.has_key?(database_key)
+      raise "Database with key #{database_key} already defined." if @databases.has_key?(database_key.to_s)
 
       database = DatabaseDefinition.new(database_key, options, &block)
-      @databases[database_key] = database
+      @databases[database_key.to_s] = database
 
       database
     end
 
     def remove_database(database_key)
-      raise "Database with key #{database_key} not defined." unless @databases.has_key?(database_key)
-      @databases.delete(database_key)
+      raise "Database with key #{database_key} not defined." unless @databases.has_key?(database_key.to_s)
+      @databases.delete(database_key.to_s)
     end
 
     def configuration_for_key?(config_key)
@@ -73,8 +77,12 @@ MSG
         end
       end
       raise "Missing database configuration for key '#{config_key}'" unless c
-      configuration = Dbt::Config.driver_config_class.new(config_key, c)
-      @configurations[config_key.to_s] = configuration
+      add_configuration(config_key, c)
+    end
+
+    def add_configuration(config_key, config, &block)
+      Dbt.error("Attempting to redefine configuration for key '#{config_key}'.") if @configurations[config_key.to_s]
+      @configurations[config_key.to_s] = Dbt::Config.driver_config_class.new(config_key, config, &block)
     end
 
     def is_configuration_data_loaded?
@@ -83,12 +91,11 @@ MSG
 
     def ensure_configuration_file_present(filename)
       unless File.exist?(filename)
-        target_ext = File.extname(filename)
-        if '' != target_ext
-          source = "#{filename[0, filename.size-target_ext.size]}.example#{target_ext}"
-          if File.exist?(source)
-            Dbt.runtime.info("Copying sample configuration file from #{source} to #{filename}")
-            FileUtils.cp source, filename
+        example_filename = Dbt::Config.example_config_filename
+        if example_filename
+          if File.exist?(example_filename)
+            Dbt.runtime.info("Copying sample configuration file from #{example_filename} to #{filename}")
+            FileUtils.cp example_filename, filename
           end
         end
       end
@@ -111,6 +118,10 @@ MSG
         Dbt.runtime.info("Dbt unable to load database configuration from #{filename} as file does not exist.")
         return false
       end
+    end
+
+    def configuration_data
+      @configuration_data.dup
     end
 
     def configuration_data=(configuration_data)

@@ -37,7 +37,7 @@ class Dbt #nodoc
           @search_dirs = @migrations_dir_name = @migrations_applied_at_create =
             @rake_integration = @separate_import_task = @import_task_as_part_of_create =
               @datasets_dir_name = @fixture_dir_name = @local_repository = @packaged =
-                @database_environment_filter = @import_assert_filters = nil
+                @database_environment_filter = @import_assert_filters = @managed = nil
 
       @pre_db_artifacts = []
       @post_db_artifacts = []
@@ -97,13 +97,19 @@ class Dbt #nodoc
     attr_writer :rake_integration
 
     def enable_rake_integration?
-      @rake_integration.nil? ? true : @rake_integration
+      @rake_integration.nil? ? managed?  : @rake_integration
     end
 
     attr_writer :packaged
 
     def packaged?
       @packaged.nil? ? false : @packaged
+    end
+
+    attr_writer :extra_actions
+
+    def extra_actions
+      @extra_actions ||= []
     end
 
     def task_prefix
@@ -170,11 +176,26 @@ class Dbt #nodoc
 
     attr_writer :local_repository
 
+    # This returns true if the database has no local repository.yml
+    # This is usually true when the database is solely constructed by
+    # adding pre/post db artifacts.
     def local_repository?
       @local_repository.nil? ? true : @local_repository
     end
 
+    attr_writer :managed
+
+    # This returns true if the database lifecycle is managed by dbt.
+    # i.e. DBT can create/drop database.
+    def managed?
+      @managed.nil? ? true : @managed
+    end
+
     attr_writer :search_dirs
+
+    def search_dirs?
+      !@search_dirs.nil?
+    end
 
     def search_dirs
       @search_dirs || Dbt::Config.default_search_dirs

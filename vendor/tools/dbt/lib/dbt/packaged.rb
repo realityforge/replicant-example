@@ -14,6 +14,14 @@
 
 class Dbt #nodoc
 
+  def self.jruby_version(options)
+    options[:jruby_version] || (defined?(JRUBY_VERSION) ? JRUBY_VERSION : '1.7.2')
+  end
+
+  def self.jruby_complete_jar(options)
+    "org.jruby:jruby-complete:jar:#{jruby_version(options)}"
+  end
+
   def self.define_database_package(database_key, options = {})
     buildr_project = options[:buildr_project]
     if buildr_project.nil? && ::Buildr.application.current_scope.size > 0
@@ -22,13 +30,12 @@ class Dbt #nodoc
     raise "Unable to determine Buildr project when generating #{database_key} database package" unless buildr_project
     database = self.repository.database_for_key(database_key)
     package_dir = buildr_project._(:target, 'dbt')
-    jruby_version = options[:jruby_version] || (defined?(JRUBY_VERSION) ? JRUBY_VERSION : '1.7.2')
     include_code = options[:include_code].nil? || options[:include_code]
 
     task "#{database.task_prefix}:package" => ["#{database.task_prefix}:prepare_fs"] do
       banner('Packaging Database Scripts', database.key)
       params = options.dup
-      params[:jruby_version] = jruby_version
+      params[:jruby_version] = jruby_version(options)
       params[:include_code] = include_code
       package_database(database, package_dir, params)
     end
@@ -41,7 +48,7 @@ class Dbt #nodoc
     if include_code
       buildr_project.file("#{package_dir}/code" => "#{database.task_prefix}:package")
       dependencies =
-        ["org.jruby:jruby-complete:jar:#{jruby_version}"] +
+        [jruby_complete_jar(options)] +
           Dbt::Config.driver_config_class(:jruby => true).jdbc_driver_dependencies
 
       dependencies.each do |spec|
@@ -105,11 +112,12 @@ class Dbt #nodoc
 
   def self.package_database(database, package_dir, options)
     rm_rf package_dir
-    package_database_code(database, "#{package_dir}/code", options) if options[:include_code]
+    package_database_code(database, package_dir, options) if options[:include_code]
     self.runtime.package_database_data(database, "#{package_dir}/data")
   end
 
-  def self.package_database_code(database, package_dir, options)
+  def self.package_database_code(database, base_package_dir, options)
+    package_dir = "#{base_package_dir}/code"
     FileUtils.mkdir_p package_dir
     valid_commands = %w(status create drop)
     valid_commands << 'restore' if database.restore?
@@ -259,9 +267,20 @@ else
 end
 TXT
     end
-    jruby_version = options[:jruby_version] || (defined?(JRUBY_VERSION) ? JRUBY_VERSION : '1.7.2')
-    prefix = jruby_version ? "RBENV_VERSION=jruby-#{options[:jruby_version]} RUBYOPT= rbenv exec " : ''
-    sh "#{prefix}jrubyc --dir #{::Buildr::Util.relative_path(package_dir, Dir.pwd)} #{::Buildr::Util.relative_path(package_dir, Dir.pwd)}"
     FileUtils.cp_r Dir.glob("#{File.expand_path(File.dirname(__FILE__) + '/..')}/*"), package_dir
+
+    jar = ::Buildr.artifact(jruby_complete_jar(options))
+    dir = ::Buildr::Util.relative_path(package_dir, Dir.pwd)
+    script = "require 'jruby/jrubyc';exit(JRuby::Compiler::compile_argv(ARGV))"
+    java = Java::Commands.send(:path_to_bin, 'java')
+    command = "#{java} -jar #{jar} --disable-gems -e \"#{script}\" -- --dir #{dir} #{Dir["#{dir}/**/*.rb"].join(' ')}"
+    old_gemfile = ENV['BUNDLE_GEMFILE']
+    ENV['BUNDLE_GEMFILE'] = "#{base_package_dir}/Gemfile"
+    FileUtils.touch "#{base_package_dir}/Gemfile"
+    begin
+      sh command
+    ensure
+      ENV['BUNDLE_GEMFILE'] = old_gemfile
+    end
   end
 end

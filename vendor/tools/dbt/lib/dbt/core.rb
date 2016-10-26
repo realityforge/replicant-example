@@ -30,8 +30,16 @@ class Dbt
     @@runtime
   end
 
+  def self.database_for_key?(database_key)
+    self.repository.database_for_key?(database_key)
+  end
+
   def self.database_for_key(database_key)
     self.repository.database_for_key(database_key)
+  end
+
+  def self.configuration_for_key?(database_key, env = Dbt::Config.environment)
+    self.runtime.configuration_for_database?(database_for_key(database_key), env)
   end
 
   def self.configuration_for_key(database_key, env = Dbt::Config.environment)
@@ -55,7 +63,8 @@ class Dbt
     add_database(database_key) do |database|
       database.rake_integration = false
       database.packaged = true
-      define_tasks_for_artifact_database(database, artifact, options)
+      database.extra_actions = options[:extra_actions]
+      define_tasks_for_artifact_database(database, artifact)
     end
   end
 
