@@ -32,6 +32,11 @@ require 'domgen/render_context'
 require 'domgen/generator'
 require 'domgen/filters'
 
+ # Integration utilities
+require 'domgen/util'
+require 'domgen/zip_util'
+require 'domgen/buildr_integration'
+
 # Json
 require 'domgen/json/model'
 
@@ -69,6 +74,7 @@ require 'domgen/jaxb/generator'
 # Jackson (JSon deserialization)
 require 'domgen/jackson/model'
 require 'domgen/jackson/helper'
+require 'domgen/jackson/generator'
 
 # JPA
 require 'domgen/jpa/model'
@@ -142,3 +148,29 @@ require 'domgen/audit/generator'
 # Database level synchronization
 require 'domgen/sync/model'
 require 'domgen/sync/generator'
+
+# Some caching for gwt apps
+require 'domgen/gwt_cache_filter/model'
+
+# Some appcache generation for gwt apps
+require 'domgen/appcache/model'
+require 'domgen/appcache/generator'
+
+# timerstatus monitoring library
+require 'domgen/timerstatus/model'
+require 'domgen/timerstatus/generator'
+
+# Keycloak authentication integration
+require 'domgen/keycloak/model'
+require 'domgen/keycloak/generator'
+
+require 'domgen/appconfig/model'
+require 'domgen/appconfig/generator'
+
+require 'domgen/syncrecord/model'
+require 'domgen/syncrecord/generator'
+
+require 'domgen/mail/model'
+require 'domgen/mail/generator'
+
+require 'domgen/application/model'

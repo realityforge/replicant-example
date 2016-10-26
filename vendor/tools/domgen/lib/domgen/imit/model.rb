@@ -244,9 +244,9 @@ module Domgen
         @outward_graph_links[key] = graph_link
       end
 
-      def register_inward_graph_link(graph_link)
-        key = graph_link.imit_attribute.attribute.qualified_name.to_s
-        Domgen.error("Attempted to register duplicate inward graph link on attribute '#{graph_link.imit_attribute.attribute.qualified_name}' on graph '#{self.name}'") if @inward_graph_links[key]
+      def register_inward_graph_link(graph_link, from_graph)
+        key = "#{from_graph}-#{graph_link.imit_attribute.attribute.qualified_name.to_s}"
+        Domgen.error("Attempted to register duplicate inward graph link on attribute '#{graph_link.imit_attribute.attribute.qualified_name}' on graph '#{self.name}' from graph '#{from_graph}'") if @inward_graph_links[key]
         @inward_graph_links[key] = graph_link
       end
     end
@@ -267,7 +267,7 @@ module Domgen
         @target_graph = target_graph
         super(imit_attribute, options, &block)
         repository.imit.graph_by_name(source_graph).send :register_outward_graph_link, self
-        repository.imit.graph_by_name(target_graph).send :register_inward_graph_link, self
+        repository.imit.graph_by_name(target_graph).send :register_inward_graph_link, self, source_graph
         self.imit_attribute.attribute.inverse.imit.exclude_edges << target_graph
       end
 
@@ -289,8 +289,8 @@ module Domgen
           self.path.to_s.split.each_with_index do |attribute_name_path_element, i|
             other = entity.attribute_by_name(attribute_name_path_element)
             Domgen.error("#{prefix} #{attribute_name_path_element} is nullable") if other.nullable? && i != 0
-            Domgen.error("#{prefix} #{attribute_name_path_element} is not immutable") if !other.immutable?
-            Domgen.error("#{prefix} #{attribute_name_path_element} is not a reference") if !other.reference?
+            Domgen.error("#{prefix} #{attribute_name_path_element} is not immutable") unless other.immutable?
+            Domgen.error("#{prefix} #{attribute_name_path_element} is not a reference") unless other.reference?
             entity = other.referenced_entity
           end
         end
@@ -301,7 +301,7 @@ module Domgen
 
         # Need to make sure both graphs are instance graphs
         prefix = "Graph link from '#{self.source_graph}' to '#{self.target_graph}' via '#{self.imit_attribute.attribute.name}'"
-        Domgen.error("#{prefix} must have an instance graph on the LHS") unless source_graph.instance_root?
+        Domgen.error("#{prefix} must have an instance graph on the LHS if target graph has filter as we assume filter is propagated") unless source_graph.instance_root? || target_graph.unfiltered?
         Domgen.error("#{prefix} must have an instance graph on the RHS") unless target_graph.instance_root?
 
         # Need to make sure that the other side is the root of the graph
@@ -492,19 +492,13 @@ module Domgen
       include Domgen::Java::JavaClientServerApplication
 
       def client_ioc_package
-        repository.gwt_rpc.client_ioc_package
+        repository.gwt.client_ioc_package
       end
 
       attr_writer :server_comm_package
 
       def server_comm_package
         @server_comm_package || "#{server_package}.net"
-      end
-
-      attr_writer :server_rest_package
-
-      def server_rest_package
-        @server_rest_package || "#{server_package}.rest"
       end
 
       attr_writer :client_comm_package
@@ -519,6 +513,13 @@ module Domgen
 
       attr_writer :shared_comm_package
 
+      # TODO: Consider moving this to gwt?
+      attr_writer :model_module
+
+      def model_module
+        @model_module || "#{repository.java.base_package}.#{repository.name}Model"
+      end
+
       java_artifact :repository_debugger, :comm, :client, :imit, '#{repository.name}RepositoryDebugger'
       java_artifact :change_mapper, :comm, :client, :imit, '#{repository.name}ChangeMapperImpl'
       java_artifact :data_loader_service, :comm, :client, :imit, '#{repository.name}DataLoaderServiceImpl'
@@ -530,7 +531,8 @@ module Domgen
       java_artifact :client_session_interface, :comm, :client, :imit, '#{repository.name}ClientSession'
       java_artifact :graph_enum, :comm, :shared, :imit, '#{repository.name}ReplicationGraph'
       java_artifact :session, :comm, :server, :imit, '#{repository.name}Session'
-      java_artifact :session_manager, :comm, :server, :imit, '#{repository.name}SessionManagerEJB'
+      java_artifact :session_manager, :comm, :server, :imit, '#{repository.name}SessionManager#{repository.ejb.implementation_suffix}'
+      java_artifact :session_rest_service, :rest, :server, :imit, '#{repository.name}SessionRestService'
       java_artifact :session_exception_mapper, :rest, :server, :imit, '#{repository.name}BadSessionExceptionMapper'
       java_artifact :router_interface, :comm, :server, :imit, '#{repository.name}Router'
       java_artifact :router_impl, :comm, :server, :imit, '#{repository.name}RouterImpl'
@@ -551,6 +553,7 @@ module Domgen
       java_artifact :abstract_client_test, :test, :client, :imit, 'Abstract#{repository.name}ClientTest', :sub_package => 'util'
       java_artifact :server_net_module, :test, :server, :imit, '#{repository.name}ImitNetModule', :sub_package => 'util'
       java_artifact :test_factory_set, :test, :client, :imit, '#{repository.name}FactorySet', :sub_package => 'util'
+      java_artifact :integration_module, :test, :server, :imit, '#{repository.name}IntegrationModule', :sub_package => 'util'
 
       def qualified_client_session_context_impl_name
         "#{qualified_client_session_context_name}Impl"
@@ -650,6 +653,14 @@ module Domgen
         @imit_control_data_module || (self.repository.data_module_by_name?(self.repository.name) ? self.repository.name : Domgen.error('imit_control_data_module unspecified and unable to derive default.'))
       end
 
+      def pre_complete
+        if repository.jaxrs?
+          repository.jaxrs.extensions << self.qualified_session_rest_service_name
+          repository.jaxrs.extensions << self.qualified_session_exception_mapper_name
+          repository.jaxrs.extensions << 'org.realityforge.replicant.server.ee.rest.ReplicantPollResource'
+        end
+      end
+
       def pre_verify
         repository.ejb.extra_test_modules << self.qualified_server_net_module_name if repository.ejb?
         if self.graphs.size == 0
@@ -660,14 +671,14 @@ module Domgen
         self.repository.exception_by_name(self.invalid_session_exception).tap do |e|
           e.java.exception_category = :runtime
           e.ejb.rollback = false
-          (e.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
+          (e.all_enabled_facets - [:application, :java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
             e.disable_facet(facet_key) if e.facet_enabled?(facet_key)
           end
         end
 
         self.repository.service(self.session_context_service) unless self.repository.service_by_name?(self.session_context_service)
         self.repository.service_by_name(self.session_context_service).tap do |s|
-          (s.all_enabled_facets - [:java, :ee, :ejb]).each do |facet_key|
+          (s.all_enabled_facets - [:application, :java, :ee, :ejb]).each do |facet_key|
             s.disable_facet(facet_key) if s.facet_enabled?(facet_key)
           end
           repository.imit.graphs.each do |graph|
@@ -689,7 +700,7 @@ module Domgen
                     }
                   options[:referenced_entity] = routing_key.target_attribute.referenced_entity if routing_key.target_attribute.reference?
                   options[:referenced_struct] = routing_key.target_attribute.referenced_struct if routing_key.target_attribute.struct?
-                  m.parameter(routing_key.target_attribute.qualified_name.gsub('.', ''),
+                  m.parameter(routing_key.name,
                               routing_key.target_attribute.attribute_type,
                               options)
                 end
@@ -778,7 +789,7 @@ module Domgen
 
         self.repository.service(self.subscription_manager) unless self.repository.service_by_name?(self.subscription_manager)
         self.repository.service_by_name(self.subscription_manager).tap do |s|
-          (s.all_enabled_facets - [:java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
+          (s.all_enabled_facets - [:application, :java, :ee, :ejb, :gwt, :gwt_rpc, :json, :jackson, :imit]).each do |facet_key|
             s.disable_facet(facet_key) if s.facet_enabled?(facet_key)
           end
           s.ejb.bind_in_tests = false
@@ -826,7 +837,11 @@ module Domgen
 
         repository.data_modules.select { |data_module| data_module.ejb? }.each do |data_module|
           data_module.services.select { |service| service.ejb? && service.ejb.generate_boundary? }.each do |service|
-            service.ejb.boundary_interceptors << repository.imit.qualified_replication_interceptor_name
+            if repository.ee.use_cdi?
+              service.ejb.boundary_annotations << 'org.realityforge.replicant.server.ee.Replicate'
+            else
+              service.ejb.boundary_interceptors << repository.imit.qualified_replication_interceptor_name
+            end
           end
         end
       end
@@ -845,7 +860,7 @@ module Domgen
           entity_list = [repository.entity_by_name(graph.instance_root)]
           while entity_list.size > 0
             entity = entity_list.pop
-            if !graph.reachable_entities.include?(entity.qualified_name.to_s)
+            unless graph.reachable_entities.include?(entity.qualified_name.to_s)
               graph.reachable_entities << entity.qualified_name.to_s
               entity.referencing_attributes.each do |a|
                 if a.imit? && a.imit.client_side? && a.inverse.imit.traversable? && !a.inverse.imit.exclude_edges.include?(graph.name)

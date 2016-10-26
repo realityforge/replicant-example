@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DO NOT EDIT: File is auto-generated -->
+<% if repository.jpa.version == '2.1' %>
+<persistence version="2.1"
+             xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+<% else %>
+<persistence version="2.0"
+             xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd">
+<% end %>
+<% if repository.jpa.include_default_unit? -%>
+  <persistence-unit name="<%= repository.jpa.unit_name %>" transaction-type="JTA">
+<% if repository.jpa.provider_class
+%>    <provider><%= repository.jpa.repository.jpa.provider_class %></provider>
+<% end %>
+    <jta-data-source><%= repository.jpa.resolved_data_source %></jta-data-source>
+
+<%
+converters = []
+entities = []
+repository.data_modules.select{|data_module| data_module.jpa?}.each do |data_module|
+  entities += data_module.entities.select{|entity| entity.jpa?}
+end
+  if entities.size > 0
+%>    <!-- entities -->
+<%
+    entities.each do |entity|
+%>    <class><%= entity.jpa.qualified_name %></class>
+<%
+    entity.attributes.select{|attribute| attribute.jpa?}.each do |attribute|
+      converters << attribute.jpa.converter
+    end
+  end
+end
+-%>
+<%
+  converters = converters.compact.sort.uniq
+  if converters.size > 0
+%>    <!-- converters -->
+<%
+    converters.each do |converter|
+%>    <class><%= converter %></class>
+<%
+    end
+  end
+-%>
+
+    <exclude-unlisted-classes><%= repository.jpa.exclude_unlisted_classes? %></exclude-unlisted-classes>
+    <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
+    <validation-mode>AUTO</validation-mode>
+
+    <properties>
+<% repository.jpa.resolved_properties.each_pair do |key, value| -%>
+      <property name="<%= key %>" value="<%= value %>"/>
+<% end -%>
+    </properties>
+  </persistence-unit>
+<% end -%>
+<% repository.jpa.resolved_persistence_file_fragments.each do |fragment| -%>
+<%= fragment -%>
+<% end -%>
+<% repository.jpa.resolved_application_persistence_file_fragments.each do |fragment| -%>
+<%= fragment -%>
+<% end -%>
+</persistence>

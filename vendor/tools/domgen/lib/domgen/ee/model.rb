@@ -13,8 +13,9 @@
 #
 
 module Domgen
-  FacetManager.facet(:ee => [:java]) do |facet|
+  FacetManager.facet(:ee => [:application, :java]) do |facet|
     facet.enhance(Repository) do
+      include Domgen::Java::BaseJavaGenerator
       include Domgen::Java::JavaClientServerApplication
 
       def version
@@ -26,7 +27,16 @@ module Domgen
       end
 
       def use_cdi?
-        !!@use_cdi
+        @use_cdi.nil? ? true : false
+      end
+
+      def bean_discovery_mode=(mode)
+        Domgen.error("Unknown bean discovery mode '#{mode}'") unless %w(all annotated none).include?(mode)
+        @bean_discovery_mode = mode
+      end
+
+      def bean_discovery_mode
+        @bean_discovery_mode ||= 'annotated'
       end
 
       attr_writer :web_metadata_complete
@@ -35,13 +45,31 @@ module Domgen
         @web_metadata_complete.nil? ? false : @web_metadata_complete
       end
 
+      def web_xml_content_fragments
+        @web_xml_content_fragments ||= []
+      end
+
       def web_xml_fragments
         @web_xml_fragments ||= []
       end
 
       def resolved_web_xml_fragments
         self.web_xml_fragments.collect do |fragment|
-          repository.resolve_file(fragment)
+          repository.read_file(fragment)
+        end
+      end
+
+      def beans_xml_content_fragments
+        @beans_xml_content_fragments ||= []
+      end
+
+      def beans_xml_fragments
+        @beans_xml_fragments ||= []
+      end
+
+      def resolved_beans_xml_fragments
+        self.beans_xml_fragments.collect do |fragment|
+          repository.read_file(fragment)
         end
       end
 
@@ -55,6 +83,32 @@ module Domgen
       def version=(version)
         Domgen.error("Unknown version '#{version}'") unless %w(6 7).include?(version)
         @version = version
+      end
+
+      java_artifact :abstract_filter, :filter, :server, :ee, 'Abstract#{repository.name}Filter'
+      java_artifact :abstract_app_server, :test, :server, :ee, 'Abstract#{repository.name}AppServer', :sub_package => 'util'
+      java_artifact :app_server_factory, :test, :server, :ee, '#{repository.name}AppServerFactory', :sub_package => 'util'
+      java_artifact :abstract_integration_test, :test, :server, :ee, 'Abstract#{repository.name}GlassFishTest', :sub_package => 'util'
+      java_artifact :deploy_test, :test, :server, :ee, '#{repository.name}DeployTest', :sub_package => 'util'
+
+      def qualified_base_integration_test_name
+        "#{server_util_test_package}.#{base_integration_test_name}"
+      end
+
+      attr_writer :base_integration_test_name
+
+      def base_integration_test_name
+        @base_integration_test_name || abstract_integration_test_name.gsub(/^Abstract/,'')
+      end
+
+      def qualified_app_server_name
+        "#{server_util_test_package}.#{app_server_name}"
+      end
+
+      attr_writer :app_server_name
+
+      def app_server_name
+        @app_server_name || abstract_app_server_name.gsub(/^Abstract/,'')
       end
     end
 

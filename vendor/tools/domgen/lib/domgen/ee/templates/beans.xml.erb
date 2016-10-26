@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://xmlns.jcp.org/xml/ns/javaee" bean-discovery-mode="<%=repository.ee.bean_discovery_mode%>" version="1.1">
+<% repository.ee.beans_xml_content_fragments.each do |fragment| -%>
+<%= fragment -%>
+<% end -%>
+<% repository.ee.resolved_beans_xml_fragments.each do |fragment| -%>
+<%= fragment -%>
+<% end -%>
+</beans>

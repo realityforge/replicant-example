@@ -74,6 +74,8 @@ module Domgen
       @namespace_key = :domgen
       @filter = nil
       @template_map = {}
+      # Turn on verbose messages if buildr is turned on tracing
+      @verbose = trace?
       if buildr_project.nil? && Buildr.application.current_scope.size > 0
         buildr_project = Buildr.project(Buildr.application.current_scope.join(':')) rescue nil
       end
@@ -95,6 +97,7 @@ module Domgen
           file(main_java_dir => [task_name]) do
             mkdir_p main_java_dir
           end
+          buildr_project.compile.using :javac
           buildr_project.compile.from main_java_dir
           # Need to force this as it may have already been cached and thus will not recalculate
           buildr_project.iml.main_generated_source_directories << main_java_dir if buildr_project.iml?
@@ -264,9 +267,13 @@ module Domgen
     end
 
     def define
-      desc self.description
       namespace self.namespace_key do
-        task :load => [self.filename] do
+        task :preload
+
+        task :postload
+
+        desc self.description
+        task :load => [:preload, self.filename] do
           old_level = Domgen::Logger.level
           begin
             Domgen::Logger.level = verbose? ? ::Logger::DEBUG : ::Logger::WARN
@@ -281,6 +288,7 @@ module Domgen
             Domgen.current_filename = nil
             Domgen::Logger.level = old_level
           end
+          task("#{self.namespace_key}:postload").invoke
         end
         Domgen::TaskRegistry.get_aggregate_task(self.namespace_key)
       end

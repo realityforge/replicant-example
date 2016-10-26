@@ -6,20 +6,6 @@ package <%= to_package(repository.ejb.qualified_abstract_service_test_name) %>;
 public abstract class <%= repository.ejb.abstract_service_test_name %>
   extends <%= repository.jpa? ? repository.jpa.qualified_base_entity_test_name : 'org.realityforge.guiceyloops.server.AbstractServerTest' %>
 {
-<%
-  # TODO - there should be a better way of doing this. Perhaps Runnables/Actions that are added by facets?
-  if repository.imit?
--%>
-  @org.testng.annotations.BeforeMethod
-  @java.lang.Override
-  public void preTest()
-    throws Exception
-  {
-    super.preTest();
-    s( javax.transaction.TransactionSynchronizationRegistry.class ).putResource( org.realityforge.replicant.shared.transport.ReplicantContext.REPLICATION_INVOCATION_KEY, "Test" );
-  }
-
-<% end -%>
   @javax.annotation.Nullable
   protected com.google.inject.Module new<%= repository.name %>ServicesModule()
   {
@@ -35,6 +21,53 @@ public abstract class <%= repository.ejb.abstract_service_test_name %>
     modules.add( new <%= test_module %>() );
 <% end -%>
     addModule( modules, new<%= repository.name %>ServicesModule() );
+<% if repository.ejb.include_server_test_module? -%>
+    addModule( modules, new<%= repository.name %>ServerModule() );
+<% end -%>
+<% if repository.syncrecord? -%>
+    addModule( modules, newSyncRecordServicesModule() );
+<% end -%>
+<% if repository.mail? -%>
+    addModule( modules, newMailServicesModule() );
+<% end -%>
     return modules.toArray( new com.google.inject.Module[ modules.size() ] );
   }
+<% if repository.ejb.include_server_test_module? -%>
+
+  @javax.annotation.Nullable
+  protected com.google.inject.Module new<%= repository.name %>ServerModule()
+  {
+    return new <%= repository.ejb.qualified_server_test_module_name %>();
+  }
+<% end -%>
+<% if repository.syncrecord? -%>
+
+  @javax.annotation.Nullable
+  protected com.google.inject.Module newSyncRecordServicesModule()
+  {
+    return new iris.syncrecord.server.test.util.SyncRecordServicesModule( this );
+  }
+<% end -%>
+<% if repository.mail? -%>
+
+  @java.lang.Override
+  protected com.google.inject.Module getMailTestModule()
+  {
+    return new <%= repository.mail.qualified_test_module_name %>();
+  }
+
+  @javax.annotation.Nullable
+  protected com.google.inject.Module newMailServicesModule()
+  {
+    return new iris.mail.server.test.util.MailServicesModule( this );
+  }
+<% end -%>
+<% unless repository.jpa? -%>
+
+  @Override
+  public void flush()
+  {
+    //No default persistence unit so no need to flush
+  }
+<% end -%>
 }

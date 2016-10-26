@@ -44,6 +44,51 @@ module Domgen
     end
   end
 
+  module TemplateSet
+  end
+
+  class Target
+    def initialize(key, parent_element, facet_key, access_method)
+      @key, @parent_element, @facet_key, @access_method = key, parent_element, facet_key, access_method
+    end
+
+    attr_reader :key
+    attr_reader :parent_element
+    attr_reader :facet_key
+    attr_reader :access_method
+  end
+
+  class TargetManager
+    class << self
+      def is_target_valid?(key)
+        standard_targets.include?(key) || non_standard_target_map.keys.include?(key)
+      end
+
+      def targets
+        standard_targets + non_standard_targets.keys
+      end
+
+      def register_target(key, parent_element, facet_key, access_method)
+        raise "Attempting to redefine target #{key}" if non_standard_target_map[key.to_sym]
+        non_standard_target_map[key.to_sym] = Target.new(key.to_sym, parent_element, facet_key, access_method)
+      end
+
+      def non_standard_targets
+        non_standard_target_map.values
+      end
+
+      def standard_targets
+        [:enumeration, :message, :exception, :method, :service, :struct, :entity, :dao, :data_module, :repository]
+      end
+
+      private
+
+      def non_standard_target_map
+        @non_standard_targets ||= {}
+      end
+    end
+  end
+
   module Generator
     class TemplateSet < BaseElement
       attr_reader :name
@@ -60,13 +105,18 @@ module Domgen
         template_map.values
       end
 
-      def template(facets, scope, template_filename, output_filename_pattern, helpers = [], options = {})
-        template = ErbTemplate.new(self, facets, scope, template_filename, output_filename_pattern, helpers, options)
+      def template(facets, target, template_filename, output_filename_pattern, helpers = [], options = {})
+        template = ErbTemplate.new(self, facets, target.to_sym, template_filename, output_filename_pattern, helpers, options)
         register_template(template)
       end
 
-      def xml_template(facets, scope, template_filename, output_filename_pattern, helpers = [], options = {})
-        template = XmlTemplate.new(self, facets, scope, template_filename, output_filename_pattern, helpers, options)
+      def ruby_template(facets, target, template_filename, output_filename_pattern, helpers = [], options = {})
+        template = RubyTemplate.new(self, facets, target.to_sym, template_filename, output_filename_pattern, helpers, options)
+        register_template(template)
+      end
+
+      def xml_template(facets, target, template_class, output_filename_pattern, helpers = [], options = {})
+        template = XmlTemplate.new(self, facets, target.to_sym, template_class, output_filename_pattern, helpers, options)
         register_template(template)
       end
 
@@ -93,16 +143,16 @@ module Domgen
       attr_reader :template_key
       attr_reader :guard
       attr_reader :helpers
-      attr_reader :scope
+      attr_reader :target
       attr_reader :facets
       attr_reader :extra_data
 
-      def initialize(template_set, facets, scope, template_key, helpers, options = {})
-        Domgen.error('Unexpected facets') unless facets.is_a?(Array) && facets.all? {|a| a.is_a?(Symbol)}
-        Domgen.error("Unknown scope for template #{scope}") unless valid_scopes.include?(scope)
+      def initialize(template_set, facets, target, template_key, helpers, options = {})
+        Domgen.error('Unexpected facets') unless facets.is_a?(Array) && facets.all? { |a| a.is_a?(Symbol) }
+        Domgen.error("Unknown target '#{target}' for template '#{template_key}'. Valid targets include: #{TargetManager.targets.join(', ')}") unless TargetManager.is_target_valid?(target)
         @template_set = template_set
         @facets = facets
-        @scope = scope
+        @target = target
         @template_key = template_key
         @helpers = helpers
         @guard = options[:guard]
@@ -115,7 +165,7 @@ module Domgen
       end
 
       def applicable?(faceted_object)
-        self.facets.all? {|facet_key| faceted_object.facet_enabled?(facet_key) }
+        self.facets.all? { |facet_key| faceted_object.facet_enabled?(facet_key) }
       end
 
       def output_path
@@ -137,10 +187,14 @@ module Domgen
       end
 
       def name
-        @name ||= "#{self.template_set.name}:#{self.template_key.gsub(/.*\/templates\/(.*)\.erb/,'\1')}"
+        @name ||= "#{self.template_set.name}:#{self.template_key.gsub(/.*\/templates\/(.*)\.#{template_extension}$/, '\1')}"
       end
 
       protected
+
+      def template_extension
+        ''
+      end
 
       def generate!(target_basedir, element_type, element, unprocessed_files)
         Domgen.error('generate not implemented')
@@ -152,7 +206,7 @@ module Domgen
 
       def create_context(key, value)
         context = RenderContext.new
-        context.set_local_variable(key, value)
+        context.set_local_variable(key.to_s.gsub(/^.*\./,''), value)
         self.extra_data.each_pair do |k, v|
           context.set_local_variable(k, v)
         end
@@ -161,17 +215,13 @@ module Domgen
         end
         context
       end
-
-      def valid_scopes
-        [:enumeration, :message, :exception, :method, :service, :struct, :entity, :dao, :data_module, :repository]
-      end
     end
 
     class SingleFileOutputTemplate < Template
       attr_reader :output_filename_pattern
 
-      def initialize(template_set, facets, scope, template_key, output_filename_pattern, helpers, options = {})
-        super(template_set, facets, scope, template_key, helpers, options)
+      def initialize(template_set, facets, target, template_key, output_filename_pattern, helpers, options = {})
+        super(template_set, facets, target, template_key, helpers, options)
         @output_filename_pattern = output_filename_pattern
       end
 
@@ -218,6 +268,10 @@ module Domgen
         self.erb_instance.result(context_binding)
       end
 
+      def template_extension
+        'erb'
+      end
+
       def erb_instance
         unless @template
           Domgen.error("Unable to locate file #{template_filename} for template #{name}") unless File.exist?(template_filename)
@@ -228,9 +282,44 @@ module Domgen
       end
     end
 
+    class RubyTemplate < SingleFileOutputTemplate
+      def template_filename
+        template_key
+      end
+
+      protected
+
+      def template_extension
+        'rb'
+      end
+
+      def render_to_string(context_binding)
+        context_binding.eval("#{ruby_instance.name}.generate(#{target.to_s.gsub(/^.*\./,'')})")
+      end
+
+      def ruby_instance
+        unless @template
+          Domgen.error("Unable to locate file #{template_filename} for template #{name}") unless File.exist?(template_filename)
+
+          template_name = Domgen::Naming.pascal_case(template_filename.gsub(/.*\/([^\/]+)\/templates\/(.+)\.rb$/, '\1_\2').gsub('.', '_').gsub('/', '_'))
+
+          ::Domgen::TemplateSet.class_eval "module #{template_name}\n end"
+          template = ::Domgen::TemplateSet.const_get(template_name)
+          template.class_eval <<-CODE
+            class << self
+              #{IO.read(template_filename)}
+            end
+          CODE
+
+          @template = template
+        end
+        @template
+      end
+    end
+
     class XmlTemplate < SingleFileOutputTemplate
-      def initialize(template_set, facets, scope, render_class, output_filename_pattern, helpers, options = {})
-        super(template_set, facets, scope, render_class.name, output_filename_pattern, helpers + [render_class], options)
+      def initialize(template_set, facets, target, render_class, output_filename_pattern, helpers, options = {})
+        super(template_set, facets, target, render_class.name, output_filename_pattern, helpers + [render_class], options)
       end
 
       def render_to_string(context_binding)

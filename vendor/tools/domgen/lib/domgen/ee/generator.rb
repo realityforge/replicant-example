@@ -51,12 +51,67 @@ Domgen.template_set(:ee_exceptions) do |template_set|
                         Domgen::Generator::EE::HELPERS)
 end
 
+Domgen.template_set(:ee_redfish) do |template_set|
+  template_set.ruby_template(Domgen::Generator::EE::FACETS,
+                             :repository,
+                             "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/redfish.rb",
+                             'main/etc/#{repository.name}.redfish.fragment.json',
+                             Domgen::Generator::EE::HELPERS,
+                             :guard => 'repository.application.code_deployable?')
+end
+
 Domgen.template_set(:ee_web_xml) do |template_set|
   template_set.template(Domgen::Generator::EE::FACETS,
                         :repository,
                         "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/web.xml.erb",
                         'main/webapp/WEB-INF/web.xml',
                         Domgen::Generator::EE::HELPERS)
+end
+
+Domgen.template_set(:ee_beans_xml) do |template_set|
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/beans.xml.erb",
+                        'main/webapp/WEB-INF/beans.xml',
+                        Domgen::Generator::EE::HELPERS)
+end
+
+Domgen.template_set(:ee_filter) do |template_set|
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/abstract_filter.java.erb",
+                        'main/java/#{repository.ee.qualified_abstract_filter_name.gsub(".","/")}.java',
+                        Domgen::Generator::EE::HELPERS)
+end
+
+Domgen.template_set(:ee_integration) do |template_set|
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/abstract_app_server.java.erb",
+                        'main/java/#{repository.ee.qualified_abstract_app_server_name.gsub(".","/")}.java',
+                        Domgen::Generator::EE::HELPERS,
+                        :guard => 'repository.application.code_deployable?')
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/app_server_factory.java.erb",
+                        'main/java/#{repository.ee.qualified_app_server_factory_name.gsub(".","/")}.java',
+                        Domgen::Generator::EE::HELPERS,
+                        :guard => 'repository.application.code_deployable?')
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/abstract_integration_test.java.erb",
+                        'main/java/#{repository.ee.qualified_abstract_integration_test_name.gsub(".","/")}.java',
+                        Domgen::Generator::EE::HELPERS,
+                        :guard => 'repository.application.code_deployable?')
+end
+
+Domgen.template_set(:ee_integration_test) do |template_set|
+  template_set.template(Domgen::Generator::EE::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::EE::TEMPLATE_DIRECTORY}/deploy_test.java.erb",
+                        'test/java/#{repository.ee.qualified_deploy_test_name.gsub(".","/")}.java',
+                        Domgen::Generator::EE::HELPERS,
+                        :guard => 'repository.application.code_deployable?')
 end
 
 Domgen.template_set(:ee => [:jaxrs, :jpa, :ejb, :jmx, :jws, :jms, :ee_exceptions, :ee_data_types, :ee_messages])

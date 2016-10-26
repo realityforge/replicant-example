@@ -26,7 +26,8 @@ Domgen.template_set(:jpa_model) do |template_set|
                         :repository,
                         "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/unit_descriptor.java.erb",
                         'main/java/#{repository.jpa.qualified_unit_descriptor_name.gsub(".","/")}.java',
-                        Domgen::Generator::JPA::HELPERS)
+                        Domgen::Generator::JPA::HELPERS,
+                        :guard => 'repository.jpa.include_default_unit? || repository.jpa.standalone_persistence_units?')
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :entity,
                         "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/entity.java.erb",
@@ -51,7 +52,14 @@ end
                           :repository,
                           "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/persistent_test_module.java.erb",
                           type + '/java/#{repository.jpa.qualified_persistent_test_module_name.gsub(".","/")}.java',
-                          Domgen::Generator::JPA::HELPERS)
+                          Domgen::Generator::JPA::HELPERS,
+                          :guard => 'repository.jpa.include_default_unit?')
+    template_set.template(Domgen::Generator::JPA::FACETS,
+                          'jpa.persistence_unit',
+                          "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/raw_test_module.java.erb",
+                          type + '/java/#{persistence_unit.qualified_raw_test_module_name.gsub(".","/")}.java',
+                          Domgen::Generator::JPA::HELPERS,
+                          :guard => 'persistence_unit.raw_test_mode?')
     template_set.template(Domgen::Generator::JPA::FACETS,
                           :repository,
                           "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/dao_module.java.erb",
@@ -114,32 +122,58 @@ Domgen.template_set(:jpa_ejb_dao) do |template_set|
                         :guard => 'data_module.entities.any?{|e|e.jpa?}')
 end
 
-Domgen.template_set(:jpa_persistence_xml) do |template_set|
+Domgen.template_set(:jpa_application_persistence_xml) do |template_set|
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :repository,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/persistence.xml.erb",
-                        'main/resources/META-INF/persistence.xml')
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/application_persistence.xml.erb",
+                        'main/resources/META-INF/persistence.xml',
+                        [],
+                        :guard => 'repository.jpa.application_xmls?')
 end
 
-Domgen.template_set(:jpa_orm_xml) do |template_set|
+Domgen.template_set(:jpa_application_orm_xml) do |template_set|
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :repository,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/orm.xml.erb",
-                        'main/resources/META-INF/orm.xml')
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/application_orm.xml.erb",
+                        'main/resources/META-INF/orm.xml',
+                        [],
+                        :guard => 'repository.jpa.application_xmls?')
+end
+
+Domgen.template_set(:jpa_template_persistence_xml) do |template_set|
+  template_set.template(Domgen::Generator::JPA::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/template_persistence.xml.erb",
+                        'main/resources/META-INF/domgen/templates/persistence.xml',
+                        [],
+                        :guard => 'repository.jpa.template_xmls?')
+end
+
+Domgen.template_set(:jpa_template_orm_xml) do |template_set|
+  template_set.template(Domgen::Generator::JPA::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/template_orm.xml.erb",
+                        'main/resources/META-INF/domgen/templates/orm.xml',
+                        [],
+                        :guard => 'repository.jpa.template_xmls?')
 end
 
 Domgen.template_set(:jpa_test_persistence_xml) do |template_set|
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :repository,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/persistence.xml.erb",
-                        'test/resources/META-INF/persistence.xml')
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/test_persistence.xml.erb",
+                        'test/resources/META-INF/persistence.xml',
+                        [],
+                        :guard => 'repository.jpa.test_xmls?')
 end
 
 Domgen.template_set(:jpa_test_orm_xml) do |template_set|
   template_set.template(Domgen::Generator::JPA::FACETS,
                         :repository,
-                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/orm.xml.erb",
-                        'test/resources/META-INF/orm.xml')
+                        "#{Domgen::Generator::JPA::TEMPLATE_DIRECTORY}/test_orm.xml.erb",
+                        'test/resources/META-INF/orm.xml',
+                        [],
+                        :guard => 'repository.jpa.test_xmls?')
 end
 
-Domgen.template_set(:jpa => [:jpa_orm_xml, :jpa_persistence_xml, :jpa_model])
+Domgen.template_set(:jpa => [:jpa_application_orm_xml, :jpa_application_persistence_xml, :jpa_model])

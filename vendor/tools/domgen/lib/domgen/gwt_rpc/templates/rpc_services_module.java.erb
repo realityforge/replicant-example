@@ -6,6 +6,26 @@ package <%= to_package(repository.gwt_rpc.qualified_rpc_services_module_name) %>
 public class <%= repository.gwt_rpc.rpc_services_module_name %>
   extends com.google.gwt.inject.client.AbstractGinModule
 {
+<% if repository.keycloak? -%>
+  @javax.annotation.Nullable
+  private static org.realityforge.gwt.keycloak.Keycloak c_keycloak;
+
+  @javax.annotation.Nonnull
+  public static org.realityforge.gwt.keycloak.Keycloak getKeycloak()
+  {
+    if( null == c_keycloak )
+    {
+      throw new IllegalStateException( "Keycloak not configured when calling getKeycloak()" );
+    }
+    return c_keycloak;
+  }
+
+  public static void setKeycloak( @javax.annotation.Nonnull final org.realityforge.gwt.keycloak.Keycloak keycloak )
+  {
+    c_keycloak = keycloak;
+  }
+
+<% end -%>
 <% if repository.imit? -%>
   @javax.annotation.Nonnull
   private static final org.realityforge.replicant.client.transport.SessionContext c_sessionContext = new org.realityforge.replicant.client.transport.SessionContext( "<%= repository.name %>" );
@@ -104,13 +124,15 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
 <% end %>
 <% if service.imit? -%>
     ( (com.google.gwt.user.client.rpc.ServiceDefTarget) service ).setRpcRequestBuilder( new <%= repository.gwt_rpc.qualified_rpc_request_builder_name %>( c_sessionContext ) );
+<% elsif service.keycloak? -%>
+    ( (com.google.gwt.user.client.rpc.ServiceDefTarget) service ).setRpcRequestBuilder( new <%= repository.gwt_rpc.qualified_keycloak_rpc_request_builder_name %>() );
 <% end -%>
     if ( null == <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() )
     {
       throw new java.lang.IllegalStateException( "<%= repository.gwt_rpc.rpc_services_module_name %>.initialize() not invoked prior to using gin module" );
     }
     ( (com.google.gwt.user.client.rpc.ServiceDefTarget) service ).setServiceEntryPoint( <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() + "<%= service.gwt_rpc.api_url %>" );
-    setModuleBase( service, <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() + "<%= repository.gwt_rpc.module_name %>/" );
+    setModuleBase( service, <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() + "<%= repository.gwt.module_name %>/" );
     return service;
   }
 <%

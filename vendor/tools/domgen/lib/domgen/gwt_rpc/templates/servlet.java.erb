@@ -2,7 +2,7 @@
 package <%= to_package(service.gwt_rpc.qualified_servlet_name) %>;
 
 @javax.annotation.Generated( "Domgen" )
-@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.UnusedPrivateField", "PMD.UnusedLocalVariable" } )
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"SE_TRANSIENT_FIELD_NOT_RESTORED"})
 @javax.servlet.annotation.WebServlet( name = "<%= service.data_module.name %>.<%= service.gwt_rpc.servlet_name %>", urlPatterns = { "/<%= service.gwt_rpc.api_url %>" } )
 public class <%= service.gwt_rpc.servlet_name %>
@@ -11,7 +11,7 @@ public class <%= service.gwt_rpc.servlet_name %>
 {
   private static final long serialVersionUID = 1;
 
-  private transient final org.codehaus.jackson.map.ObjectMapper _jsonMapper = new org.codehaus.jackson.map.ObjectMapper();
+  private transient final com.fasterxml.jackson.databind.ObjectMapper _jsonMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
   private int _codeServerPort;
   private String _gwtModulePath;
@@ -71,6 +71,7 @@ public class <%= service.gwt_rpc.servlet_name %>
 <% if method.imit? -%>
     org.realityforge.replicant.server.ee.ReplicantContextHolder.put( org.realityforge.replicant.shared.transport.ReplicantContext.SESSION_ID_KEY, getThreadLocalRequest().getHeader( org.realityforge.replicant.shared.transport.ReplicantContext.SESSION_ID_HEADER ) );
     org.realityforge.replicant.server.ee.ReplicantContextHolder.put( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_ID_KEY, getThreadLocalRequest().getHeader( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_ID_HEADER ) );
+    boolean headerSet = false;
 <% end -%>
 
 <% method.parameters.select{|p|!p.collection? && p.struct?}.each do |parameter| %>
@@ -79,6 +80,7 @@ public class <%= service.gwt_rpc.servlet_name %>
 <% method.parameters.select{|p|p.collection? && (p.date? || p.enumeration?|| p.struct?)}.each do |parameter| %>
     <%= annotated_type(parameter, :ejb, :boundary, :final => true) %> $<%= parameter.name %>;
 <% end %>
+    java.lang.Throwable cause = null;
     try
   {
 <% if method.parameters.any?{|p| p.struct?}
@@ -133,7 +135,7 @@ LOOP
          return_postfix = "return returnValue;"
        end
        if method.return_value.struct?
-         return_postfix = "try {\n #{return_postfix} \n} catch ( final java.io.IOException ioe ) { throw new IllegalArgumentException( ioe.getMessage(), ioe ); }"
+         return_postfix = "try {\n #{return_postfix} \n} catch ( final java.io.IOException ioe ) { cause = ioe; throw new IllegalArgumentException( ioe.getMessage(), ioe ); }"
        end
    end
 %>
@@ -165,6 +167,7 @@ LOOP
 %>    }
     catch ( final java.io.IOException ioe )
     {
+      cause = ioe;
       throw new IllegalArgumentException( ioe.getMessage(), ioe );
     }
 <% end %>
@@ -196,29 +199,35 @@ end.join(', ') %>);
 <% method.exceptions.each do |exception| %>
     catch ( final <%= exception.ee.qualified_name %> e )
     {
+      cause = e;
       throw new <%= exception.gwt_rpc.qualified_name %>( e.getMessage() );
     }
 <% end %>
 <% if method.imit? -%>
-    catch ( final javax.ejb.EJBException e )
+    catch ( final java.lang.RuntimeException e )
     {
-      // If the transaction has rolled back there will be no messages arriving
+      // Assume RuntimeExceptions cause a rollback and if the transaction has rolled back there will be no messages arriving
       getThreadLocalResponse().setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_HEADER, "1" );
+      headerSet = true;
+      cause = e;
       throw e;
     }
 <% end %>
     finally
     {
 <% if method.imit? -%>
-      final String complete = (String) org.realityforge.replicant.server.ee.ReplicantContextHolder.remove( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_KEY );
-      if( null != complete )
+      if ( !headerSet )
       {
-        getThreadLocalResponse().setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_HEADER, complete );
-      }
-      else
-      {
-        final String message = "Unable to find completion flag " + org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_KEY + " in ReplicantContextHolder. Servlet expects to invoke service with replication interceptor enabled.";
-        throw new IllegalStateException( message );
+        final String complete = (String) org.realityforge.replicant.server.ee.ReplicantContextHolder.remove( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_KEY );
+        if( null != complete )
+        {
+          getThreadLocalResponse().setHeader( org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_HEADER, complete );
+        }
+        else
+        {
+          final String message = "Unable to find completion flag " + org.realityforge.replicant.shared.transport.ReplicantContext.REQUEST_COMPLETE_KEY + " in ReplicantContextHolder. Servlet expects to invoke service with replication interceptor enabled.";
+          throw new IllegalStateException( message, cause );
+        }
       }
 <% end -%>
     }

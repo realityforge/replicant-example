@@ -1,0 +1,50 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= to_package(client.qualified_abstract_keycloak_filter_name) %>;
+
+/**
+ * Base class to extend to define filter.
+ *
+ * <code>
+ * @javax.enterprise.context.ApplicationScoped
+ * @javax.enterprise.inject.Typed( <%= client.qualified_keycloak_filter_interface_name %>.class )
+ * public class <%= client.abstract_keycloak_filter_name.gsub(/^Abstract/,'') %> extends <%= client.abstract_keycloak_filter_name %>
+ * {
+ *   ...
+ * }
+ * </code>
+ */
+@javax.annotation.Generated( "Domgen" )
+public abstract class <%= client.abstract_keycloak_filter_name %>
+  implements <%= client.qualified_keycloak_filter_interface_name %>
+{
+  @Override
+  public boolean shouldProtectRequest( @javax.annotation.Nonnull final javax.servlet.ServletRequest request )
+  {
+    final javax.servlet.http.HttpServletRequest httpRequest = (javax.servlet.http.HttpServletRequest) request;
+    final String path = httpRequest.getRequestURI().substring( httpRequest.getContextPath().length() );
+    return isPathProtected( path );
+  }
+
+  protected boolean isPathProtected( @javax.annotation.Nonnull final String path )
+  {
+<% if client.keycloak_repository.repository.appconfig? -%>
+    if ( path.startsWith( <%= client.keycloak_repository.repository.jaxrs.qualified_abstract_application_name %>.APPLICATION_PATH + '/' + iris.appconfig.server.rest.SystemSettingRestService.PATH_PREFIX ) )
+    {
+      return false;
+    }
+<% end -%>
+<% if client.keycloak_repository.repository.timerstatus? -%>
+    if ( path.startsWith( <%= client.keycloak_repository.repository.jaxrs.qualified_abstract_application_name %>.APPLICATION_PATH + '/' + iris.timerstatus.server.service.TimerStatusService.PATH_PREFIX ) )
+    {
+      return false;
+    }
+<% end -%>
+<% if client.keycloak_repository.repository.syncrecord? -%>
+    if ( path.startsWith( <%= client.keycloak_repository.repository.jaxrs.qualified_abstract_application_name %>.APPLICATION_PATH + '/' + iris.syncrecord.server.rest.SyncStatusService.PATH_PREFIX ) )
+    {
+      return false;
+    }
+<% end -%>
+    return true;
+  }
+}

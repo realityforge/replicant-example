@@ -57,8 +57,16 @@ module Domgen
 
       java_artifact :complete_module, :test, :server, :ejb, '#{repository.name}Module', :sub_package => 'util'
       java_artifact :services_module, :test, :server, :ejb, '#{repository.name}ServicesModule', :sub_package => 'util'
+      java_artifact :cdi_types_test, :test, :server, :ejb, '#{repository.name}CdiTypesTest', :sub_package => 'util'
       java_artifact :aggregate_service_test, :test, :server, :ejb, '#{repository.name}AggregateServiceTest', :sub_package => 'util'
       java_artifact :abstract_service_test, :test, :server, :ejb, 'Abstract#{repository.name}ServiceTest', :sub_package => 'util'
+      java_artifact :server_test_module, :test, :server, :ejb, '#{repository.name}ServerModule', :sub_package => 'util'
+
+      attr_writer :include_server_test_module
+
+      def include_server_test_module?
+        @include_server_test_module.nil? ? true : !!@include_server_test_module
+      end
 
       def extra_test_modules
         @extra_test_modules ||= []
@@ -72,6 +80,10 @@ module Domgen
 
       def base_service_test_name
         @base_service_test_name || abstract_service_test_name.gsub(/^Abstract/,'')
+      end
+
+      def implementation_suffix
+        repository.ee.use_cdi? ? 'Impl' : 'EJB'
       end
     end
 
@@ -101,7 +113,7 @@ module Domgen
       end
 
       def implementation_suffix
-        service.data_module.repository.ee.use_cdi? ? 'Impl' : 'EJB'
+        service.data_module.repository.ejb.implementation_suffix
       end
 
       java_artifact :service, :service, :server, :ee, '#{service.name}'
@@ -119,6 +131,10 @@ module Domgen
 
       def boundary_interceptors
         @boundary_interceptors ||= []
+      end
+
+      def boundary_annotations
+        @boundary_annotations ||= []
       end
 
       attr_writer :local
@@ -141,8 +157,9 @@ module Domgen
         if @generate_boundary.nil?
           return service.jmx? ||
             service.jws? ||
+            service.jaxrs? ||
             service.imit? ||
-            service.methods.any? { |method| method.parameters.any? { |parameter| parameter.reference? } }
+            service.methods.any? { |method| method.parameters.any? { |parameter| parameter.reference? } || method.return_value.reference? }
         else
           return @generate_boundary
         end
@@ -182,6 +199,12 @@ module Domgen
 
     facet.enhance(Parameter) do
       include Domgen::Java::EEJavaCharacteristic
+
+      def ignore_default_criteria?
+        @ignore_default_criteria.nil? ? false : !!@ignore_default_criteria
+      end
+
+      attr_writer :ignore_default_criteria
 
       protected
 

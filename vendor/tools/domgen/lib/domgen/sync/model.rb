@@ -14,11 +14,11 @@
 
 module Domgen
   class Sync
-    VALID_MASTER_FACETS = [:sql, :mssql, :pgsql, :ee, :ejb, :java, :jpa, :sync]
-    VALID_SYNC_TEMP_FACETS = [:sql, :mssql, :pgsql, :sync]
+    VALID_MASTER_FACETS = [:application, :sql, :mssql, :pgsql, :ee, :ejb, :java, :jpa, :sync, :syncrecord, :appconfig]
+    VALID_SYNC_TEMP_FACETS = [:application, :sql, :mssql, :pgsql, :sync, :syncrecord, :appconfig]
   end
 
-  FacetManager.facet(:sync => [:sql]) do |facet|
+  FacetManager.facet(:sync => [:syncrecord, :sql]) do |facet|
     facet.enhance(Repository) do
 
       def transaction_time=(transaction_time)
@@ -121,54 +121,44 @@ module Domgen
             end
           end unless master_data_module.service_by_name?(:SynchronizationService)
 
+          unless master_data_module.exception_by_name?(:BadSyncSequence)
+            master_data_module.exception(:BadSyncSequence, 'java.exception_category' => :runtime) do |e|
+              e.disable_facets_not_in(Domgen::Sync::VALID_MASTER_FACETS)
+            end
+          end
+
           master_data_module.service(:SynchronizationContext) do |s|
             s.disable_facets_not_in(Domgen::Sync::VALID_MASTER_FACETS)
             if s.ejb?
-              s.ejb.generate_boundary = false
+              s.ejb.generate_boundary = true
               s.ejb.generate_base_test = false
             end
 
-            master_data_module.sync.entities_to_synchronize.collect do |e|
-              # Assume that the synchronization process will correctly handle
-              # deletion of referenced entities and thus no special handling required
-              e.sync.references_requiring_manual_sync.each do |a|
-                s.method("Remove#{a.entity.data_module.name}#{a.entity.name}RelatedTo#{a.referenced_entity.data_module.name}#{a.referenced_entity.name}Via#{a.name}") do |m|
-                  m.reference(e.qualified_name)
-                end
-              end
-            end
-
             master_data_module.sync.entities_to_synchronize.each do |entity|
-              unless entity.primary_key.generated_value?
-                s.method("Generate#{entity.data_module.name}#{entity.name}Key") do |m|
-                  entity.attributes.select { |a| !a.primary_key? && a.sql? && a.jpa? && a.sync? }.each do |a|
-                    options = {}
-                    options[:collection_type] = a.collection_type
-                    options[:nullable] = a.nullable?
-
-                    attribute_type = a.attribute_type
-                    if a.reference?
-                      attribute_type = a.referenced_entity.primary_key.attribute_type
-                    elsif a.enumeration?
-                      options[:enumeration] = a.enumeration
-                      options[:length] = a.length if a.enumeration.textual_values?
-                    elsif a.text?
-                      options[:length] = a.length
-                      options[:min_length] = a.min_length
-                      options[:allow_blank] = a.allow_blank?
-                    end
-
-                    m.parameter(a.name, attribute_type, options)
-                  end
-                  # TODO Should probably support reference primary keys by passing other options
-                  m.returns(entity.primary_key.attribute_type)
-                end
-              end
-
-              s.method(:"GetSqlToRetrieve#{entity.data_module.name}#{entity.name}ListToUpdate") do |m|
+              s.method(:"Query#{entity.data_module.name}#{entity.name}Updates") do |m|
                 m.text(:MappingSourceCode)
-                m.returns(:text)
+                m.returns('java.lang.Object[]', :collection_type => :sequence)
               end
+              s.method(:"Query#{entity.data_module.name}#{entity.name}Removals") do |m|
+                m.text(:MappingSourceCode)
+                m.returns('java.lang.Object[]', :collection_type => :sequence)
+              end
+
+              s.method(:"CreateOrUpdate#{entity.data_module.name}#{entity.name}") do |m|
+                m.text(:MappingSourceCode)
+                m.parameter(:Record, 'java.lang.Object[]')
+                m.returns(:boolean, :description => 'Return true on create, false on update')
+              end
+              s.method(:"Remove#{entity.data_module.name}#{entity.name}") do |m|
+                m.integer(:MappingID)
+                m.parameter(:ID, entity.primary_key.jpa.java_type(:boundary), :nullable => true)
+                m.returns(:boolean, :description => 'Return true on removalfrom non-master, false if not required')
+              end
+              s.method(:"Mark#{entity.data_module.name}#{entity.name}RemovalsPreSync") do |m|
+                m.text(:MappingSourceCode)
+                m.returns(:integer, :description => 'The number of records changed')
+              end
+
               if entity.sync.update_via_sync?
                 # The following methods are an in progress implementation of bulk sync actions
                 s.method(:"GetSqlToDirectlyUpdate#{entity.data_module.name}#{entity.name}") do |m|
@@ -187,18 +177,6 @@ module Domgen
               s.method(:"GetSqlToMarkDeleted#{entity.data_module.name}#{entity.name}AsSynchronized") do |m|
                 m.text(:MappingSourceCode)
                 m.returns(:text)
-              end
-              s.method(:"GetSqlToRetrieve#{entity.data_module.name}#{entity.name}ListToRemove") do |m|
-                m.text(:MappingSourceCode)
-                m.returns(:text)
-              end
-              entity.attributes.select { |a| a.sync? && a.sync.custom_transform? }.each do |attribute|
-                s.method(:"Transform#{entity.data_module.name}#{entity.name}#{attribute.name}") do |m|
-                  options = {:nullable => attribute.nullable?}
-                  attribute_type = attribute.reference? ? attribute.referenced_entity.primary_key.attribute_type : attribute.attribute_type
-                  m.parameter(:Value, attribute_type, options)
-                  m.returns(attribute_type, options)
-                end
               end
             end
           end unless master_data_module.service_by_name?(:SynchronizationContext)
@@ -220,15 +198,15 @@ module Domgen
       include Domgen::Java::EEClientServerJavaPackage
 
       # Artifacts to sync out of Master
-      java_artifact :sync_ejb, :service, :server, :sync, 'SynchronizationServiceEJB'
-      java_artifact :sync_service_test, :service, :server, :sync, 'AbstractExtendedSynchronizationServiceEJBTest'
+      java_artifact :sync_ejb, :service, :server, :sync, 'SynchronizationService#{data_module.repository.ejb.implementation_suffix}'
+      java_artifact :sync_service_test, :service, :server, :sync, 'AbstractExtendedSynchronizationService#{data_module.repository.ejb.implementation_suffix}Test'
       java_artifact :sync_context_impl, :service, :server, :sync, 'AbstractSynchronizationContext'
 
       # Artifacts to sync into Master
       java_artifact :sync_temp_factory, :service, :server, :sync, 'SyncTempFactory'
-      java_artifact :abstract_master_sync_ejb, :service, :server, :sync, 'AbstractMasterSyncServiceEJB'
-      java_artifact :abstract_sync_temp_population_impl, :service, :server, :sync, 'AbstractSyncTempPopulationServiceImpl'
-      java_artifact :master_sync_service_test, :service, :server, :sync, 'AbstractMasterSyncServiceEJBTest'
+      java_artifact :abstract_master_sync_ejb, :service, :server, :sync, 'AbstractMasterSyncService#{data_module.repository.ejb.implementation_suffix}'
+      java_artifact :abstract_sync_temp_population_impl, :service, :server, :sync, 'AbstractSyncTempPopulationService#{data_module.repository.ejb.implementation_suffix}'
+      java_artifact :master_sync_service_test, :service, :server, :sync, 'AbstractMasterSyncService#{data_module.repository.ejb.implementation_suffix}Test'
 
       def entities_to_synchronize
         raise 'entities_to_synchronize invoked when not master_data_module' unless master_data_module?
@@ -300,6 +278,10 @@ module Domgen
         @master_entity
       end
 
+      def core?
+        !self.master? && !self.sync_temp?
+      end
+
       def master?
         self.core_entity?
       end
@@ -313,7 +295,11 @@ module Domgen
       end
 
       def references_requiring_manual_sync
-        entity.referencing_attributes.select {|a| (!a.sync? || a.sync.manual_sync?) && a.referenced_entity.sql? }
+        entity.referencing_attributes.select { |a| (!a.sync? || a.sync.manual_sync?) && a.referenced_entity.sql? }
+      end
+
+      def references_not_requiring_manual_sync
+        entity.referencing_attributes.select { |a| !a.set_once? && !a.immutable? && a.sync? && a.entity.sync.core? && !a.sync.manual_sync? && a.referenced_entity.sql? }
       end
 
       attr_writer :recursive
@@ -367,13 +353,14 @@ module Domgen
       end
 
       def attributes_to_update
-        attributes_to_synchronize.select{|a|!a.immutable?}
+        attributes_to_synchronize.select { |a| !a.immutable? }
       end
 
       def update_via_sync?
         entity.attributes.select do |a|
           a.sync? &&
             !a.primary_key? &&
+            !a.immutable? &&
             ![:MasterSynchronized, :CreatedAt, :DeletedAt].include?(a.name) &&
             !(a.reference? && a.referenced_entity.sync? && a.referenced_entity.sync.synchronize?)
         end.size > 0
@@ -463,7 +450,7 @@ module Domgen
 
             if a.reference?
               filter = a.nullable? ? "#{e.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL" : nil
-                e.sql.index([:MappingSource, name], :filter => filter, :include_attribute_names => [:MappingKey, :MappingID])
+              e.sql.index([:MappingSource, name], :filter => filter, :include_attribute_names => [:MappingKey, :MappingID])
             end
           end
         end
@@ -473,6 +460,7 @@ module Domgen
 
           self.entity.sync.master_entity = e
           e.sync.core_entity = self
+          e.sync.transaction_time = self.entity.sync.transaction_time?
           e.abstract = self.entity.abstract?
           e.final = self.entity.final?
           e.extends = self.entity.extends
@@ -496,6 +484,12 @@ module Domgen
           self.entity.attributes.select { |a| !a.inherited? || a.primary_key? }.each do |a|
             next unless a.sync?
 
+            # For self referential, non-transaction time entities, we have to set sql.on_delete
+            # attribute otherwise sync will fail to remove the entity during synchronization
+            if a.reference? && a.referenced_entity.qualified_name == a.entity.qualified_name && !entity.sync.transaction_time?
+              a.sql.on_delete = :set_null
+            end
+
             options = {}
             Domgen.error("Can not yet synchronize entity structs as in #{a.qualified_name}") if a.struct?
             options[:referenced_entity] = a.referenced_entity.name if a.reference?
@@ -508,6 +502,7 @@ module Domgen
               options[:referenced_entity] = a.entity.qualified_name
               options[:nullable] = true
               options['sql.on_delete'] = :set_null
+              options['inverse.multiplicity'] = :zero_or_one
               options['jpa.persistent'] = true
               options[:abstract] = a.entity.abstract?
               options[:override] = !a.entity.extends.nil?
@@ -528,7 +523,18 @@ module Domgen
             options[:nullable] = a.nullable? || a.primary_key?
             options[:immutable] = !a.primary_key? && a.immutable?
             options[:set_once] = a.set_once?
-            options[:unique] = a.unique?
+
+            # We can not guarantee that fields will be unique as the ordering of
+            # updates in the synchronization process will not guarantee this condition.
+            # However we generate checks in sync code so this should never happen.
+            # However we can get problems synchronizing from Master into non-Master tables
+            # as ordering can still lead to uniqueness constraints being violated during
+            # the sync process and aborting the sync action. However sync_ejb.java.erb will
+            # continue synchronization for all entities in a type so that hopefully the next
+            # synchronization will allow all entities to flow through. This will not work if
+            # entities have multiple unique fields and there is no ordering of operations that
+            # will allow it to proceed. In this case, administrator intervention is required.
+            options[:unique] = false
 
             e.attribute(name, attribute_type, options)
 
@@ -541,9 +547,35 @@ module Domgen
               prefix = a.nullable? ? "#{e.attribute_by_name(name).sql.quoted_column_name} IS NOT NULL AND " : ''
               e.sql.index([name], :filter => "#{prefix}#{e.sql.dialect.quote(:DeletedAt)} IS NULL", :include_attribute_names => [:MappingKey, :MappingID])
             end
+
+            if a.unique?
+              # If entity is a transaction time entity, and an uniqueness index that filters out logically deleted entities
+              if entity.sync.transaction_time?
+                existing_constraint = self.entity.unique_constraints.find do |uq|
+                  uq.attribute_names.length == 1 && uq.attribute_names[0].to_s == a.name.to_s
+                end
+                if existing_constraint.nil?
+                  self.entity.sql.index([a.name], :unique => true, :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
+                end
+              end
+            end
           end
-          self.entity.unique_constraints.each do |constraint|
-            e.sql.index(constraint.attribute_names, :unique => true, :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
+
+          # update indexes in the original entity, if it is a transaction time entity so filtering can be specified
+          if entity.sync.transaction_time?
+            self.entity.sql.indexes.each do |index|
+              next if index.cluster?
+
+              unless index.attribute_names.include?(:DeletedAt) || index.attribute_names.include?(:CreatedAt)
+                unless index.filter && (index.filter =~ Regexp.new(Regexp.escape(e.sql.dialect.quote(:DeletedAt))) || index.filter =~ Regexp.new(Regexp.escape(e.sql.dialect.quote(:CreatedAt))))
+                  index.filter = (index.filter.nil? ? '' : "(#{index.filter}) AND ") + "#{entity.sql.dialect.quote(:DeletedAt)} IS NULL"
+                end
+              end
+            end
+
+            entity.sync.references_not_requiring_manual_sync.each do |a|
+              a.entity.query("FindAllBy#{a.name}") unless a.entity.query_by_name?("FindAllBy#{a.name}")
+            end
           end
 
           unless entity.sync.transaction_time?
@@ -553,6 +585,9 @@ module Domgen
 
           if e.concrete?
             e.query(:FindByMappingSourceAndMappingID)
+            e.query(:FindUndeletedByMappingSourceAndMappingID,
+                    'jpa.standard_query' => true,
+                    'jpa.jpql' => 'O.mappingSource = :MappingSource AND O.mappingID = :MappingID and O.deletedAt IS NULL')
             e.query(:GetByMappingSourceAndMappingID)
             e.jpa.test_create_default(e.root_entity.name => 'null', :MasterSynchronized => 'false', :CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
             e.jpa.test_create_default(e.root_entity.name => 'null', :MasterSynchronized => 'false', :MappingKey => 'mappingID', :CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
@@ -571,19 +606,27 @@ module Domgen
             e.jpa.test_update_default(delete_defaults, :force_refresh => true, :factory_method_name => "mark#{e.name}AsDeleted")
             e.query(:CountByMappingSource)
             e.query(:CountUnsynchronizedByMappingSource,
+                    'jpa.standard_query' => true,
                     'jpa.jpql' => 'O.mappingSource = :MappingSource AND O.masterSynchronized = false')
 
             if entity.sync.transaction_time?
-              entity.jpa.test_create_default(:CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
-               if entity.imit?
-                 attributes = entity.attributes.select{|a|%w(CreatedAt DeletedAt).include?(a.name.to_s) && a.imit? }.collect{|a|a.name.to_s}
-                 if attributes.size > 0
-                   defaults = {}
-                   defaults[:CreatedAt] = 'new java.util.Date()' if attributes.include?('CreatedAt')
-                   defaults[:DeletedAt] = 'null' if attributes.include?('DeletedAt')
-                   entity.imit.test_create_default(defaults)
-                 end
-               end
+              entity.jpa.create_default(:CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
+              entity.jpa.update_default(:DeletedAt => nil)
+              entity.jpa.update_defaults.each do |defaults|
+                entity.jpa.update_default(defaults.values.merge(:DeletedAt => nil)) do |new_default|
+                  new_default.factory_method_name = defaults.factory_method_name
+                end
+                entity.jpa.remove_update_default(defaults)
+              end
+              if entity.imit?
+                attributes = entity.attributes.select { |a| %w(CreatedAt DeletedAt).include?(a.name.to_s) && a.imit? }.collect { |a| a.name.to_s }
+                if attributes.size > 0
+                  defaults = {}
+                  defaults[:CreatedAt] = 'new java.util.Date()' if attributes.include?('CreatedAt')
+                  defaults[:DeletedAt] = 'null' if attributes.include?('DeletedAt')
+                  entity.imit.test_create_default(defaults)
+                end
+              end
             end
           end
         end

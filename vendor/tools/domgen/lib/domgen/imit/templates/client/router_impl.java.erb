@@ -2,7 +2,7 @@
 package <%= to_package(repository.imit.qualified_client_router_impl_name) %>;
 
 @javax.annotation.Generated( "Domgen" )
-@java.lang.SuppressWarnings( "unchecked" )
+@java.lang.SuppressWarnings( { "unchecked", "PMD.UnusedFormalParameter" } )
 public class <%= repository.imit.client_router_impl_name %>
   implements <%= repository.imit.qualified_client_router_interface_name %>
 {
@@ -74,7 +74,7 @@ public class <%= repository.imit.client_router_impl_name %>
 -%>
   @java.lang.Override
   @javax.annotation.Nonnull
-  public java.util.Map<String, java.io.Serializable> route( @javax.annotation.Nonnull Object entity )
+  public java.util.Map<String, java.io.Serializable> route( @javax.annotation.Nonnull final Object entity )
   {
   <%
 repository.data_modules.select { |data_module| data_module.imit? }.each do |data_module|
@@ -100,7 +100,7 @@ repository.data_modules.select { |data_module| data_module.imit? }.each do |data
 
   @java.lang.Override
   @javax.annotation.Nonnull
-  public java.util.Map<String, java.io.Serializable> route<%= entity.name %>( @javax.annotation.Nonnull <%= entity.imit.qualified_name %> entity )
+  public java.util.Map<String, java.io.Serializable> route<%= entity.name %>( @javax.annotation.Nonnull final <%= entity.imit.qualified_name %> entity )
   {
     final java.util.HashMap<String, java.io.Serializable> map = new java.util.HashMap<>();
 <% entity.imit.replication_graphs.each do |graph| -%>
@@ -110,7 +110,7 @@ repository.data_modules.select { |data_module| data_module.imit? }.each do |data
   }
 <% entity.imit.replication_graphs.each do |graph| -%>
 
-  private void _route<%= graph.name %>_<%= entity.name %>( @javax.annotation.Nonnull java.util.Map<String, java.io.Serializable> map, @javax.annotation.Nonnull <%= entity.imit.qualified_name %> entity )
+  private void _route<%= graph.name %>_<%= entity.name %>( @javax.annotation.Nonnull final java.util.Map<String, java.io.Serializable> map, @javax.annotation.Nonnull final <%= entity.imit.qualified_name %> entity )
   {
 <% if graph.filtered? -%>
 <%
@@ -120,14 +120,20 @@ repository.data_modules.select { |data_module| data_module.imit? }.each do |data
     put_<%= graph.name %>_<%= routing_key.name %>( map, entity.<%= getter_for(routing_key.imit_attribute.attribute) %> );
 <% elsif routing_key.target_nullsafe?
     a = routing_key.imit_attribute.attribute
-    path = [getter_for(a)]
+    v = ''
+    path = ["entity.#{getter_for(a)}"]
+    v = "#{path.join('.')} == null ? null : " if a.nullable?
     routing_key.path.each do |path_element|
       a = a.referenced_entity.attribute_by_name(routing_key.get_attribute_name_from_path_element?(path_element))
       path << getter_for(a)
+      if a.nullable?
+        v = "#{v}#{path.join('.')} == null ? null : "
+      end
     end
     path << getter_for(a.referenced_entity.attribute_by_name(routing_key.attribute_name))
+    v = "#{v}#{path.join('.')}"
 -%>
-    put_<%= graph.name %>_<%= routing_key.name %>( map, entity.<%= path.join('.') %> );
+    put_<%= graph.name %>_<%= routing_key.name %>( map, <%= v %> );
 <% else -%>
     route_<%= graph.name %>_<%= routing_key.name %>_0( map, entity.<%= getter_for(routing_key.imit_attribute.attribute) %> );
 <% end -%>

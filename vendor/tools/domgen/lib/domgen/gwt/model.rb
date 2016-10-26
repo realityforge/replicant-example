@@ -13,10 +13,45 @@
 #
 
 module Domgen
-  FacetManager.facet(:gwt => [:java, :json, :jackson]) do |facet|
+  module Gwt
+    class Entrypoint < Domgen.ParentedElement(:gwt_repository)
+      def initialize(gwt_repository, name, options = {}, &block)
+        @name = name
+        super(gwt_repository, options, &block)
+      end
+
+      include Domgen::Java::BaseJavaGenerator
+
+      java_artifact :entrypoint, nil, :client, :gwt, '#{qualified_name}'
+      java_artifact :entrypoint_module, :ioc, :client, :gwt, '#{qualified_name}EntrypointModule'
+      java_artifact :gwt_module, :modules, nil, :gwt, '#{qualified_name}EntrypointSupport'
+
+      def modules_package
+        entrypoint.gwt_repository.modules_package
+      end
+
+      def qualified_application_name
+        "#{gwt_repository.repository.gwt.client_package}.#{qualified_name}App"
+      end
+
+      def qualified_name
+        Domgen::Naming.pascal_case(name)
+      end
+
+      attr_reader :name
+    end
+  end
+
+  FacetManager.facet(:gwt => [:java, :json]) do |facet|
     facet.enhance(Repository) do
       include Domgen::Java::BaseJavaGenerator
       include Domgen::Java::JavaClientServerApplication
+
+      attr_writer :module_name
+
+      def module_name
+        @module_name || Domgen::Naming.underscore(repository.name)
+      end
 
       attr_writer :client_event_package
 
@@ -26,11 +61,83 @@ module Domgen
 
       java_artifact :async_callback, :service, :client, :gwt, '#{repository.name}AsyncCallback'
       java_artifact :async_error_callback, :service, :client, :gwt, '#{repository.name}AsyncErrorCallback'
+      java_artifact :abstract_application, nil, :client, :gwt, 'Abstract#{repository.name}App'
+      java_artifact :aggregate_module, :ioc, :client, :gwt, '#{repository.name}Module'
+
+      java_artifact :dev_module, :modules, nil, :gwt, '#{repository.name}DevSupport'
+      java_artifact :prod_module, :modules, nil, :gwt, '#{repository.name}ProdSupport'
+      java_artifact :app_module, :modules, nil, :gwt, '#{repository.name}AppSupport'
+
+      attr_writer :modules_package
+
+      def modules_package
+        @modules_package || "#{repository.java.base_package}.modules"
+      end
+
+      attr_writer :client_ioc_package
+
+      def client_ioc_package
+        @client_ioc_package || "#{client_package}.ioc"
+      end
+
+      attr_writer :enable_entrypoints
+
+      def enable_entrypoints?
+        @enable_entrypoints.nil? ? true : !!@enable_entrypoints
+      end
+
+      def default_entrypoint
+        key = Domgen::Naming.underscore(repository.name.to_s)
+        entrypoint(key) unless entrypoint_by_name?(key)
+        entrypoint_by_key(key)
+      end
+
+      def entrypoint_by_name?(name)
+        !!entrypoint_map[name.to_s]
+      end
+
+      def entrypoint_by_key(name)
+        raise "No gwt entrypoint with name #{name} defined." unless entrypoint_map[name.to_s]
+        entrypoint_map[name.to_s]
+      end
+
+      def entrypoint(name, options = {}, &block)
+        raise "Gwt entrypoint with key #{name} already defined." if entrypoint_map[name.to_s]
+        entrypoint_map[name.to_s] = Domgen::Gwt::Entrypoint.new(self, name, options, &block)
+      end
+
+      def entrypoints
+        return [] unless enable_entrypoints?
+        entrypoint_map.values
+      end
+
+      TargetManager.register_target('gwt.entrypoint', :repository, :gwt, :entrypoints)
+
+      def pre_complete
+        repository.ee.beans_xml_content_fragments << <<XML
+<!-- gwt fragment is auto-generated -->
+  <scan>
+    <exclude name="#{repository.gwt.client_package}.**"/>
+  </scan>
+<!-- gwt fragment end -->
+XML
+      end
 
       protected
 
       def facet_key
         :gwt
+      end
+
+      private
+
+      def entrypoint_map
+        raise "Attempted to retrieve gwt entrypoints on #{repository.name} when entrypoints not defined." unless enable_entrypoints?
+        unless @entrypoints
+          @entrypoints = {}
+          default_entrypoint
+        end
+        @entrypoints
       end
     end
 

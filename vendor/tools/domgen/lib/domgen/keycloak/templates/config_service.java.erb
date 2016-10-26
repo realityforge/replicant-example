@@ -1,0 +1,33 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= to_package(client.qualified_config_service_name) %>;
+
+@javax.annotation.Generated( "Domgen" )
+@SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"SE_TRANSIENT_FIELD_NOT_RESTORED"})
+@javax.servlet.annotation.WebServlet( urlPatterns = { "<%= client.local_config_url %>" } )
+public class <%= client.config_service_name %>
+  extends javax.servlet.http.HttpServlet
+{
+  private static final long serialVersionUID = 1;
+
+  @Override
+  protected void doGet( final javax.servlet.http.HttpServletRequest request,
+                        final javax.servlet.http.HttpServletResponse response )
+    throws javax.servlet.ServletException, java.io.IOException
+  {
+    try
+    {
+      final javax.json.JsonObjectBuilder builder = javax.json.Json.createObjectBuilder();
+      org.realityforge.keycloak.domgen.JndiUtil.buildJsonFromContext( builder, new javax.naming.InitialContext(), "<%= client.jndi_config_base %>" );
+      builder.add( "ssl-required", "<%= client.ssl_required %>" );
+      builder.add( "public-client", <%= client.public_client? %> );
+      builder.add( "bearer-only", <%= client.bearer_only? %> );
+      response.setContentType( javax.ws.rs.core.MediaType.APPLICATION_JSON );
+      javax.json.Json.createWriter( response.getOutputStream() ).writeObject( builder.build() );
+    }
+    catch ( final java.lang.Exception e )
+    {
+      throw new javax.servlet.ServletException( e );
+    }
+  }
+}

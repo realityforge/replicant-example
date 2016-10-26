@@ -23,7 +23,7 @@ module Domgen
 end
 
 Domgen.template_set(:jws_server_boundary) do |template_set|
-  template_set.template(Domgen::Generator::JWS::FACETS,
+  template_set.template(Domgen::Generator::JWS::FACETS + [:ejb],
                         :service,
                         "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/boundary_implementation.java.erb",
                         'main/java/#{service.jws.qualified_boundary_implementation_name.gsub(".","/")}.java',
@@ -104,6 +104,11 @@ Domgen.template_set(:jws_fakes) do |template_set|
                         :repository,
                         "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_server.java.erb",
                         'main/java/#{repository.jws.qualified_fake_server_name.gsub(".","/")}.java',
+                        Domgen::Generator::JWS::HELPERS)
+  template_set.template(Domgen::Generator::JWS::FACETS,
+                        :repository,
+                        "#{Domgen::Generator::JWS::TEMPLATE_DIRECTORY}/fake_server_factory.java.erb",
+                        'main/java/#{repository.jws.qualified_fake_server_factory_name.gsub(".","/")}.java',
                         Domgen::Generator::JWS::HELPERS)
   template_set.template(Domgen::Generator::JWS::FACETS,
                         :repository,

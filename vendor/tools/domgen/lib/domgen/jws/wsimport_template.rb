@@ -17,8 +17,8 @@ module Domgen
     class WsimportTemplate < Domgen::Generator::Template
       attr_reader :output_package_pattern
 
-      def initialize(template_set, facets, scope, template_key, output_package_pattern, helpers, options = {})
-        super(template_set, facets, scope, template_key, helpers, options)
+      def initialize(template_set, facets, target, template_key, output_package_pattern, helpers, options = {})
+        super(template_set, facets, target, template_key, helpers, options)
         @output_package_pattern = output_package_pattern
       end
 
@@ -41,7 +41,7 @@ module Domgen
           raise Domgen::Generator::GeneratorError.new("Missing wsdl #{wsdl_filename} generating #{self.name} for #{element_type} #{object_name}") unless File.exist?(wsdl_filename)
 
           digest = Digest::MD5.hexdigest(IO.read(wsdl_filename))
-          output_dir = "#{base_dir}/#{output_package.gsub(".", "/")}"
+          output_dir = "#{base_dir}/#{output_package.gsub('.', '/')}"
           digest_filename = "#{output_dir}/#{element.name}.wsdl.md5"
           unprocessed_files.delete_if{|f| f =~ /^#{output_dir}\/.*/ }
           unprocessed_files.delete(output_dir)
