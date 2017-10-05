@@ -79,7 +79,7 @@ define 'replicant-example' do
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 
-  ipr.add_glassfish_configuration(project, :server_name => 'GlassFish 4.1.1.162', :domain => 'tyrell', :exploded => [project.name])
+  ipr.add_glassfish_configuration(project, :server_name => 'GlassFish 4.1.2.172', :domain => 'tyrell', :exploded => [project.name])
 
   ipr.add_component_from_artifact(:idea_codestyle)
 
