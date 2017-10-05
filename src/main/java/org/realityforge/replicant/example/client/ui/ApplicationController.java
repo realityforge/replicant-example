@@ -3,7 +3,6 @@ package org.realityforge.replicant.example.client.ui;
 import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
-import com.google.web.bindery.event.shared.EventBus;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,69 +14,63 @@ import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
 import org.realityforge.replicant.client.EntityRepository;
-import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTO;
-import org.realityforge.replicant.example.client.data_type.RosterSubscriptionDTOFactory;
-import org.realityforge.replicant.example.client.entity.Person;
 import org.realityforge.replicant.example.client.entity.Position;
 import org.realityforge.replicant.example.client.entity.Roster;
 import org.realityforge.replicant.example.client.entity.RosterType;
 import org.realityforge.replicant.example.client.entity.Shift;
-import org.realityforge.replicant.example.client.event.SessionEstablishedEvent;
-import org.realityforge.replicant.example.client.net.TyrellDataLoaderService;
+import org.realityforge.replicant.example.client.entity.dao.PersonRepository;
+import org.realityforge.replicant.example.client.entity.dao.RosterRepository;
+import org.realityforge.replicant.example.client.entity.dao.RosterTypeRepository;
+import org.realityforge.replicant.example.client.net.FrontendContext;
 import org.realityforge.replicant.example.client.service.RosterService;
-import org.realityforge.replicant.example.client.service.TyrellAsyncCallback;
 
+@SuppressWarnings( "ALL" )
 public class ApplicationController
   implements IsWidget, EntityChangeListener
 {
   private static final Logger LOG = Logger.getLogger( ApplicationController.class.getName() );
   private static final Level LOG_LEVEL = Level.FINE;
 
-  private final EntityRepository _repository;
+  private final RosterTypeRepository _rosterTypeRepository;
+  private final RosterRepository _rosterRepository;
+  private final PersonRepository _personRepository;
   private final EntityChangeBroker _broker;
-  private final TyrellDataLoaderService _dataLoaderService;
+  private final FrontendContext _frontendContext;
   private final RosterService _rosterService;
   private final LoginUI _loginUI;
   private final RosterListUI _rosterListUI;
   private final RosterUI _rosterUI;
   private final SimplePanel _mainPanel;
-  private final EventBus _eventBus;
   private Roster _currentRoster;
   private Shift _currentShift;
   private RDate _currentDate;
 
   @Inject
-  public ApplicationController( final RosterService rosterService,
-                                final TyrellDataLoaderService dataLoaderService,
-                                final EntityRepository repository,
-                                final EntityChangeBroker broker,
-                                final EventBus eventBus )
+  public ApplicationController( @Nonnull final RosterTypeRepository rosterTypeRepository,
+                                @Nonnull final RosterRepository rosterRepository,
+                                @Nonnull final PersonRepository personRepository,
+                                @Nonnull final RosterService rosterService,
+                                @Nonnull final FrontendContext frontendContext,
+                                @Nonnull final EntityRepository repository,
+                                @Nonnull final EntityChangeBroker broker )
   {
+    _rosterTypeRepository = rosterTypeRepository;
+    _rosterRepository = rosterRepository;
+    _personRepository = personRepository;
     _rosterService = rosterService;
-    _dataLoaderService = dataLoaderService;
-    _repository = repository;
+    _frontendContext = frontendContext;
     _broker = broker;
-    _eventBus = eventBus;
     _loginUI = new LoginUI( this );
     _rosterListUI = new RosterListUI( this );
     _rosterUI = new RosterUI( this );
     _mainPanel = new SimplePanel();
     gotoLoginActivity();
     broker.addChangeListener( this );
-    _eventBus.addHandler( SessionEstablishedEvent.TYPE, new SessionEstablishedEvent.Handler()
-    {
-      @Override
-      public void onSessionEstablished( @Nonnull final SessionEstablishedEvent event )
-      {
-        goToRosterListActivity();
-        _dataLoaderService.getSession().subscribeToRosterList( null );
-      }
-    } );
   }
 
   protected RosterType getRosterType()
   {
-    return _repository.getByID( RosterType.class, 1 );
+    return _rosterTypeRepository.getByID( 1 );
   }
 
   private void gotoLoginActivity()
@@ -87,21 +80,6 @@ public class ApplicationController
 
   public void connect()
   {
-    _dataLoaderService.connect( new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        _dataLoaderService.getSession().subscribeToMetaData( new Runnable()
-        {
-          @Override
-          public void run()
-          {
-            _eventBus.fireEvent( new SessionEstablishedEvent() );
-          }
-        } );
-      }
-    } );
   }
 
   public EntityChangeBroker getBroker()
@@ -115,45 +93,32 @@ public class ApplicationController
     return _mainPanel;
   }
 
-  public void createAndSelectRoster( final RosterType rosterType, final String rosterName )
+  void createAndSelectRoster( final RosterType rosterType, final String rosterName )
   {
-    _rosterService.createRoster( rosterType, rosterName, new TyrellAsyncCallback<Roster>()
-    {
-      @Override
-      public void onSuccess( final Roster result )
-      {
-        selectRoster( result );
-      }
-    } );
+    _rosterService.createRoster( rosterType, rosterName, this::selectRoster );
   }
 
-  public void selectRoster( @Nullable final Roster roster )
+  void selectRoster( @Nullable final Roster roster )
   {
-    if ( _currentRoster == roster )
+    if ( _currentRoster != roster )
     {
-      return;
-    }
-    if ( null != _currentRoster )
-    {
-      _dataLoaderService.getSession().unsubscribeFromShiftList( _currentRoster.getID(), null );
-    }
-    _currentRoster = roster;
-    if ( null != _currentRoster )
-    {
-      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( getCurrentDate(), 7 );
-      _dataLoaderService.getSession().subscribeToShiftList( roster.getID(), filter, null );
-      _rosterUI.setRoster( _currentRoster );
-      goToRosterActivity();
-    }
-    else
-    {
-      _rosterUI.setRoster( null );
-      goToRosterListActivity();
+      _currentRoster = roster;
+      _frontendContext.selectRoster( roster, getCurrentDate() );
+      if ( null != _currentRoster )
+      {
+        _rosterUI.setRoster( _currentRoster );
+        goToRosterActivity();
+      }
+      else
+      {
+        _rosterUI.setRoster( null );
+        goToRosterListActivity();
+      }
     }
   }
 
   @Nonnull
-  public RDate getCurrentDate()
+  RDate getCurrentDate()
   {
     if ( null == _currentDate )
     {
@@ -162,47 +127,22 @@ public class ApplicationController
     return _currentDate;
   }
 
-  public void updateShiftListSubscription( @Nonnull final RDate newStartDate )
+  void updateShiftListSubscription( @Nonnull final RDate newStartDate )
   {
-    if ( newStartDate.equals( _currentDate ) )
+    if ( !newStartDate.equals( _currentDate ) )
     {
-      return;
-    }
-    _currentDate = newStartDate;
-    if ( null != _currentRoster )
-    {
-      final RosterSubscriptionDTO filter = RosterSubscriptionDTOFactory.create( _currentDate, 7 );
-      if ( null != _currentShift )
-      {
-        if ( _currentShift.getStartAt().before( RDate.toDate( _currentDate ) ) ||
-             _currentShift.getStartAt().after( RDate.toDate( RDate.addDays( _currentDate, 7 ) ) ) )
-        {
-          _dataLoaderService.getSession().unsubscribeFromShift( _currentShift.getID(), null );
-        }
-      }
-      _dataLoaderService.getSession().updateShiftListSubscription( _currentRoster.getID(), filter, null );
+      _frontendContext.selectRoster( _currentRoster, newStartDate );
+      _currentDate = newStartDate;
     }
   }
 
-  public void selectShift( @Nullable final Shift shift )
+  void selectShift( @Nullable final Shift shift )
   {
-    if ( _currentShift == shift )
+    if ( _currentShift != shift )
     {
-      return;
-    }
-    if ( null != _currentShift )
-    {
-      _dataLoaderService.getSession().unsubscribeFromShift( _currentShift.getID(), null );
-    }
-    _currentShift = shift;
-    if ( null != _currentShift )
-    {
-      _dataLoaderService.getSession().subscribeToShift( _currentShift.getID(), null );
+      _currentShift = shift;
+      _frontendContext.selectShift( shift );
       _rosterUI.setShift( _currentShift );
-    }
-    else
-    {
-      _rosterUI.setShift( null );
     }
   }
 
@@ -218,7 +158,7 @@ public class ApplicationController
 
   private void resetRosterList()
   {
-    _rosterListUI.setRosters( _repository.findAll( Roster.class ) );
+    _rosterListUI.setRosters( _rosterRepository.findAll() );
   }
 
   @Override
@@ -270,16 +210,9 @@ public class ApplicationController
     LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
   }
 
-  public void doDeleteRoster( final Roster roster )
+  void doDeleteRoster( @Nonnull final Roster roster )
   {
-    _rosterService.removeRoster( roster, new TyrellAsyncCallback<Void>()
-    {
-      @Override
-      public void onSuccess( final Void result )
-      {
-        goToRosterListActivity();
-      }
-    } );
+    _rosterService.removeRoster( roster, r -> goToRosterListActivity() );
   }
 
   public void setRosterName( final Roster roster, final String name )
@@ -307,14 +240,14 @@ public class ApplicationController
     _rosterService.setPositionName( position, name );
   }
 
-  public void doDeleteShift( final Shift shift )
+  void doDeleteShift( final Shift shift )
   {
     _rosterService.removeShift( shift );
   }
 
-  public void disconnect()
+  void disconnect()
   {
-    _dataLoaderService.disconnect( null );
+    _frontendContext.disconnect();
     _loginUI.resetState();
     gotoLoginActivity();
   }
@@ -324,26 +257,18 @@ public class ApplicationController
     _rosterService.removePosition( position );
   }
 
-  public void loadResources()
+  void loadResources()
   {
-    _dataLoaderService.getSession().subscribeToPeople( null );
+    _frontendContext.loadPeople();
   }
 
-  public void unloadResources()
+  void unloadResources()
   {
-    if ( isSubscribedToResources() )
-    {
-      _dataLoaderService.getSession().unsubscribeFromPeople( null );
-    }
+    _frontendContext.unloadPeople();
   }
 
-  public boolean isSubscribedToResources()
+  void assignResource( final Position position, final int personID )
   {
-    return _dataLoaderService.getSession().isSubscribedToPeople();
-  }
-
-  public void assignResource( final Position position, final int personID )
-  {
-    _rosterService.assignPerson( position, _repository.getByID( Person.class, personID ) );
+    _rosterService.assignPerson( position, _personRepository.getByID( personID ) );
   }
 }

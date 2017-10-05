@@ -8,7 +8,6 @@ Domgen.repository(:Tyrell) do |repository|
   repository.ee.web_xml_fragments << 'src/main/etc/web.fragment.xml'
 
   repository.imit.graph(:MetaData, :cacheable => true)
-  repository.imit.graph(:RosterList, :require_type_graphs => [:MetaData])
   repository.imit.graph(:ShiftList, :require_type_graphs => [:MetaData])
   repository.imit.graph(:Shift, :require_type_graphs => [:MetaData])
   repository.imit.graph(:People, :require_type_graphs => [:MetaData])
@@ -33,15 +32,15 @@ Domgen.repository(:Tyrell) do |repository|
       t.integer(:ID, :primary_key => true)
       t.reference(:RosterType, :immutable => true)
       t.string(:Name, 100)
-      t.imit.replicate(:RosterList, :type)
+      t.imit.replicate(:MetaData, :type)
       t.imit.replicate(:ShiftList, :instance)
     end
 
     data_module.entity(:Shift) do |t|
       t.integer(:ID, :primary_key => true)
-      t.reference(:Roster, :immutable => true, 'inverse.traversable' => true, 'inverse.imit.exclude_edges' => [:RosterList])
+      t.reference(:Roster, :immutable => true, 'inverse.traversable' => true)
       t.string(:Name, 50)
-      t.datetime(:StartAt, 'imit.filter_in_graphs' => [:ShiftList])
+      t.datetime(:StartAt, :immutable => true, 'imit.filter_in_graphs' => [:ShiftList])
       t.imit.replicate(:Shift, :instance)
 
       t.query(:FindAllByAreaOfInterest, 'jpa.jpql' => <<JPQL) do |q|
@@ -87,8 +86,6 @@ JPQL
       t.reference(:Person, :immutable => true, 'inverse.traversable' => true, 'inverse.imit.exclude_edges' => [:Person])
       t.string(:Email, 50)
     end
-
-    data_module.message(:SessionEstablished)
 
     data_module.service(:RosterService) do |s|
       s.method(:CreateRoster) do |m|
@@ -136,6 +133,11 @@ JPQL
   end
 
   repository.data_modules.each do |data_module|
+    data_module.daos.each do |dao|
+      unless %w(PersonRepository RosterRepository RosterTypeRepository).include?(dao.name.to_s)
+        dao.disable_facet(:imit) if dao.imit?
+      end
+    end
     data_module.services.each do |service|
       service.disable_facet(:jaxrs) if service.jaxrs?
     end

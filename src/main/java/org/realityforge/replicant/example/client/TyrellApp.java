@@ -1,10 +1,11 @@
 package org.realityforge.replicant.example.client;
 
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.ui.RootPanel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
+import org.realityforge.replicant.example.client.ioc.AbstractTyrellGinjector;
 import org.realityforge.replicant.example.client.ioc.TyrellGinjector;
 
 public class TyrellApp
@@ -14,10 +15,11 @@ public class TyrellApp
 
   private TyrellGinjector _injector;
 
+  @Nullable
   @Override
-  protected EventBus getEventBus()
+  protected AbstractTyrellGinjector getInjector()
   {
-    return null != _injector ? _injector.getEventBus() : null;
+    return _injector;
   }
 
   @Override

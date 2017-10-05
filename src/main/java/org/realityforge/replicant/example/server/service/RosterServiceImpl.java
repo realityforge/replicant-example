@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
-import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.context.ApplicationScoped;
@@ -23,7 +22,6 @@ import org.realityforge.replicant.example.server.entity.dao.ContactRepository;
 import org.realityforge.replicant.example.server.entity.dao.PersonRepository;
 import org.realityforge.replicant.example.server.entity.dao.PositionRepository;
 import org.realityforge.replicant.example.server.entity.dao.RosterRepository;
-import org.realityforge.replicant.example.server.entity.dao.RosterTypeRepository;
 import org.realityforge.replicant.example.server.entity.dao.ShiftRepository;
 
 @ApplicationScoped
@@ -54,8 +52,6 @@ public class RosterServiceImpl
     "post_master@example.com", "rchilders@example.com", "buster@example.com",
     "user31065@example.com", "ftsgeolbx@example.com" };
 
-  @Inject
-  private RosterTypeRepository _rosterTypeRepository;
   @Inject
   private RosterRepository _rosterRepository;
   @Inject
@@ -123,9 +119,8 @@ public class RosterServiceImpl
   @Nonnull
   public Shift createShift( @Nonnull final Roster roster, @Nonnull final String name, @Nonnull final Date shiftOn )
   {
-    final Shift shift = new Shift( roster );
+    final Shift shift = new Shift( roster, shiftOn );
     shift.setName( name );
-    shift.setStartAt( shiftOn );
     _shiftRepository.persist( shift );
     return shift;
   }

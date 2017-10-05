@@ -5,26 +5,74 @@ require 'buildr/top_level_generate_dir'
 GWT_DEPS = [:gwt_user,
             :gwt_lognice,
             :gwt_webpoller,
-            :gwt_property_source,
             :google_guice,
             :google_guice_assistedinject,
             :aopalliance,
             :gwt_gin]
 JACKSON_DEPS = [:jackson_core, :jackson_mapper, :jackson_annotations]
-PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee] + GWT_DEPS
-COMPILE_DEPS = [:replicant, :gwt_servlet, :simple_session_filter, :field_filter, :gwt_cache_filter, :gwt_datatypes] + JACKSON_DEPS
+PROVIDED_DEPS = [:javax_jsr305, :findbugs_annotations, :javax_javaee, :payara_embedded_all, :payara_api] + GWT_DEPS
+COMPILE_DEPS =
+  [
+    :replicant_shared,
+    :replicant_shared_ee,
+    :replicant_client_common,
+    :replicant_client_qa_support,
+    :replicant_gwt_client,
+    :replicant_server,
+    :gwt_servlet,
+    :gwt_cache_filter,
+    :gwt_datatypes,
+    :timerstatus,
+    :field_filter
+  ] + JACKSON_DEPS
+
 PACKAGE_DEPS = COMPILE_DEPS
 
+GENERATORS =
+  [
+    :ee,
+    :jaxrs,
+    :ee_web_xml,
+    :ee_beans_xml,
+    :ee_model_beans_xml,
+    :gwt_client_app,
+    :gwt_client_gwt_modules,
+    :gwt_client_gwt_model_module,
+    :gwt_client_module,
+    :gwt,
+    :gwt_rpc,
+    :imit_shared,
+    :imit_server_service,
+    :imit_server_entity,
+    :imit_client_service,
+    :imit_client_entity,
+    :jackson_date_util,
+    :ce_data_types,
+    :imit_client_entity_gwt_module,
+    :imit_client_dao,
+    :gwt,
+    :gwt_rpc_shared,
+    :gwt_rpc_client_service,
+    :gwt_client_jso,
+    :auto_bean,
+    :gwt_client_module,
+    :gwt_client_gwt_model_module,
+    :imit_client_entity_gwt,
+    :imit_client_dao_gwt,
+    :imit_client_service,
+    :gwt_client_event,
+    :gwt_client_config
+  ]
+
 desc 'A simple application demonstrating the use of the replicant library'
-define 'replicant-example' do
+define 'tyrell' do
   project.group = 'org.realityforge.replicant.example'
 
   compile.options.source = '1.8'
   compile.options.target = '1.8'
   compile.options.lint = 'all'
 
-  # Expanded "imit" template_set to avoid bringing in test classes
-  Domgen::Build.define_generate_task([:ee, :jaxrs, :ee_web_xml, :ee_beans_xml, :gwt_client_app, :gwt_client_gwt_modules, :gwt_client_gwt_model_module, :gwt_client_module, :gwt, :gwt_rpc, :imit_shared, :imit_server_service, :imit_server_entity, :imit_client_service, :imit_client_entity, :jackson_date_util])
+  Domgen::Build.define_generate_task(GENERATORS)
 
   compile.with COMPILE_DEPS, PROVIDED_DEPS
 
@@ -37,8 +85,8 @@ define 'replicant-example' do
   end
 
   dependencies = project.compile.dependencies + [project.compile.target] + extra_deps
-  gwt_dir = gwt(%w(org.realityforge.replicant.example.Tyrell),
-                :java_args => %w(-Xms512M -Xmx1024M -XX:PermSize=128M -XX:MaxPermSize=256M),
+  gwt_dir = gwt(%w(org.realityforge.replicant.example.modules.TyrellDev),
+                :java_args => %w(-ea -Djava.awt.headless=true -Xms512M -Xmx1024M),
                 :dependencies => dependencies) unless ENV['GWT'] == 'no'
 
   test.using :testng
@@ -48,23 +96,23 @@ define 'replicant-example' do
     war.libs = PACKAGE_DEPS
   end
 
-  clean { rm_rf "#{File.dirname(__FILE__)}/artifacts" }
+  clean {rm_rf "#{File.dirname(__FILE__)}/artifacts"}
 
-  iml.add_gwt_facet({'org.realityforge.replicant.example.modules.TyrellDevSupport' => false,
-                     'org.realityforge.replicant.example.modules.TyrellEntrypointSupport' => false,
-                     'org.realityforge.replicant.example.modules.TyrellModelSupport' => false,
-                     'org.realityforge.replicant.example.modules.TyrellProdSupport' => false,
-                     'org.realityforge.replicant.example.modules.TyrellAppSupport' => false,
-                     'org.realityforge.replicant.example.modules.TyrellDev' => false,
-                     'org.realityforge.replicant.example.Tyrell' => false},
-                    :settings => {:compilerMaxHeapSize => '1024'},
+  iml.add_gwt_facet({ 'org.realityforge.replicant.example.modules.TyrellDevSupport' => false,
+                      'org.realityforge.replicant.example.modules.TyrellEntrypointSupport' => false,
+                      'org.realityforge.replicant.example.modules.TyrellModelSupport' => false,
+                      'org.realityforge.replicant.example.modules.TyrellProdSupport' => false,
+                      'org.realityforge.replicant.example.modules.TyrellAppSupport' => false,
+                      'org.realityforge.replicant.example.modules.TyrellDev' => false,
+                      'org.realityforge.replicant.example.Tyrell' => false },
+                    :settings => { :compilerMaxHeapSize => '1024' },
                     :gwt_dev_artifact => :gwt_dev)
 
   # Hacke to remove GWT from path
   webroots = {}
   webroots[_(:source, :main, :webapp)] = '/'
   webroots[_(:source, :main, :webapp_local)] = '/'
-  assets.paths.each { |path| webroots[path.to_s] = '/' if path.to_s != gwt_dir.to_s }
+  assets.paths.each {|path| webroots[path.to_s] = '/' if path.to_s != gwt_dir.to_s}
   iml.add_web_facet(:webroots => webroots)
 
   iml.add_jpa_facet
@@ -79,15 +127,17 @@ define 'replicant-example' do
                                 :enable_war => true,
                                 :dependencies => [project, PACKAGE_DEPS])
 
-  ipr.add_glassfish_configuration(project, :server_name => 'GlassFish 4.1.2.172', :domain => 'tyrell', :exploded => [project.name])
+  ipr.add_glassfish_configuration(project, :server_name => 'GlassFish 4.1.2.172', :exploded => [project.name])
 
   ipr.add_component_from_artifact(:idea_codestyle)
 
+  iml.excluded_directories << project._('tmp/gwt')
   ipr.add_gwt_configuration(project,
-                            :gwt_module => 'org.realityforge.replicant.example.ExampleDev',
-                            :vm_parameters => '-Xmx3G',
-                            :shell_parameters => "-port 8888 -war #{_(:artifacts, project.name)}/",
-                            :launch_page => 'http://127.0.0.1:8080/replicant-example')
+                            :gwt_module => 'org.realityforge.replicant.example.TyrellDev',
+                            :start_javascript_debugger => false,
+                            :vm_parameters => "-Xmx3G -Djava.io.tmpdir=#{_('tmp/gwt')}",
+                            :shell_parameters => "-port 8888 -codeServerPort 8889 -bindAddress 0.0.0.0 -war #{_(:generated, 'gwt-export')}/",
+                            :launch_page => 'http://127.0.0.1:8080/tyrell')
 
   ipr.extra_modules << '../replicant/replicant.iml'
 end
