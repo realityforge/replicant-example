@@ -50,7 +50,7 @@ asadmin create-jdbc-connection-pool\
   --property "ServerName=127.0.0.1:User=${USER}:Password=letmein:PortNumber=5432:DatabaseName=${USER}_TYRELL_DEV" tyrell/jdbc/TyrellConnectionPool
 asadmin create-jdbc-resource --connectionpoolid tyrell/jdbc/TyrellConnectionPool tyrell/jdbc/Tyrell
 
-asadmin set domain.resources.jdbc-connection-pool.TyrellPool.property.JDBC30DataSource=true
+asadmin set resources.jdbc-connection-pool.tyrell/jdbc/TyrellConnectionPool.property.JDBC30DataSource=true
 
 asadmin set-log-levels javax.enterprise.resource.resourceadapter.com.sun.gjc.spi=WARNING
 
