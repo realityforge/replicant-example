@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='tyrell'>
+  <inherits name="org.realityforge.tyrell.modules.TyrellModelSupport"/>
+  <inherits name="org.realityforge.tyrell.modules.TyrellEntrypointSupport"/>
+
+  <source path='client'/>
+  <source path='shared'/>
+</module>

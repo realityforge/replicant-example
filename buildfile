@@ -66,7 +66,7 @@ GENERATORS =
 
 desc 'A simple application demonstrating the use of the replicant library'
 define 'tyrell' do
-  project.group = 'org.realityforge.replicant.example'
+  project.group = 'org.realityforge.tyrell'
 
   compile.options.source = '1.8'
   compile.options.target = '1.8'
@@ -85,7 +85,7 @@ define 'tyrell' do
   end
 
   dependencies = project.compile.dependencies + [project.compile.target] + extra_deps
-  gwt_dir = gwt(%w(org.realityforge.replicant.example.modules.TyrellDev),
+  gwt_dir = gwt(%w(org.realityforge.tyrell.modules.TyrellDev),
                 :java_args => %w(-ea -Djava.awt.headless=true -Xms512M -Xmx1024M),
                 :dependencies => dependencies) unless ENV['GWT'] == 'no'
 
@@ -98,13 +98,13 @@ define 'tyrell' do
 
   clean {rm_rf "#{File.dirname(__FILE__)}/artifacts"}
 
-  iml.add_gwt_facet({ 'org.realityforge.replicant.example.modules.TyrellDevSupport' => false,
-                      'org.realityforge.replicant.example.modules.TyrellEntrypointSupport' => false,
-                      'org.realityforge.replicant.example.modules.TyrellModelSupport' => false,
-                      'org.realityforge.replicant.example.modules.TyrellProdSupport' => false,
-                      'org.realityforge.replicant.example.modules.TyrellAppSupport' => false,
-                      'org.realityforge.replicant.example.modules.TyrellDev' => false,
-                      'org.realityforge.replicant.example.Tyrell' => false },
+  iml.add_gwt_facet({ 'org.realityforge.tyrell.modules.TyrellDevSupport' => false,
+                      'org.realityforge.tyrell.modules.TyrellEntrypointSupport' => false,
+                      'org.realityforge.tyrell.modules.TyrellModelSupport' => false,
+                      'org.realityforge.tyrell.modules.TyrellProdSupport' => false,
+                      'org.realityforge.tyrell.modules.TyrellAppSupport' => false,
+                      'org.realityforge.tyrell.modules.TyrellDev' => false,
+                      'org.realityforge.tyrell.Tyrell' => false },
                     :settings => { :compilerMaxHeapSize => '1024' },
                     :gwt_dev_artifact => :gwt_dev)
 
@@ -133,7 +133,7 @@ define 'tyrell' do
 
   iml.excluded_directories << project._('tmp/gwt')
   ipr.add_gwt_configuration(project,
-                            :gwt_module => 'org.realityforge.replicant.example.TyrellDev',
+                            :gwt_module => 'org.realityforge.tyrell.TyrellDev',
                             :start_javascript_debugger => false,
                             :vm_parameters => "-Xmx3G -Djava.io.tmpdir=#{_('tmp/gwt')}",
                             :shell_parameters => "-port 8888 -codeServerPort 8889 -bindAddress 0.0.0.0 -war #{_(:generated, 'gwt-export')}/",

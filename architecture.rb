@@ -3,7 +3,7 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.gwt_rpc.module_name = 'example'
 
-  repository.java.base_package = 'org.realityforge.replicant.example'
+  repository.java.base_package = 'org.realityforge.tyrell'
 
   repository.ee.web_xml_fragments << 'src/main/etc/web.fragment.xml'
 
