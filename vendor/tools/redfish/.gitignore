@@ -1,0 +1,11 @@
+.idea
+pkg
+pkg/*
+rdoc
+/*.iml
+/*.ipr
+/*.iws
+/Gemfile.lock
+/.rakeTasks
+/tmp
+/patch.*

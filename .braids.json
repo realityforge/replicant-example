@@ -8,5 +8,10 @@
     "url": "https://github.com/realityforge/domgen.git",
     "branch": "master",
     "revision": "f9c9e383a7e844d898be61044982be9a4a26dbb6"
+  },
+  "vendor/tools/redfish": {
+    "url": "https://github.com/realityforge/redfish.git",
+    "branch": "master",
+    "revision": "1428992b4e2551f7fe22f4723558f3e9e97a5e4c"
   }
 }
