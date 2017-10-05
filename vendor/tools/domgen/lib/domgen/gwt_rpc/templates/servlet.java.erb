@@ -2,69 +2,32 @@
 package <%= to_package(service.gwt_rpc.qualified_servlet_name) %>;
 
 @javax.annotation.Generated( "Domgen" )
-@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.UnusedPrivateField", "PMD.UnusedLocalVariable" } )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.UnusedPrivateField", "PMD.UnusedLocalVariable", "PMD.FieldDeclarationsShouldBeAtStartOfClass", "PMD.UnnecessaryLocalBeforeReturn", "PMD.LocalVariableCouldBeFinal" } )
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"SE_TRANSIENT_FIELD_NOT_RESTORED"})
 @javax.servlet.annotation.WebServlet( name = "<%= service.data_module.name %>.<%= service.gwt_rpc.servlet_name %>", urlPatterns = { "/<%= service.gwt_rpc.api_url %>" } )
 public class <%= service.gwt_rpc.servlet_name %>
-  extends com.google.gwt.user.server.rpc.<%= service.gwt_rpc.xsrf_protected? ? "XsrfProtectedServiceServlet" : "RemoteServiceServlet" %>
+  extends com.google.gwt.user.server.rpc.<%= service.gwt_rpc.xsrf_protected? ? 'XsrfProtectedServiceServlet' : 'RemoteServiceServlet' %>
   implements <%= service.gwt_rpc.qualified_rpc_service_name %>
 {
   private static final long serialVersionUID = 1;
 
   private transient final com.fasterxml.jackson.databind.ObjectMapper _jsonMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
-  private int _codeServerPort;
-  private String _gwtModulePath;
-  private String _codeServerHost;
+  @javax.inject.Inject
+  private transient <%= service.data_module.repository.gwt_rpc.qualified_code_server_config_name %> _codeServerConfig;
 
-  @java.lang.Override
-  public void init( final javax.servlet.ServletConfig config )
-    throws javax.servlet.ServletException
+  @javax.annotation.Nullable
+  @Override
+  protected String getCodeServerPolicyUrl( @javax.annotation.Nonnull final String strongName )
   {
-    super.init( config );
-    _codeServerPort = getCodeServerPort();
-    _gwtModulePath = System.getProperty( "gwt.codeserver.module" );
-    _codeServerHost = System.getProperty( "gwt.codeserver.host", "localhost" );
-  }
-
-  private int getCodeServerPort()
-    throws javax.servlet.ServletException
-  {
-    final String value = System.getProperty( "gwt.codeserver.port" );
-    if ( null == value )
-    {
-      return 0;
-    }
-
-    try
-    {
-      final int port = Integer.parseInt( value );
-      if ( port >= 0 && port < 65536 )
-      {
-        return port;
-      }
-    }
-    catch ( final java.lang.NumberFormatException nfe )
-    {
-      // fall through
-    }
-    throw new javax.servlet.ServletException( "Invalid value of gwt.codeserver.port system property; expected an integer in the range [1-65535] but got: " + value );
-  }
-
-  protected String getCodeServerPolicyUrl( final String strongName )
-  {
-    if ( null == _gwtModulePath || _codeServerPort <= 0 )
-    {
-      return null;
-    }
-    return "http://" + _codeServerHost + ":" + _codeServerPort + "/" + _gwtModulePath + "/" + strongName + ".gwt.rpc";
+    return _codeServerConfig.getCodeServerPolicyUrl( strongName );
   }
 
   @javax.inject.Inject
   private transient <%= service.ejb.generate_boundary? ? service.ejb.qualified_boundary_interface_name : service.ejb.qualified_service_name %> _service;
 
 <% service.methods.select{|method| method.gwt_rpc?}.each do |method|
-%>  <%= annotated_type(method.return_value, :gwt_rpc, :transport, :public => true) %> <%= method.gwt_rpc.name %>(<%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect{|p| "#{annotated_type(p, :gwt_rpc, :transport)} #{p.gwt_rpc.name}" }.join(', ') %>)<%=
+%>  <%= annotated_type(method.return_value, :gwt_rpc, :transport, :public => true) %> <%= method.gwt_rpc.name %>(<%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect{|p| "#{annotated_type(p, :gwt_rpc, :transport, :final => true)} #{p.gwt_rpc.name}" }.join(', ') %>)<%=
     method.exceptions.empty? ? '' : "\n    throws #{method.exceptions.collect{|e| e.gwt_rpc.qualified_name}.join(', ')}"
 %>
   {
@@ -94,25 +57,25 @@ public class <%= service.gwt_rpc.servlet_name %>
      return_prefix = "#{annotated_type(method.return_value, :ejb, :boundary, :final => true)} returnValue = "
      transform = nil
      if method.return_value.date?
-       transform = "org.realityforge.gwt.datatypes.client.date.RDate.fromDate( returnValue )"
+       transform = 'org.realityforge.gwt.datatypes.client.date.RDate.fromDate( returnValue )'
      elsif method.return_value.enumeration?
        if method.return_value.enumeration.numeric_values?
-         transform = "returnValue.ordinal()"
+         transform = 'returnValue.ordinal()'
        else
-         transform = "returnValue.name()"
+         transform = 'returnValue.name()'
        end
      elsif method.return_value.struct?
-       transform = "_jsonMapper.writeValueAsString( returnValue )"
+       transform = '_jsonMapper.writeValueAsString( returnValue )'
      end
 
      if !method.return_value.collection?
        if method.return_value.nullable? && transform
          transform = "(null == returnValue ? null : #{transform})"
        end
-       return_postfix = "return #{transform || "returnValue"};"
+       return_postfix = "return #{transform || 'returnValue'};"
      elsif method.return_value.date? || method.return_value.enumeration? || method.return_value.struct?
-       return_postfix = ""
-       return_postfix << "#{annotated_type(method.return_value, :ejb, :transport, :final => true)} $returnValue = #{method.return_value.nullable? ? "null == returnValue ? null : " : '' }new java.util.#{method.return_value.collection_type == :set ? "HashSet" : "ArrayList" }<#{method.return_value.ejb.java_component_type(:transport) }>();\n"
+       return_postfix =''
+       return_postfix << "#{annotated_type(method.return_value, :ejb, :transport, :final => true)} $returnValue = #{method.return_value.nullable? ? 'null == returnValue ? null : ' : '' }new java.util.#{method.return_value.collection_type == :set ? 'HashSet' : 'ArrayList' }<#{method.return_value.ejb.java_component_type(:transport) }>();\n"
        return_postfix << "  if( null != returnValue )\n    {\n" if method.return_value.nullable?
        return_postfix << <<LOOP
     for( final #{method.return_value.ejb.java_component_type(:boundary) } k: returnValue )
@@ -120,19 +83,19 @@ public class <%= service.gwt_rpc.servlet_name %>
       $returnValue.add(
 LOOP
          if method.return_value.date?
-           return_postfix << "org.realityforge.gwt.datatypes.client.date.RDate.fromDate( k )"
+           return_postfix << 'org.realityforge.gwt.datatypes.client.date.RDate.fromDate( k )'
          elsif method.return_value.struct?
-           return_postfix << "_jsonMapper.writeValueAsString( k )"
+           return_postfix << '_jsonMapper.writeValueAsString( k )'
          elsif method.return_value.enumeration.numeric_values?
-           return_postfix << "k.ordinal()"
+           return_postfix << 'k.ordinal()'
          elsif method.return_value.enumeration.textual_values?
-           return_postfix << "k.name()"
+           return_postfix << 'k.name()'
          end
          return_postfix << ");\n    }\n"
          return_postfix << "    }\n" if method.return_value.nullable?
          return_postfix << "return $returnValue;\n"
        else
-         return_postfix = "return returnValue;"
+         return_postfix = 'return returnValue;'
        end
        if method.return_value.struct?
          return_postfix = "try {\n #{return_postfix} \n} catch ( final java.io.IOException ioe ) { cause = ioe; throw new IllegalArgumentException( ioe.getMessage(), ioe ); }"
@@ -143,14 +106,14 @@ LOOP
     $<%= parameter.name %> = _jsonMapper.readValue( <%= parameter.name %>, <%= parameter.ejb.java_type %>.class );
 <% end %>
 <% method.parameters.select{|p|p.collection? && (p.date? || p.enumeration?|| p.struct?)}.each do |parameter| %>
-    $<%= parameter.name %> = <%= parameter.nullable? ? "null == #{parameter.name} ? null : " : '' %>new java.util.<%=  parameter.collection_type == :set ? "HashSet" : "ArrayList" %><<%= parameter.ejb.java_component_type(:boundary) %>>();
+    $<%= parameter.name %> = <%= parameter.nullable? ? "null == #{parameter.name} ? null : " : '' %>new java.util.<%=  parameter.collection_type == :set ? 'HashSet' : 'ArrayList' %><<%= parameter.ejb.java_component_type(:boundary) %>>();
     <% if parameter.nullable? %>if( null != <%= parameter.name %> ) {<% end %>
     for( final <%= parameter.ejb.java_component_type(:transport) %> k: <%= parameter.name %> )
     {
     <%
        param_value =
          if parameter.date?
-           "org.realityforge.gwt.datatypes.client.date.RDate.toDate( k )"
+            'org.realityforge.gwt.datatypes.client.date.RDate.toDate(  org.realityforge.gwt.datatypes.client.date.RDate.parse( k ) )'
          elsif parameter.enumeration?
            parameter.enumeration.numeric_values? ?
              "#{parameter.enumeration.ee.qualified_name}.values()[ k ]" :
@@ -179,7 +142,7 @@ LOOP
   else
     transform = nil
     if p.date?
-      transform = "org.realityforge.gwt.datatypes.client.date.RDate.toDate( #{p.gwt_rpc.name} )"
+      transform = "org.realityforge.gwt.datatypes.client.date.RDate.toDate( org.realityforge.gwt.datatypes.client.date.RDate.parse( #{p.gwt_rpc.name} ) )"
     elsif p.enumeration?
       if p.enumeration.numeric_values?
         transform = "#{p.enumeration.ee.qualified_name}.values()[ #{p.gwt_rpc.name} ]"
@@ -234,9 +197,8 @@ end.join(', ') %>);
   }
 <% end %>
 <%
-has_cookie = false
- service.methods.select{|method| method.gwt_rpc?}.each do |method|
-   has_cookie = method.parameters.any?{|p| p.gwt_rpc.environmental? && p.gwt_rpc.environment_key_is_cookie?}
+has_cookie = service.methods.select{|method| method.gwt_rpc?}.any? do |method|
+   method.parameters.any?{|p| p.gwt_rpc.environmental? && p.gwt_rpc.environment_key_is_cookie?}
  end
 if has_cookie
 %>
@@ -257,4 +219,9 @@ if has_cookie
     return null;
   }
 <% end %>
+
+  protected void doUnexpectedFailure( final java.lang.Throwable e )
+  {
+    com.google.gwt.user.server.rpc.RPCServletUtils.writeResponseForUnexpectedFailure( getServletContext(), getThreadLocalResponse(), e );
+  }
 }

@@ -1,14 +1,15 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(repository.gwt_rpc.qualified_rpc_services_module_name) %>;
 
-<%= description_javadoc_for(repository, "") %>@javax.annotation.Generated( "Domgen" )
-@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
+@javax.annotation.Generated( "Domgen" )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.FieldDeclarationsShouldBeAtStartOfClass" } )
 public class <%= repository.gwt_rpc.rpc_services_module_name %>
   extends com.google.gwt.inject.client.AbstractGinModule
 {
 <% if repository.keycloak? -%>
   @javax.annotation.Nullable
   private static org.realityforge.gwt.keycloak.Keycloak c_keycloak;
+  private static int c_minTokenValiditySeconds = <%= repository.imit? ? 'org.realityforge.replicant.shared.transport.ReplicantContext.MAX_POLL_TIME_IN_SECONDS * 2' : '10' %>;
 
   @javax.annotation.Nonnull
   public static org.realityforge.gwt.keycloak.Keycloak getKeycloak()
@@ -25,6 +26,37 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
     c_keycloak = keycloak;
   }
 
+  public static int getMinTokenValiditySeconds()
+  {
+    return c_minTokenValiditySeconds;
+  }
+
+  public static void setMinTokenValiditySeconds( final int minTokenValiditySeconds )
+  {
+    c_minTokenValiditySeconds = minTokenValiditySeconds;
+  }
+
+  public static void updateTokenAndExecute( @javax.annotation.Nonnull final java.lang.Runnable action )
+  {
+    final org.realityforge.gwt.keycloak.Keycloak keycloak = c_keycloak;
+    if ( null == keycloak )
+    {
+      action.run();
+    }
+    else
+    {
+      keycloak.updateToken( c_minTokenValiditySeconds, new java.lang.Runnable()
+      {
+        @java.lang.Override
+        public void run()
+        {
+          <% if repository.imit? -%>getSessionContext().<% end -%>setAuthenticationToken( keycloak.getToken() );
+          action.run();
+        }
+      } );
+    }
+  }
+
 <% end -%>
 <% if repository.imit? -%>
   @javax.annotation.Nonnull
@@ -38,8 +70,9 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
 
 <% else -%>
   private static String c_baseURL;
+  private static String c_authenticationToken;
 
-  public static void setBaseURL( final String baseURL )
+  public static void setBaseURL( @javax.annotation.Nonnull final String baseURL )
   {
     c_baseURL = baseURL;
   }
@@ -49,6 +82,15 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
     return c_baseURL;
   }
 
+  public static String getAuthenticationToken()
+  {
+    return c_authenticationToken;
+  }
+
+  public static void setAuthenticationToken( @javax.annotation.Nullable final String authenticationToken )
+  {
+    c_authenticationToken = authenticationToken;
+  }
 <% end -%>
 <%
   needs_xsrf =
@@ -106,10 +148,6 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
 -%>
   }
 
-  private static native void setModuleBase( Object service, String baseURL ) /*-{
-   service.@com.google.gwt.user.client.rpc.impl.RemoteServiceProxy::moduleBaseURL = baseURL;
-  }-*/;
-
 <%
   repository.data_modules.select{|data_module| data_module.gwt_rpc?}.each do |data_module|
     data_module.services.select{|service| service.gwt_rpc?}.each do |service|
@@ -132,7 +170,6 @@ public class <%= repository.gwt_rpc.rpc_services_module_name %>
       throw new java.lang.IllegalStateException( "<%= repository.gwt_rpc.rpc_services_module_name %>.initialize() not invoked prior to using gin module" );
     }
     ( (com.google.gwt.user.client.rpc.ServiceDefTarget) service ).setServiceEntryPoint( <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() + "<%= service.gwt_rpc.api_url %>" );
-    setModuleBase( service, <% if repository.imit? -%>getSessionContext().<% end -%>getBaseURL() + "<%= repository.gwt.module_name %>/" );
     return service;
   }
 <%

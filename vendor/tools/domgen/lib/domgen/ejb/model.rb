@@ -60,6 +60,7 @@ module Domgen
       java_artifact :cdi_types_test, :test, :server, :ejb, '#{repository.name}CdiTypesTest', :sub_package => 'util'
       java_artifact :aggregate_service_test, :test, :server, :ejb, '#{repository.name}AggregateServiceTest', :sub_package => 'util'
       java_artifact :abstract_service_test, :test, :server, :ejb, 'Abstract#{repository.name}ServiceTest', :sub_package => 'util'
+      java_artifact :base_service_test, :test, :server, :ejb, '#{repository.name}ServiceTest', :sub_package => 'util'
       java_artifact :server_test_module, :test, :server, :ejb, '#{repository.name}ServerModule', :sub_package => 'util'
 
       attr_writer :include_server_test_module
@@ -68,22 +69,62 @@ module Domgen
         @include_server_test_module.nil? ? true : !!@include_server_test_module
       end
 
-      def extra_test_modules
-        @extra_test_modules ||= []
+      attr_writer :custom_base_service_test
+
+      def custom_base_service_test?
+        @custom_base_service_test.nil? ? false : !!@custom_base_service_test
       end
 
-      def qualified_base_service_test_name
-        "#{server_util_test_package}.#{base_service_test_name}"
+      def test_modules
+        test_modules_map.dup
       end
 
-      attr_writer :base_service_test_name
+      def add_test_module(name, classname)
+        Domgen.error("Attempting to define duplicate test module for ejb facet. Name = '#{name}', Classname = '#{classname}'") if test_modules_map[name.to_s]
+        test_modules_map[name.to_s] = classname
+      end
 
-      def base_service_test_name
-        @base_service_test_name || abstract_service_test_name.gsub(/^Abstract/,'')
+      def flushable_test_modules
+        flushable_test_modules_map.dup
+      end
+
+      def add_flushable_test_module(name, classname)
+        Domgen.error("Attempting to define duplicate flushable test module for ejb facet. Name = '#{name}', Classname = '#{classname}'") if flushable_test_modules_map[name.to_s]
+        flushable_test_modules_map[name.to_s] = classname
+      end
+
+      def test_class_contents
+        test_class_content_list.dup
+      end
+
+      def add_test_class_content(content)
+        self.test_class_content_list << content
       end
 
       def implementation_suffix
         repository.ee.use_cdi? ? 'Impl' : 'EJB'
+      end
+
+      def pre_verify
+        if self.include_server_test_module?
+          add_test_module(self.server_test_module_name, self.qualified_server_test_module_name)
+        end
+        add_test_module(repository.ee.message_module_name, repository.ee.qualified_message_module_name)
+        add_flushable_test_module(self.services_module_name, self.qualified_services_module_name)
+      end
+
+      protected
+
+      def test_class_content_list
+        @test_class_content ||= []
+      end
+
+      def flushable_test_modules_map
+        @flushable_test_modules_map ||= {}
+      end
+
+      def test_modules_map
+        @test_modules_map ||= {}
       end
     end
 
@@ -157,6 +198,7 @@ module Domgen
         if @generate_boundary.nil?
           return service.jmx? ||
             service.jws? ||
+            service.jms? ||
             service.jaxrs? ||
             service.imit? ||
             service.methods.any? { |method| method.parameters.any? { |parameter| parameter.reference? } || method.return_value.reference? }
@@ -180,6 +222,12 @@ module Domgen
       def generate_base_test=(generate_base_test)
         @generate_base_test = generate_base_test
       end
+
+      def post_verify
+        if generate_base_test? && !service.methods.any?{|m| m.ejb? && m.ejb.generate_base_test?}
+          self.generate_base_test = false
+        end
+      end
     end
 
     facet.enhance(Method) do
@@ -194,6 +242,14 @@ module Domgen
 
       def schedule?
         !@schedule.nil?
+      end
+
+      def generate_base_test?
+        @generate_base_test.nil? ? true : !!@generate_base_test
+      end
+
+      def generate_base_test=(generate_base_test)
+        @generate_base_test = generate_base_test
       end
     end
 

@@ -23,12 +23,11 @@
   with a facet that requires the presence of the disabled facet (i.e. the gwt_rpc facet requires the
   json facet if a struct is referenced from a gwt_rpc enabled method). Also consider disable facets
   on referencing elements. i.e. if a facet is disabled on a struct then disable the facet on all the
-  paramater/attribute/etc instances that reference struct.
-* Add a disable_all_but(facet_array for facets that will respect dependencies and will not disable
-  required facets for the facets passed in the parameter.
+  parameter/attribute/etc instances that reference struct.
 * Change struct method in domgen to derive name from type and allow override of name, thus eliminating need
   for the first parameter in most cases.
 * Rename messages in domgen to events as that is more reflective of actual intent. (i.e. Application internal signalling).
+* Remove BaseTaggableElement and move tags to being attributes inside mssql facet to reflect that their only use is extended attributes.
 
 ### Services
 
@@ -44,15 +43,12 @@
 
 ### Replicant
 
-* Backport bulk loads from calendar project.
-* Imit: Generate events for subscriptions starting and completing on the client side.
-* After above is implemented consider incremental changes. (Or may need both Full and partial updates
+* Consider incremental changes. (Or may need both Full and partial updates
   recorded so different messages are routed to different listeners?)
-* Race condition; Shutdown of session can disconnect mid-poll resulting in exception in poller
 * Merge multiple update channels into on replicant session. i.e. How to merge AppConfig into ODS stream?
 * Merge identical filters in output format.
 
-### AppConfig/SyncRecord
+### Graphql
 
-* Add ability to mark methods as syncrecord "sync" methods and generate base classes with
-  required infrastructure/glue code.
+* Support DAO queries/mutations that return a scalar.
+* Support queries/mutations that can return a parameter as graphql result (useful during update methods)

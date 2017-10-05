@@ -1,7 +1,7 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(enumeration.ee.qualified_name) %>;
 
-<%= description_javadoc_for(enumeration, "") %>@javax.annotation.Generated( "Domgen" )
+@javax.annotation.Generated( "Domgen" )
 @java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
 <% if enumeration.jaxb?
 %>@javax.xml.bind.annotation.XmlType( name = "<%= enumeration.name %>Type"<%= namespace_annotation_parameter(enumeration.xml) %> )
@@ -15,7 +15,7 @@ public enum <%= enumeration.ee.name %>
   <%=
   index = 0
   enumeration.values.collect do |k|
-   prefix = enumeration.jaxb? ? "@javax.xml.bind.annotation.XmlEnumValue( \"#{enumeration.numeric_values? ? index : k.name}\" ) " : ""
+   prefix = enumeration.jaxb? ? "@javax.xml.bind.annotation.XmlEnumValue( \"#{enumeration.numeric_values? ? index : k.name}\" ) " : ''
    index = index + 1
   "#{prefix}#{k.name}"
   end.join(",\n  ") %>;

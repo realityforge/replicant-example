@@ -1,10 +1,8 @@
 # -*- encoding: utf-8 -*-
-$:.push File.expand_path('../lib', __FILE__)
-require 'domgen/version'
 
 Gem::Specification.new do |s|
   s.name               = %q{domgen}
-  s.version            = Domgen::VERSION
+  s.version            = '0.19.0.dev'
   s.platform           = Gem::Platform::RUBY
 
   s.authors            = ['Peter Donald']
@@ -24,4 +22,11 @@ Gem::Specification.new do |s|
 
   s.has_rdoc           = false
   s.rdoc_options       = %w(--line-numbers --inline-source --title domgen)
+
+  s.add_dependency 'reality-core', '>= 1.8.0'
+  s.add_dependency 'reality-facets', '>= 1.10.0'
+  s.add_dependency 'reality-generators', '>= 1.6.0'
+  s.add_dependency 'reality-naming', '>= 1.9.0'
+  s.add_dependency 'reality-orderedhash', '>= 1.0.0'
+  s.add_dependency 'reality-mash', '>= 1.0.0'
 end

@@ -1,0 +1,42 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= to_package(repository.keycloak.qualified_auth_service_implementation_name) %>;
+
+@javax.annotation.Generated( "Domgen" )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "unchecked" } )
+@javax.enterprise.context.ApplicationScoped
+@javax.enterprise.inject.Typed( <%= repository.service_by_name(repository.keycloak.auth_service_name).ejb.qualified_service_name %>.class )
+public class <%= repository.keycloak.auth_service_implementation_name %>
+  implements <%= repository.service_by_name(repository.keycloak.auth_service_name).ejb.qualified_service_name %>
+{
+  @javax.inject.Inject
+  private org.realityforge.keycloak.sks.SimpleAuthService _authService;
+
+  @javax.annotation.Nonnull
+  protected org.keycloak.adapters.OidcKeycloakAccount getAccount()
+  {
+    return _authService.getAccount();
+  }
+<% repository.keycloak.default_client.claims.each do |claim| -%>
+
+<% if repository.keycloak.default_client.bearer_only? -%>
+  /**
+   * Retrieve the <% claim.name %> claim.
+   * WARNING: The default client is bearer only so this claim MUST be present in the token that has been
+   * sourced from a different client. So there is no guarantee that this claim is present other than
+   * configuring the other client to present this claim.
+   */
+<% end -%>
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public <%= claim.java_type %> get<%= claim.java_accessor_key %>()
+  {
+<% if claim.standard_claim? -%>
+    final String value = getAccount().getKeycloakSecurityContext().getToken().get<%= claim.token_accessor_key %>();
+<% else -%>
+    final <%= claim.java_type %> value = (<%= claim.java_type %>) getAccount().getKeycloakSecurityContext().getToken().getOtherClaims().get( "<%= Reality::Naming.camelize(claim.token_accessor_key) %>" );
+<% end -%>
+    assert null != value;
+    return value;
+  }
+<% end -%>
+}

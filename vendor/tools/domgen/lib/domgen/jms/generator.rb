@@ -12,26 +12,47 @@
 # limitations under the License.
 #
 
-module Domgen
-  module Generator
-    module JMS
-      TEMPLATE_DIRECTORY = "#{File.dirname(__FILE__)}/templates"
-      FACETS = [:jms]
-      HELPERS = [Domgen::Java::Helper, Domgen::JAXB::Helper]
-    end
+Domgen::Generator.define([:jms],
+                         "#{File.dirname(__FILE__)}/templates",
+                         [Domgen::Java::Helper, Domgen::JAXB::Helper]) do |g|
+  g.template_set(:jms_model) do |template_set|
+    template_set.erb_template(:repository,
+                              'constants_container.java.erb',
+                              'main/java/#{repository.jms.qualified_constants_container_name.gsub(".","/")}.java')
   end
-end
-Domgen.template_set(:jms) do |template_set|
-  template_set.template(Domgen::Generator::JMS::FACETS,
-                        :method,
-                        "#{Domgen::Generator::JMS::TEMPLATE_DIRECTORY}/mdb.java.erb",
-                        'main/java/#{method.jms.qualified_mdb_name.gsub(".","/")}.java',
-                        Domgen::Generator::JMS::HELPERS,
-                        :guard => 'method.jms.mdb?')
-  template_set.template(Domgen::Generator::JMS::FACETS,
-                        :service,
-                        "#{Domgen::Generator::JMS::TEMPLATE_DIRECTORY}/abstract_router.java.erb",
-                        'main/java/#{service.jms.qualified_abstract_router_name.gsub(".","/")}.java',
-                        Domgen::Generator::JMS::HELPERS,
-                        :guard => 'service.jms.router?')
+
+  g.template_set(:jms_integration_tests) do |template_set|
+    template_set.erb_template('jms.destination',
+                              'message_integration_test.java.erb',
+                              'test/java/#{destination.qualified_message_integration_test_name.gsub(".","/")}.java',
+                              :guard => 'destination.read_permitted? && destination.generate_base_test?')
+  end
+
+  g.template_set(:jms_services) do |template_set|
+    template_set.erb_template(:method,
+                              'mdb.java.erb',
+                              'main/java/#{method.jms.qualified_mdb_name.gsub(".","/")}.java',
+                              :guard => 'method.jms.mdb?')
+    template_set.erb_template(:service,
+                              'abstract_router.java.erb',
+                              'main/java/#{service.jms.qualified_abstract_router_name.gsub(".","/")}.java',
+                              :guard => 'service.jms.router?')
+  end
+
+  g.template_set(:jms_qa_support) do |template_set|
+    template_set.erb_template(:repository,
+                              'test_module.java.erb',
+                              'test/java/#{repository.jms.qualified_test_module_name.gsub(".","/")}.java')
+    template_set.erb_template(:repository,
+                              'abstract_test_broker.java.erb',
+                              'test/java/#{repository.jms.qualified_abstract_test_broker_name.gsub(".","/")}.java')
+    template_set.erb_template(:repository,
+                              'test_broker_factory.java.erb',
+                              'test/java/#{repository.jms.qualified_test_broker_factory_name.gsub(".","/")}.java')
+    template_set.erb_template(:repository,
+                              'test_broker.java.erb',
+                              'test/java/#{repository.jms.qualified_test_broker_name.gsub(".","/")}.java',
+                              :guard => '!repository.jms.custom_test_broker?')
+  end
+  g.template_set(:jms => [:jms_services, :jms_model])
 end

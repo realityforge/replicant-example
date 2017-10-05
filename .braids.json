@@ -7,6 +7,6 @@
   "vendor/tools/domgen": {
     "url": "https://github.com/realityforge/domgen.git",
     "branch": "master",
-    "revision": "85ed5caac911ecc240fb124511447d8c4317446c"
+    "revision": "f9c9e383a7e844d898be61044982be9a4a26dbb6"
   }
 }

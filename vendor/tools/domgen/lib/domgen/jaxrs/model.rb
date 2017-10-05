@@ -55,7 +55,14 @@ module Domgen
         @path || 'api'
       end
 
+      attr_writer :custom_application
+
+      def custom_application?
+        @custom_application.nil? ? false : !!@custom_application
+      end
+
       java_artifact :abstract_application, :rest, :server, :ee, 'Abstract#{repository.name}JaxRsApplication'
+      java_artifact :standard_application, :rest, :server, :ee, '#{repository.name}JaxRsApplication'
 
       def extensions
         @extensions ||= []
@@ -79,7 +86,35 @@ module Domgen
 
       def path
         return @path unless @path.nil?
-        return "/#{Domgen::Naming.underscore(short_service_name)}"
+        return "/#{Reality::Naming.underscore(short_service_name)}"
+      end
+    end
+
+    facet.enhance(Exception) do
+      include Domgen::Java::BaseJavaGenerator
+
+      java_artifact :exception_mapper, :rest, :server, :ee, '#{exception.name}ExceptionMapper'
+
+      attr_writer :internal_code
+
+      def internal_code
+        @internal_code || "#{exception.data_module.name}.#{exception.name}"
+      end
+
+      attr_writer :http_code
+
+      def http_code
+        @http_code || exception.java.normal? ? 400 : 500
+      end
+    end
+
+    facet.enhance(ExceptionParameter) do
+      include Domgen::Java::EEJavaCharacteristic
+
+      protected
+
+      def characteristic
+        parameter
       end
     end
 
@@ -92,10 +127,10 @@ module Domgen
         if @path
           return @path == '' ? nil : @path
         end
-        base_path = "/#{Domgen::Naming.underscore(method.name)}"
+        base_path = "/#{Reality::Naming.underscore(method.name)}"
         path_parameters = method.parameters.select { |p| p.jaxrs? && :path == p.jaxrs.param_type }
         return base_path if path_parameters.empty?
-        return "#{base_path}/{#{path_parameters.collect { |p| p.jaxrs.param_key }.join("/")}}"
+        return "#{base_path}/{#{path_parameters.collect { |p| p.jaxrs.param_key }.join('/')}}"
       end
 
       def http_method=(http_method)
@@ -107,16 +142,16 @@ module Domgen
         return @http_method if @http_method
         name = method.name.to_s
         if name =~ /^Get[A-Z].*/ || name =~ /^Find[A-Z].*/
-          return "GET"
+          return 'GET'
         elsif name =~ /^Delete[A-Z].*/ || name =~ /^Remove[A-Z].*/
-          return "DELETE"
+          return 'DELETE'
         else
-          return "POST"
+          return 'POST'
         end
       end
 
       def valid_http_method?(http_method)
-        %(GET DELETE PUT POST HEAD OPTIONS).include?(http_method)
+        %w(GET DELETE PUT POST HEAD OPTIONS).include?(http_method)
       end
     end
 
@@ -126,7 +161,7 @@ module Domgen
       attr_writer :param_key
 
       def param_key
-        @param_key || Domgen::Naming.camelize(characteristic.name)
+        @param_key || Reality::Naming.camelize(characteristic.name)
       end
 
       attr_accessor :default_value

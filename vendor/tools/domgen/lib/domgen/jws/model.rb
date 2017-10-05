@@ -16,6 +16,7 @@ module Domgen
   FacetManager.facet(:jws => [:jaxb]) do |facet|
     facet.enhance(Repository) do
       include Domgen::Java::BaseJavaGenerator
+      include Domgen::Java::JavaClientServerApplication
 
       attr_writer :api_package
 
@@ -29,10 +30,12 @@ module Domgen
         @fake_service_package || "#{repository.java.base_package}.fake"
       end
 
+      java_artifact :constants_container, nil, :shared, :jws, '#{repository.name}JwsConstants'
       java_artifact :fake_server, :service, :fake, :jws, 'Fake#{repository.name}Server'
       java_artifact :fake_server_factory, :service, :fake, :jws, 'Fake#{repository.name}ServerFactory'
       java_artifact :abstract_fake_server_test, :service, :fake, :jws, 'AbstractFake#{repository.name}ServerTest'
       java_artifact :client_integration_test, :service, :fake, :jws, '#{repository.name}ClientIntegrationTest'
+      java_artifact :handler_resolver, nil, :api, :jws, '#{repository.name}HandlerResolver'
 
       attr_writer :service_name
 
@@ -57,6 +60,14 @@ module Domgen
 
       def url
         @url || "#{base_url}/#{repository.name}"
+      end
+
+      def handlers
+        @handlers ||= []
+      end
+
+      def pre_complete
+        repository.ee.cdi_scan_excludes << "#{api_package}.**" if repository.ee?
       end
     end
 
@@ -97,6 +108,9 @@ module Domgen
     facet.enhance(Service) do
       include Domgen::Java::BaseJavaGenerator
 
+      java_artifact :type_converter, nil, :api, :jws, '#{service.name}TypeConverter'
+      java_artifact :service_integration_test, :api, :integration, :jws, 'Abstract#{service.name}IntegrationTest'
+
       def qualified_api_interface_name
         "#{api_package}.#{web_service_name}"
       end
@@ -106,11 +120,15 @@ module Domgen
       end
 
       def api_package
-        "#{service.data_module.jws.api_package}.#{Domgen::Naming.underscore(web_service_name.gsub(/Service$/, ''))}"
+        "#{service.data_module.jws.api_package}.#{Reality::Naming.underscore(web_service_name.gsub(/Service$/, ''))}"
       end
 
       def boundary_ejb_name
         "#{service.data_module.repository.name}.#{service.data_module.name}.#{service.jws.java_service_name}"
+      end
+
+      def qualified_exception_name(exception)
+        "#{api_package}.#{exception.ee.name}"
       end
 
       attr_writer :url
@@ -122,7 +140,7 @@ module Domgen
       attr_writer :servlet_name
 
       def servlet_name
-        @servlet_name || "#{service.qualified_name.to_s.gsub('.','')}Servlet"
+        @servlet_name || "#{service.qualified_name.to_s.gsub('.', '')}Servlet"
       end
 
       attr_writer :port_type_name
@@ -159,15 +177,50 @@ module Domgen
         @namespace || "#{service.data_module.jws.namespace}/#{web_service_name}"
       end
 
+      def referenced_structs
+        structs = []
+
+        service.methods.select { |method| method.jws? }.each do |method|
+          method.parameters.select { |field| field.struct? }.each do |field|
+            structs << field.referenced_struct
+          end
+          structs << method.return_value.referenced_struct if method.return_value.struct?
+        end
+        structs = structs.uniq
+
+        to_process = structs.dup
+        processed = []
+
+        until to_process.empty?
+          struct = to_process.pop
+          next if processed.include?(struct)
+          processed << struct
+          struct.fields.select { |field| field.struct? }.each do |field|
+            structs << field.referenced_struct
+          end
+        end
+
+        structs.uniq
+      end
+
       java_artifact :service, :service, :server, :ee, '#{web_service_name}Service'
       java_artifact :java_service, :service, :server, :jws, '#{web_service_name}WS', :sub_package => 'ws'
       java_artifact :boundary_implementation, :service, :server, :jws, '#{web_service_name}WSBoundaryEJB', :sub_package => 'ws.internal'
       java_artifact :fake_implementation, :service, :fake, :jws, 'Fake#{web_service_name}'
+
+      def pre_verify
+        jws_active = false
+        service.methods.each do |method|
+          next unless method.jws?
+          jws_active = true
+        end
+        service.disable_facet(:jws) unless jws_active
+      end
     end
 
     facet.enhance(Method) do
       def name
-        Domgen::Naming.camelize(method.name)
+        Reality::Naming.camelize(method.name)
       end
 
       def input_action
@@ -177,11 +230,42 @@ module Domgen
       def output_action
         "#{method.service.jws.namespace}/#{method.service.jws.web_service_name}/#{method.name}Response"
       end
+
+      # Return true if this methods parameters are all compatible with soap protocol
+      def compatible?
+        compatible = true
+
+        method.parameters.each do |parameter|
+          compatible = false unless characteristic_compatible?(parameter)
+          break unless compatible
+        end
+
+        compatible = false unless characteristic_compatible?(method.return_value)
+
+        compatible
+      end
+
+      def pre_complete
+        method.disable_facet(:jws) unless compatible?
+      end
+
+      private
+
+      def characteristic_compatible?(characteristic)
+        return false unless characteristic.jws?
+
+        return true if !characteristic.characteristic_type.nil? && characteristic.characteristic_type.name == :void
+        return false if characteristic.non_standard_type?
+        return false if characteristic.enumeration? && !characteristic.enumeration.jws?
+        return false if characteristic.reference? && !characteristic.referenced_entity.jws?
+        return false if characteristic.struct? && !characteristic.referenced_struct.jws?
+        true
+      end
     end
 
     facet.enhance(Parameter) do
       def name
-        Domgen::Naming.camelize(parameter.name)
+        Reality::Naming.camelize(parameter.name)
       end
 
       include Domgen::Java::EEJavaCharacteristic

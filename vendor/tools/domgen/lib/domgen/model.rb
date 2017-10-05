@@ -13,8 +13,35 @@
 #
 
 module Domgen
+
+  module Faceted
+    def complete
+      extension_point(:pre_complete)
+      extension_point(:perform_complete)
+      extension_point(:post_complete)
+    end
+
+    def verify
+      extension_point(:pre_verify)
+      extension_point(:perform_verify)
+      extension_point(:post_verify)
+    end
+
+    define_method(:'-facets=') do |facets|
+      (facets.is_a?(Array) ? facets : [facets]).each do |facet|
+        disable_facet(facet) if facet_enabled?(facet)
+      end
+    end
+  end
+
+  def self.FacetedElement(parent_key)
+    type = self.ParentedElement(parent_key, 'Domgen::FacetManager.target_manager.apply_extension(self)')
+    type.send :include, Domgen::Faceted
+    type
+  end
+
   class << self
-    def repositorys
+    def repositories
       repository_map.values
     end
 
@@ -49,7 +76,7 @@ module Domgen
     end
 
     def repository_map
-      @repositorys ||= Domgen::OrderedHash.new
+      @repositories ||= Reality::OrderedHash.new
     end
   end
 
@@ -272,35 +299,32 @@ module Domgen
     attr_reader :srid
   end
 
-  class EnumerationValue < self.FacetedElement(:enumeration_set)
+  class EnumerationValue < self.FacetedElement(:enumeration)
     attr_reader :name
-    attr_reader :enumeration_set
 
-    def initialize(enumeration_set, name, options = {}, &block)
+    def initialize(enumeration, name, options = {}, &block)
       @name = name
-      enumeration_set.send :register_enumeration_value, name, self
-      super(enumeration_set, options, &block)
+      enumeration.send :register_enumeration_value, name, self
+      super(enumeration, options, &block)
     end
 
     def value=(value)
-      raise "value= invoked on #{name} enumeration value of #{enumeration_set.qualified_name} when not a text value" unless enumeration_set.textual_values?
+      raise "value= invoked on #{name} enumeration value of #{enumeration.qualified_name} when not a text value" unless enumeration.textual_values?
       @value = value
     end
 
     def value
-      raise "value invoked on #{name} enumeration value of #{enumeration_set.qualified_name} when not a text value" unless enumeration_set.textual_values?
+      raise "value invoked on #{name} enumeration value of #{enumeration.qualified_name} when not a text value" unless enumeration.textual_values?
       @value.nil? ? name.to_s : @value
     end
   end
 
   class EnumerationSet < self.FacetedElement(:data_module)
-    include GenerateFacet
-
     attr_reader :name
     attr_reader :enumeration_type
 
     def initialize(data_module, name, enumeration_type, options = {}, &block)
-      Domgen.error("Unknown enumeration type #{enumeration_type}") if !self.class.enumeration_types.include?(enumeration_type)
+      Domgen.error("Unknown enumeration type #{enumeration_type}") unless self.class.enumeration_types.include?(enumeration_type)
       @name = name
       @enumeration_type = enumeration_type
       data_module.send :register_enumeration, name, self
@@ -326,7 +350,7 @@ module Domgen
     end
 
     def value_map
-      @values ||= Domgen::OrderedHash.new
+      @values ||= Reality::OrderedHash.new
     end
 
     def values
@@ -399,7 +423,7 @@ module Domgen
     end
 
     def characteristic_kind
-      "parameter"
+      'parameter'
     end
 
     def characteristic_container
@@ -408,10 +432,10 @@ module Domgen
   end
 
   class Query < self.FacetedElement(:dao)
-    include GenerateFacet
     include Domgen::CharacteristicContainer
 
     attr_reader :name
+    attr_reader :base_name
 
     def initialize(dao, base_name, options = {}, &block)
       super(dao, options) do
@@ -534,6 +558,26 @@ module Domgen
       @struct
     end
 
+    # Return true if this is a "standard" query. A standard query is one that uses the rails conventions
+    # for naming finders and thus the query implementation can be generated.
+    # TODO: Currently the derivation of standard_query is done in jpa but it should be moved to this model!
+    def standard_query?
+      @standard_query.nil? ? false : !!@standard_query
+    end
+
+    attr_accessor :standard_query
+
+    def name_prefix
+      return 'FindAll' if self.query_type == :select && self.multiplicity == :many
+      return 'Find' if self.query_type == :select && self.multiplicity == :zero_or_one
+      return 'Count' if self.query_type == :select && self.multiplicity == :one && self.result_type == :long
+      return 'Get' if self.query_type == :select && self.multiplicity == :one
+      return 'Update' if self.query_type == :update
+      return 'Delete' if self.query_type == :delete
+      return 'Insert' if self.query_type == :insert
+      raise "Query #{self.name} does not have known prefix"
+    end
+
     protected
 
     def local_name(base_name)
@@ -541,34 +585,43 @@ module Domgen
       if base_name =~ /^[fF]indAll$/
         self.query_type = :select if @query_type.nil?
         self.multiplicity = :many if @multiplicity.nil?
+        @base_name = ''
         return base_name
       elsif base_name =~ /^[fF]indAll.+$/
         self.query_type = :select if @query_type.nil?
         self.multiplicity = :many if @multiplicity.nil?
+        @base_name = base_name.gsub(/^[fF]indAll/,'')
         return base_name
       elsif base_name =~ /^[fF]ind.+$/
         self.query_type = :select if @query_type.nil?
         self.multiplicity = :zero_or_one if @multiplicity.nil?
+        @base_name = base_name.gsub(/^[fF]ind/,'')
         return base_name
       elsif base_name =~ /^[gG]et.+$/
         self.query_type = :select if @query_type.nil?
         self.multiplicity = :one if @multiplicity.nil?
+        @base_name = base_name.gsub(/^[gG]et/,'')
         return base_name
       elsif base_name =~ /^[uU]pdate.+$/
         self.query_type = :update if @query_type.nil?
+        @base_name = base_name.gsub(/^[uU]pdate/,'')
         return base_name
       elsif base_name =~ /^[dD]elete.+$/
         self.query_type = :delete if @query_type.nil?
+        @base_name = base_name.gsub(/^[dD]elete/,'')
         return base_name
       elsif base_name =~ /^[iI]nsert.+$/
         self.query_type = :insert if @query_type.nil?
+        @base_name = base_name.gsub(/^[iI]nsert/,'')
         return base_name
       elsif base_name =~ /^[cC]ount.*$/
         self.query_type = :select if @query_type.nil?
         self.multiplicity = :one if @multiplicity.nil?
         self.result_type = :long if @result_type.nil?
+        @base_name = base_name.gsub(/^[cC]ount/,'')
         return base_name
       elsif self.query_type == :select
+        raise "Query #{base_name} does not conform to expected pattern"
         if self.multiplicity == :many
           :"FindAllBy#{base_name}"
         elsif self.multiplicity == :zero_or_one
@@ -577,10 +630,13 @@ module Domgen
           :"GetBy#{base_name}"
         end
       elsif self.query_type == :update
+        raise "Query #{base_name} does not conform to expected pattern"
         :"Update#{base_name}"
       elsif self.query_type == :delete
+        raise "Query #{base_name} does not conform to expected pattern"
         :"Delete#{base_name}"
       elsif self.query_type == :insert
+        raise "Query #{base_name} does not conform to expected pattern"
         :"Insert#{base_name}"
       end
     end
@@ -597,11 +653,9 @@ module Domgen
   class DataAccessObject < self.FacetedElement(:data_module)
     attr_reader :name
 
-    include GenerateFacet
-
     def initialize(data_module, name, options, &block)
       @name = name
-      @queries = Domgen::OrderedHash.new
+      @queries = Reality::OrderedHash.new
       data_module.send :register_dao, name, self
       super(data_module, options, &block)
     end
@@ -640,6 +694,12 @@ module Domgen
       !!@queries[name.to_s]
     end
 
+    def query_by_name(name)
+      query = @queries[name.to_s]
+      Domgen.error("Unable to locate query named '#{name}' on #{self.name}") unless query
+      query
+    end
+
     def query(name, options = {}, &block)
       Domgen.error("Attempting to override query #{name} on #{self.name}") if @queries[name.to_s]
       query = Query.new(self, name, options, &block)
@@ -651,9 +711,95 @@ module Domgen
     end
   end
 
-  class Attribute < self.FacetedElement(:entity)
-    include GenerateFacet
+  class RemoteEntityAttribute < self.FacetedElement(:remote_entity)
+    include Characteristic
 
+    attr_reader :attribute_type
+
+    def initialize(remote_entity, name, attribute_type, options = {}, &block)
+      @name = name
+      @attribute_type = attribute_type
+      super(remote_entity, options, &block)
+      Domgen.error("Invalid type #{attribute_type} for remote attribute #{self.qualified_name}") if !((characteristic_type && characteristic_type.persistent?) || reference? || enumeration?)
+      Domgen.error("Attribute #{self.qualified_name} must not be a collection") if collection?
+    end
+
+    def qualified_name
+      "#{remote_entity.qualified_name}.#{self.name}"
+    end
+
+    def to_s
+      "RemoteEntityAttribute[#{self.qualified_name}]"
+    end
+
+    def characteristic_type_key
+      attribute_type
+    end
+
+    def characteristic_container
+      remote_entity
+    end
+  end
+
+  class RemoteEntity < self.FacetedElement(:data_module)
+    include CharacteristicContainer
+
+    def initialize(data_module, name, options, &block)
+      @name = name
+      data_module.send :register_remote_entity, name, self
+      super(data_module, options, &block)
+    end
+
+    def qualified_name
+      "#{data_module.name}.#{self.name}"
+    end
+
+    def to_s
+      "RemoteEntity[#{self.qualified_name}]"
+    end
+
+    def attributes
+      characteristics
+    end
+
+    def attribute(name, type, options = {}, &block)
+      characteristic(name, type, options, &block)
+    end
+
+    def primary_key
+      attributes[0]
+    end
+
+    def characteristic_kind
+      'attribute'
+    end
+
+    protected
+
+    def new_characteristic(name, type, options, &block)
+      RemoteEntityAttribute.new(self, name, type, options, &block)
+    end
+
+    def pre_complete
+      integer(:ID) if self.attributes.empty?
+    end
+
+    def perform_verify
+      Domgen.error("Remote Entity #{qualified_name} must define exactly one attribute (the remote key)") if attributes.size != 1
+      self.attributes.each do |a|
+        Domgen.error("Attribute #{a.qualified_name} must be persistable") unless ((a.characteristic_type && a.characteristic_type.persistent?) || a.enumeration?)
+        Domgen.error("Attribute #{a.qualified_name} must not be a collection") if a.collection?
+      end
+    end
+
+    private
+
+    def container_kind
+      :remote_entity
+    end
+  end
+
+  class Attribute < self.FacetedElement(:entity)
     include InheritableCharacteristic
 
     attr_reader :attribute_type
@@ -662,7 +808,7 @@ module Domgen
       @name = name
       @attribute_type = attribute_type
       super(entity, options, &block)
-      Domgen.error("Invalid type #{attribute_type} for persistent attribute #{self.qualified_name}") if !((characteristic_type && characteristic_type.persistent?) || reference? || enumeration?)
+      Domgen.error("Invalid type #{attribute_type} for persistent attribute #{self.qualified_name}") if !((characteristic_type && characteristic_type.persistent?) || reference? || enumeration? || remote_reference?)
       Domgen.error("Attribute #{self.qualified_name} must not be a collection") if collection?
     end
 
@@ -706,7 +852,7 @@ module Domgen
     end
 
     def inverse
-      Domgen.error("inverse called on #{name} is invalid as attribute is not a reference") unless reference?
+      Domgen.error("inverse called on #{qualified_name} is invalid as attribute is not a reference") unless reference?
       @inverse ||= InverseElement.new(self, {})
     end
 
@@ -731,19 +877,18 @@ module Domgen
     attr_reader :cycle_constraints
     attr_reader :queries
 
-    include GenerateFacet
     include InheritableCharacteristicContainer
 
     def initialize(data_module, name, options, &block)
       @name = name
-      @unique_constraints = Domgen::OrderedHash.new
-      @codependent_constraints = Domgen::OrderedHash.new
-      @xor_constraints = Domgen::OrderedHash.new
-      @incompatible_constraints = Domgen::OrderedHash.new
-      @dependency_constraints = Domgen::OrderedHash.new
-      @relationship_constraints = Domgen::OrderedHash.new
-      @cycle_constraints = Domgen::OrderedHash.new
-      @queries = Domgen::OrderedHash.new
+      @unique_constraints = Reality::OrderedHash.new
+      @codependent_constraints = Reality::OrderedHash.new
+      @xor_constraints = Reality::OrderedHash.new
+      @incompatible_constraints = Reality::OrderedHash.new
+      @dependency_constraints = Reality::OrderedHash.new
+      @relationship_constraints = Reality::OrderedHash.new
+      @cycle_constraints = Reality::OrderedHash.new
+      @queries = Reality::OrderedHash.new
       @referencing_attributes = nil
       data_module.send :register_entity, name, self
       super(data_module, options, &block)
@@ -837,6 +982,10 @@ module Domgen
       dao.query_by_name?(name)
     end
 
+    def query_by_name(name)
+      dao.query_by_name(name)
+    end
+
     def query(name, options = {}, &block)
       dao.query(name, options, &block)
     end
@@ -852,7 +1001,7 @@ module Domgen
     def unique_constraint(attribute_names, options = {}, &block)
       Domgen.error('Must have at least 1 or more attribute names for uniqueness constraint') if attribute_names.empty?
       constraint = UniqueConstraint.new(self, attribute_names, options, &block)
-      add_unique_to_set("unique", constraint, @unique_constraints)
+      add_unique_to_set('unique', constraint, @unique_constraints)
     end
 
     def dependency_constraints
@@ -1011,7 +1160,7 @@ module Domgen
 
     def initialize(struct, name, field_type, options, &block)
       @component_name = name
-      @name = (options[:collection_type] && options[:collection_type] != :none) ? Domgen::Naming.pluralize(name) : name
+      @name = (options[:collection_type] && options[:collection_type] != :none) ? Reality::Naming.pluralize(name) : name
       @field_type = field_type
       super(struct, options, &block)
     end
@@ -1034,7 +1183,6 @@ module Domgen
   end
 
   class Struct < self.FacetedElement(:data_module)
-    include GenerateFacet
     include CharacteristicContainer
 
     def initialize(data_module, name, options, &block)
@@ -1071,7 +1219,7 @@ module Domgen
     end
 
     def characteristic_kind
-      "field"
+      'field'
     end
 
     protected
@@ -1089,7 +1237,7 @@ module Domgen
 
     def initialize(message, name, parameter_type, options, &block)
       @component_name = name
-      @name = (options[:collection_type] && options[:collection_type] != :none) ? Domgen::Naming.pluralize(name) : name
+      @name = (options[:collection_type] && options[:collection_type] != :none) ? Reality::Naming.pluralize(name) : name
       @parameter_type = parameter_type
       super(message, options, &block)
     end
@@ -1112,7 +1260,6 @@ module Domgen
   end
 
   class Message < self.FacetedElement(:data_module)
-    include GenerateFacet
     include CharacteristicContainer
 
     def initialize(data_module, name, options, &block)
@@ -1142,7 +1289,7 @@ module Domgen
     end
 
     def characteristic_kind
-      "parameter"
+      'parameter'
     end
 
     protected
@@ -1160,7 +1307,7 @@ module Domgen
 
     def initialize(exception, name, parameter_type, options, &block)
       @component_name = name
-      @name = (options[:collection_type] && options[:collection_type] != :none) ? Domgen::Naming.pluralize(name) : name
+      @name = (options[:collection_type] && options[:collection_type] != :none) ? Reality::Naming.pluralize(name) : name
       @parameter_type = parameter_type
       super(exception, options, &block)
     end
@@ -1184,7 +1331,6 @@ module Domgen
 
   class Exception < Domgen.FacetedElement(:data_module)
     include InheritableCharacteristicContainer
-    include GenerateFacet
 
     attr_reader :name
 
@@ -1249,7 +1395,7 @@ module Domgen
 
     def initialize(method, name, parameter_type, options, &block)
       @component_name = name
-      @name = (options[:collection_type] && options[:collection_type] != :none) ? Domgen::Naming.pluralize(name) : name
+      @name = (options[:collection_type] && options[:collection_type] != :none) ? Reality::Naming.pluralize(name) : name
       @parameter_type = parameter_type
       super(method, options, &block)
     end
@@ -1282,7 +1428,7 @@ module Domgen
     end
 
     def name
-      "Return"
+      'Return'
     end
 
     def qualified_name
@@ -1304,11 +1450,10 @@ module Domgen
 
   class Method < self.FacetedElement(:service)
     include CharacteristicContainer
-    include GenerateFacet
 
     def initialize(service, name, options, &block)
       @name = name
-      @exceptions = Domgen::OrderedHash.new
+      @exceptions = Reality::OrderedHash.new
       super(service, options, &block)
     end
 
@@ -1320,8 +1465,20 @@ module Domgen
       "Method[#{self.qualified_name}]"
     end
 
+    def any_non_standard_types?
+      characteristics_non_standard_types?
+    end
+
     def parameters
       characteristics
+    end
+
+    def parameter_by_name(name)
+      characteristic_by_name(name)
+    end
+
+    def parameter_by_name?(name)
+      characteristic_by_name?(name)
     end
 
     def parameter(name, type, options = {}, &block)
@@ -1359,7 +1516,7 @@ module Domgen
     end
 
     def characteristic_kind
-      "parameter"
+      'parameter'
     end
 
     protected
@@ -1373,11 +1530,9 @@ module Domgen
     attr_reader :name
     attr_reader :methods
 
-    include GenerateFacet
-
     def initialize(data_module, name, options, &block)
       @name = name
-      @methods = Domgen::OrderedHash.new
+      @methods = Reality::OrderedHash.new
       data_module.send :register_service, name, self
       super(data_module, options, &block)
     end
@@ -1415,22 +1570,21 @@ module Domgen
   class DataModule < self.FacetedElement(:repository)
     attr_reader :name
 
-    include GenerateFacet
-
     def initialize(repository, name, options, &block)
       repository.send :register_data_module, name, self
       @name = name
-      @entities = Domgen::OrderedHash.new
-      @services = Domgen::OrderedHash.new
-      @messages = Domgen::OrderedHash.new
-      @structs = Domgen::OrderedHash.new
-      @enumerations = Domgen::OrderedHash.new
-      @exceptions = Domgen::OrderedHash.new
-      @daos = Domgen::OrderedHash.new
-      @elements = Domgen::OrderedHash.new
-      Logger.info "DataModule '#{name}' definition started"
+      @remote_entities = Reality::OrderedHash.new
+      @entities = Reality::OrderedHash.new
+      @services = Reality::OrderedHash.new
+      @messages = Reality::OrderedHash.new
+      @structs = Reality::OrderedHash.new
+      @enumerations = Reality::OrderedHash.new
+      @exceptions = Reality::OrderedHash.new
+      @daos = Reality::OrderedHash.new
+      @elements = Reality::OrderedHash.new
+      Domgen.info "DataModule '#{name}' definition started"
       super(repository, options, &block)
-      Logger.info "DataModule '#{name}' definition completed"
+      Domgen.info "DataModule '#{name}' definition completed"
     end
 
     def qualified_name
@@ -1538,6 +1692,40 @@ module Domgen
 
     def local_dao_by_name?(name)
       !@daos[name.to_s].nil?
+    end
+
+
+    def remote_entities
+      @remote_entities.values
+    end
+
+    def remote_entity(name, options = {}, &block)
+      pre_remote_entity_create(name)
+      remote_entity = RemoteEntity.new(self, name, options, &block)
+      post_remote_entity_create(name)
+      remote_entity
+    end
+
+    def remote_entity_by_name(name, optional = false)
+      name_parts = split_name(name)
+      repository.data_module_by_name(name_parts[0]).local_remote_entity_by_name(name_parts[1], optional)
+    end
+
+    def remote_entity_by_name?(name)
+      name_parts = split_name(name)
+      repository.data_module_by_name?(name_parts[0]) &&
+        repository.data_module_by_name(name_parts[0]).local_remote_entity_by_name?(name_parts[1])
+    end
+
+    def local_remote_entity_by_name(name, optional = false)
+      remote_entity = @remote_entities[name.to_s]
+      Domgen.error("Unable to locate local remote_entity #{name} in #{self.name}") if !remote_entity && !optional
+      yield remote_entity if block_given?
+      remote_entity
+    end
+
+    def local_remote_entity_by_name?(name)
+      !@remote_entities[name.to_s].nil?
     end
 
     def entities
@@ -1687,11 +1875,11 @@ module Domgen
     end
 
     def pre_dao_create(name)
-      Logger.debug "DataAccessObject '#{name}' definition started"
+      Domgen.debug "DataAccessObject '#{name}' definition started"
     end
 
     def post_dao_create(name)
-      Logger.debug "DataAccessObject '#{name}' definition completed"
+      Domgen.debug "DataAccessObject '#{name}' definition completed"
     end
 
     def register_dao(name, dao)
@@ -1701,85 +1889,99 @@ module Domgen
 
     def pre_enumeration_create(name)
       Domgen.error("Attempting to redefine Enumeration '#{name}'") if @enumerations[name.to_s]
-      Logger.debug "Enumeration '#{name}' definition started"
+      Domgen.debug "Enumeration '#{name}' definition started"
     end
 
     def post_enumeration_create(name)
-      Logger.debug "Enumeration '#{name}' definition completed"
+      Domgen.debug "Enumeration '#{name}' definition completed"
     end
 
     def register_enumeration(name, enumeration)
-      register_type_name(name.to_s, "enumeration", enumeration)
+      register_type_name(name.to_s, 'enumeration', enumeration)
       @enumerations[name.to_s] = enumeration
     end
 
     def pre_exception_create(name)
       Domgen.error("Attempting to redefine Exception '#{name}'") if @exceptions[name.to_s]
-      Logger.debug "Exception '#{name}' definition started"
+      Domgen.debug "Exception '#{name}' definition started"
     end
 
     def post_exception_create(name)
-      Logger.debug "Exception '#{name}' definition completed"
+      Domgen.debug "Exception '#{name}' definition completed"
     end
 
     def register_exception(name, exception)
-      register_type_name(name.to_s, "exception", exception)
+      register_type_name(name.to_s, 'exception', exception)
       @exceptions[name.to_s] = exception
     end
 
     def pre_struct_create(name)
       Domgen.error("Attempting to redefine Struct '#{name}'") if @structs[name.to_s]
-      Logger.debug "Struct '#{name}' definition started"
+      Domgen.debug "Struct '#{name}' definition started"
     end
 
     def post_struct_create(name)
-      Logger.debug "Struct '#{name}' definition completed"
+      Domgen.debug "Struct '#{name}' definition completed"
     end
 
     def register_struct(name, struct)
-      register_type_name(name.to_s, "struct", struct)
+      register_type_name(name.to_s, 'struct', struct)
       @structs[name.to_s] = struct
+    end
+
+    def pre_remote_entity_create(name)
+      Domgen.error("Attempting to redefine Remote Entity '#{name}'") if @remote_entities[name.to_s]
+      Domgen.debug "Remote Entity '#{name}' definition started"
+    end
+
+    def post_remote_entity_create(name)
+      Domgen.debug "Remote Entity '#{name}' definition completed"
+    end
+
+    def register_remote_entity(name, entity)
+      register_type_name(name.to_s, 'remote_entity', entity)
+      @remote_entities[name.to_s] = entity
     end
 
     def pre_entity_create(name)
       Domgen.error("Attempting to redefine Entity '#{name}'") if @entities[name.to_s]
-      Logger.debug "Entity '#{name}' definition started"
+      Domgen.debug "Entity '#{name}' definition started"
     end
 
     def post_entity_create(name)
-      Logger.debug "Entity '#{name}' definition completed"
+      Domgen.debug "Entity '#{name}' definition completed"
     end
 
     def register_entity(name, entity)
-      register_type_name(name.to_s, "entity", entity)
+      register_type_name(name.to_s, 'entity', entity)
       @entities[name.to_s] = entity
     end
 
     def pre_service_create(name)
       Domgen.error("Attempting to redefine Service '#{name}'") if @services[name.to_s]
-      Logger.debug "Service '#{name}' definition started"
+      Domgen.debug "Service '#{name}' definition started"
     end
 
     def post_service_create(name)
-      Logger.debug "Service '#{name}' definition completed"
+      Domgen.debug "Service '#{name}' definition completed"
     end
 
     def register_service(name, service)
-      register_type_name(name.to_s, "service", service)
+      register_type_name(name.to_s, 'service', service)
       @services[name.to_s] = service
     end
 
     def pre_message_create(name)
       Domgen.error("Attempting to redefine Message '#{name}'") if @messages[name.to_s]
-      Logger.debug "Message '#{name}' definition started"
+      Domgen.debug "Message '#{name}' definition started"
     end
 
     def post_message_create(name)
-      Logger.debug "Message '#{name}' definition completed"
+      Domgen.debug "Message '#{name}' definition completed"
     end
 
     def register_message(name, message)
-      register_type_name(name.to_s, "message", message)
+      register_type_name(name.to_s, 'message', message)
       @messages[name.to_s] = message
     end
   end
@@ -1793,10 +1995,10 @@ module Domgen
       @repository = repository
       repository.send :register_model_check, name, self
       @name = name
-      Logger.info "Model Check '#{name}' definition started"
+      Domgen.info "Model Check '#{name}' definition started"
       super(options, &block)
       Domgen.error("Model Check '#{name}' defines no check.") unless @check
-      Logger.info "Model Check '#{name}' definition completed"
+      Domgen.info "Model Check '#{name}' definition completed"
     end
 
     def to_s
@@ -1806,9 +2008,8 @@ module Domgen
     def check_model
       begin
         @check.call(self.repository)
-      rescue
-        Logger.error "Model Check '#{name}' failed."
-        raise
+      rescue => e
+        Domgen.error("Model Check '#{self.name}' failed due to: #{e}.")
       end
     end
   end
@@ -1821,12 +2022,12 @@ module Domgen
       @name = name
       @source_file = source_file
       @default_model_checks = true
-      @data_modules = Domgen::OrderedHash.new
-      @model_checks = Domgen::OrderedHash.new
+      @data_modules = Reality::OrderedHash.new
+      @model_checks = Reality::OrderedHash.new
       Domgen::TypeDB.mark_as_initialized
       Domgen.send :register_repository, name, self
-      Logger.info 'Repository definition started'
-      self.activate_facets
+      Domgen.info 'Repository definition started'
+      Domgen::FacetManager.target_manager.apply_extension(self)
       Domgen.current_repository = self
       super(options, &block)
       Domgen.current_repository = nil
@@ -1836,13 +2037,12 @@ module Domgen
         Domgen::ModelChecks.name_check(self)
       end
 
-      Logger.info 'Model Checking started.'
+      Domgen.info 'Model Checking started.'
       self.model_checks.each do |model_check|
         model_check.check_model
       end
-      Logger.info 'Model Checking completed.'
-      Logger.info 'Repository definition completed'
-      Domgen.repositorys << self
+      Domgen.info 'Model Checking completed.'
+      Domgen.info 'Repository definition completed'
     end
 
     attr_writer :default_model_checks
@@ -2015,18 +2215,17 @@ module Domgen
       data_module_by_name(name_parts[0]).message(name_parts[1], options, &block)
     end
 
-    include GenerateFacet
     include Faceted
 
     protected
 
     def pre_data_module_create(name)
       Domgen.error("Attempting to redefine DataModule '#{name}'") if @data_modules[name.to_s]
-      Logger.debug "DataModule '#{name}' definition started"
+      Domgen.debug "DataModule '#{name}' definition started"
     end
 
     def post_data_module_create(name)
-      Logger.debug "DataModule '#{name}' definition completed"
+      Domgen.debug "DataModule '#{name}' definition completed"
     end
 
     private

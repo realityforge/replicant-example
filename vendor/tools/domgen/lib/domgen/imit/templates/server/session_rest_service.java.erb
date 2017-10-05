@@ -5,15 +5,79 @@ package <%= to_package(repository.imit.qualified_session_rest_service_name) %>;
 @javax.ws.rs.Path( org.realityforge.replicant.shared.transport.ReplicantContext.SESSION_URL_FRAGMENT )
 @javax.ws.rs.Produces( javax.ws.rs.core.MediaType.APPLICATION_JSON )
 @javax.enterprise.context.ApplicationScoped
+@javax.transaction.Transactional( javax.transaction.Transactional.TxType.REQUIRED )
 public class <%= repository.imit.session_rest_service_name %>
-  extends org.realityforge.replicant.server.ee.rest.AbstractSessionRestService
+  extends org.realityforge.replicant.server.ee.rest.Abstract<%= repository.imit.secured? ? 'Secured' : '' %>SessionRestService
 {
+  @javax.annotation.Resource
+  private javax.transaction.TransactionSynchronizationRegistry _registry;
   @javax.inject.Inject
-  private org.realityforge.ssf.SessionManager<<%= repository.imit.qualified_session_name %>> _sessionManager;
+  private org.realityforge.replicant.server.transport.ReplicantSessionManager _sessionManager;
+  @javax.inject.Inject
+  private org.realityforge.replicant.server.EntityMessageEndpoint _entityMessageEndpoint;
+  @javax.persistence.PersistenceContext( unitName = <%= repository.jpa.qualified_unit_descriptor_name %>.NAME )
+  private javax.persistence.EntityManager _entityManager;
+<% if repository.imit.secured? -%>
+  @javax.inject.Inject
+  private org.realityforge.keycloak.sks.SimpleAuthService _authService;
+  private boolean _disableSessionServiceProtection;
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected org.realityforge.keycloak.sks.SimpleAuthService getAuthService()
+  {
+    return _authService;
+  }
 
   @java.lang.Override
-  protected org.realityforge.ssf.SessionManager getSessionManager()
+  protected boolean disableSecurity()
+  {
+    return _disableSessionServiceProtection;
+  }
+<% end -%>
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected org.realityforge.replicant.server.EntityMessageEndpoint getEntityMessageEndpoint()
+  {
+    return _entityMessageEndpoint;
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected javax.persistence.EntityManager getEntityManager()
+  {
+    return _entityManager;
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected javax.transaction.TransactionSynchronizationRegistry getRegistry()
+  {
+    return _registry;
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected org.realityforge.replicant.server.transport.ReplicantSessionManager getSessionManager()
   {
     return _sessionManager;
+  }
+
+  @java.lang.Override
+  @javax.annotation.PostConstruct
+  public void postConstruct()
+  {
+    super.postConstruct();
+<% if repository.imit.secured? -%>
+    try
+    {
+      _disableSessionServiceProtection = new javax.naming.InitialContext().lookup( "<%= Reality::Naming.underscore(repository.name) -%>/env/disable_session_service_protection" ).equals( Boolean.TRUE );
+    }
+    catch ( final java.lang.Exception e )
+    {
+      //Ignored.
+    }
+<% end -%>
   }
 }

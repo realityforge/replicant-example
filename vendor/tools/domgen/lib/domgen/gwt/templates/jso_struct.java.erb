@@ -1,8 +1,8 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(struct.gwt.qualified_jso_name) %>;
 
-<%= description_javadoc_for(struct, "") %>@javax.annotation.Generated( "Domgen" )
-@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "unchecked", "PMD.IfStmtsMustUseBraces", "PMD.IfElseStmtsMustUseBraces" } )
+@javax.annotation.Generated( "Domgen" )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "unchecked", "PMD.IfStmtsMustUseBraces", "PMD.IfElseStmtsMustUseBraces", "PMD.UnnecessaryLocalBeforeReturn", "PMD.UseUtilityClass" } )
 public final class <%= struct.gwt.jso_name %>
   extends com.google.gwt.core.client.JavaScriptObject
   implements <%= struct.gwt.qualified_interface_name %>
@@ -11,7 +11,7 @@ public final class <%= struct.gwt.jso_name %>
   {
   }
 
-  protected static <%= struct.gwt.jso_name %> create( <%= struct.fields.collect {|field| "#{annotated_type(field, :gwt, :boundary, :final => true) } #{Domgen::Naming.camelize(field.name)}" }.join(", ") %> )
+  protected static <%= struct.gwt.jso_name %> create( <%= struct.fields.collect {|field| "#{annotated_type(field, :gwt, :boundary, :final => true) } #{Reality::Naming.camelize(field.name)}" }.join(', ') %> )
   {
     final <%= struct.gwt.jso_name %> entity = com.google.gwt.core.client.JavaScriptObject.createObject().cast();
 <%
@@ -22,18 +22,20 @@ public final class <%= struct.gwt.jso_name %>
       case
         when field.struct? then "(#{field.referenced_struct.gwt.jso_name})#{var}"
         when field.date? then "#{var}.toString()"
+        when field.datetime? then "(double) #{var}.getTime()"
         when field.enumeration? then "#{var}.#{field.enumeration.textual_values? ? 'name()' : 'ordinal()' }"
         else "#{var}"
       end
     end
      if :none == field.collection_type
-%>    entity.set<%= field.name %>( <%= field.nullable? ? "#{Domgen::Naming.camelize(field.name)} == null ? null : " : '' %><%= converted_value.call(Domgen::Naming.camelize(field.name)) %> );
+%>    entity.set<%= field.name %>( <%= field.nullable? ? "#{Reality::Naming.camelize(field.name)} == null ? null : " : '' %><%= converted_value.call(Reality::Naming.camelize(field.name)) %> );
 <%     else
     gwt_type =
       case
-        when field.date? || field.text? then "com.google.gwt.core.client.JsArrayString"
-        when field.enumeration? && !field.enumeration.textual_values? then "com.google.gwt.core.client.JsArrayInteger"
-        when field.enumeration? && field.enumeration.textual_values? then "com.google.gwt.core.client.JsArrayString"
+        when field.date? || field.text? then 'com.google.gwt.core.client.JsArrayString'
+        when field.datetime? then 'com.google.gwt.core.client.JsArrayNumber'
+        when field.enumeration? && !field.enumeration.textual_values? then 'com.google.gwt.core.client.JsArrayInteger'
+        when field.enumeration? && field.enumeration.textual_values? then 'com.google.gwt.core.client.JsArrayString'
         when field.integer? then 'com.google.gwt.core.client.JsArrayInteger'
         when field.boolean? then 'com.google.gwt.core.client.JsArrayBoolean'
         when field.struct? then "com.google.gwt.core.client.JsArray<#{field.referenced_struct.gwt.qualified_jso_name}>"
@@ -41,24 +43,25 @@ public final class <%= struct.gwt.jso_name %>
       end
     gwt_creator =
       case
-        when field.date? || field.text? then "StringArray"
-        when field.enumeration? && !field.enumeration.textual_values? then "IntegerArray"
-        when field.enumeration? && field.enumeration.textual_values? then "StringArray"
-        when field.integer? then "IntegerArray"
-        when field.boolean? then "BooleanArray"
-        when field.struct? then "ObjectArray"
+        when field.date? || field.text? then 'StringArray'
+        when field.datetime? then 'NumberArray'
+        when field.enumeration? && !field.enumeration.textual_values? then 'IntegerArray'
+        when field.enumeration? && field.enumeration.textual_values? then 'StringArray'
+        when field.integer? then 'IntegerArray'
+        when field.boolean? then 'BooleanArray'
+        when field.struct? then 'ObjectArray'
         else (Domgen.error("Unsupported field type #{field.name}"))
       end
     creators_used << gwt_creator unless creators_used.include?(gwt_creator)
-%>
+-%>
 <% if field.nullable? -%>
-    if( null != <%= Domgen::Naming.camelize(field.name) %> )
+    if( null != <%= Reality::Naming.camelize(field.name) %> )
     {
 <% end -%>
     final <%= gwt_type %> $<%= field.name %> = newNative<%= gwt_creator %>();
-    for ( final <%= field.gwt.java_component_type %> v : <%= Domgen::Naming.camelize(field.name) %> )
+    for ( final <%= field.gwt.java_component_type %> v : <%= Reality::Naming.camelize(field.name) %> )
     {
-      $<%= field.name %>.push( <%= converted_value.call("v") %> );
+      $<%= field.name %>.push( <%= converted_value.call('v') %> );
     }
     entity.set<%= field.name %>( $<%= field.name %> );
 <% if field.nullable? -%>
@@ -73,15 +76,18 @@ public final class <%= struct.gwt.jso_name %>
 %>    return entity;
   }
 
-<% if creators_used.include?('StringArray') %>
+<% if creators_used.include?('NumberArray') -%>
+  private static native com.google.gwt.core.client.JsArrayNumber newNativeNumberArray() /*-{ return []; }-*/;
+<% end -%>
+<% if creators_used.include?('StringArray') -%>
   private static native com.google.gwt.core.client.JsArrayString newNativeStringArray() /*-{ return []; }-*/;
 <% end %>
-<% if creators_used.include?('IntegerArray') %>
+<% if creators_used.include?('IntegerArray') -%>
   private static native com.google.gwt.core.client.JsArrayInteger newNativeIntegerArray() /*-{ return []; }-*/;
 <% end %>
-<% if creators_used.include?('ObjectArray') %>
+<% if creators_used.include?('ObjectArray') -%>
   private static native <E extends com.google.gwt.core.client.JavaScriptObject> com.google.gwt.core.client.JsArray<E> newNativeObjectArray() /*-{ return []; }-*/;
-<% end %>
+<% end -%>
 
 <% struct.fields.select{|field| field.gwt?}.each do |field|
   if field.collection?
@@ -89,6 +95,7 @@ public final class <%= struct.gwt.jso_name %>
     gwt_type_suffix =
       case
         when field.date? || field.text? then 'String'
+        when field.datetime? then 'Number'
         when field.enumeration? && !field.enumeration.textual_values? then 'Integer'
         when field.enumeration? && field.enumeration.textual_values? then 'String'
         when field.integer? then'Integer'
@@ -99,6 +106,7 @@ public final class <%= struct.gwt.jso_name %>
     conversion_rule =
       case
         when field.date? then Proc.new {|field, transport_value| "org.realityforge.gwt.datatypes.client.date.RDate.parse( #{transport_value} )"}
+        when field.datetime? then Proc.new {|field, transport_value| "new java.util.Date( (long) #{transport_value} )"}
         when field.enumeration? then Proc.new {|field, transport_value| "#{field.gwt.java_component_type}.#{field.enumeration.textual_values? ? "valueOf( #{transport_value} )" : "values()[ #{transport_value} ]"}"}
         else nil
       end
@@ -111,9 +119,9 @@ public final class <%= struct.gwt.jso_name %>
       return null;
     }
 <% end -%>
-<% if conversion_rule.nil? %>
-    return (<%= field.gwt.java_type %>)new org.realityforge.gwt.datatypes.client.collections.JsoReadOnly<%= field.struct? ? "" : gwt_type_suffix %><%= field.collection_type == :set ? "Set" : "List" %>( <%= getter_prefix(field) %><%= field.name %>0() );
-<% else %>
+<% if conversion_rule.nil? -%>
+    return (<%= field.gwt.java_type %>)new org.realityforge.gwt.datatypes.client.collections.JsoReadOnly<%= field.struct? ? '': gwt_type_suffix %><%= field.collection_type == :set ? 'Set' : 'List' %>( <%= getter_prefix(field) %><%= field.name %>0() );
+<% else -%>
     final com.google.gwt.core.client.JsArray<%= gwt_type_suffix %> source = <%= getter_prefix(field) %><%= field.name %>0();
     final java.util.<%= collection_type_impl %><<%= field.gwt.java_component_type %>> collection = new java.util.<%= collection_type_impl %><<%= field.gwt.java_component_type %>>();
     final int size = source.length();
@@ -121,8 +129,8 @@ public final class <%= struct.gwt.jso_name %>
     {
       collection.add( <%= conversion_rule.call(field,'source.get( i )') %> );
     }
-    return java.util.Collections.unmodifiable<%= field.collection_type == :set ?'Set':'List'%>( collection );
-<% end %>
+    return java.util.Collections.unmodifiable<%= field.collection_type == :set ? 'Set' : 'List' %>( collection );
+<% end -%>
   }
 
   private native com.google.gwt.core.client.JsArray<%= gwt_type_suffix %> <%= getter_prefix(field) %><%= field.name %>0() /*-{
@@ -139,8 +147,55 @@ public final class <%= struct.gwt.jso_name %>
     this.<%= field.json.name %> = value;
   }-*/;
 <%
+   elsif field.datetime?
+-%>
+  <%= annotated_type(field, :gwt, :boundary, :public => true) %> <%= getter_prefix(field) %><%= field.name %>()
+  {
+<% if field.nullable? -%>
+    if ( is<%= field.name %>Null0() )
+    {
+      return null;
+    }
+<% end -%>
+    return new java.util.Date( (long) <%= getter_prefix(field) %><%= field.name %>0() );
+  }
+
+  private native double <%= getter_prefix(field) %><%= field.name %>0() /*-{
+    return this.<%= field.json.name %>;
+  }-*/;
+
+<% if field.nullable? -%>
+  private native boolean is<%= field.name %>Null0() /*-{
+    return this.<%= field.json.name %> == null;
+  }-*/;
+
+  private void set<%= field.name %>( final Double value )
+  {
+    if( null == value )
+    {
+      set<%= field.name %>Null();
+    }
+    else
+    {
+      set<%= field.name %>0( value );
+    }
+  }
+
+  private native void set<%= field.name %>Null() /*-{
+    this.<%= field.json.name %> = null;
+  }-*/;
+
+  private native void set<%= field.name %>0( double value ) /*-{
+    this.<%= field.json.name %> = value;
+  }-*/;
+<% else -%>
+  private native void set<%= field.name %>( double value ) /*-{
+    this.<%= field.json.name %> = value;
+  }-*/;
+<% end -%>
+<%
    elsif field.date?
-%>
+-%>
   <%= annotated_type(field, :gwt, :boundary, :public => true) %> <%= getter_prefix(field) %><%= field.name %>()
   {
 <% if field.nullable? -%>
@@ -167,7 +222,7 @@ public final class <%= struct.gwt.jso_name %>
   }-*/;
 <%
    elsif field.enumeration?
-%>
+-%>
   <%= annotated_type(field, :gwt, :boundary, :public => true) %> <%= getter_prefix(field) %><%= field.name %>()
   {
 <% if field.nullable? -%>
@@ -180,7 +235,7 @@ public final class <%= struct.gwt.jso_name %>
     return <%= field.gwt.java_type %>.<%= field.enumeration.textual_values? ? "valueOf( #{transport_value} )" : "values()[ #{transport_value} ]" %>;
   }
 
-  private native <%= field.enumeration.textual_values? ? 'String' : "int" %> <%= getter_prefix(field) %><%= field.name %>0() /*-{
+  private native <%= field.enumeration.textual_values? ? 'String' :'int'%> <%= getter_prefix(field) %><%= field.name %>0() /*-{
     return this.<%= field.json.name %>;
   }-*/;
 
@@ -194,11 +249,11 @@ public final class <%= struct.gwt.jso_name %>
   }-*/;
 
 <% end -%>
-<% if field.enumeration.textual_values? %>
+<% if field.enumeration.textual_values? -%>
   private native void set<%= field.name %>( final java.lang.String value ) /*-{
     this.<%= field.json.name %> = value;
   }-*/;
-<% else %>
+<% else -%>
   private native void set<%= field.name %>0( final int value ) /*-{
     this.<%= field.json.name %> = value;
   }-*/;
@@ -215,7 +270,7 @@ public final class <%= struct.gwt.jso_name %>
 <% end -%>
 <%
    elsif field.integer? && field.nullable?
-%>
+-%>
   <%= annotated_type(field, :gwt, :boundary, :native => true, :public => true) %> <%= getter_prefix(field) %><%= field.name %>() /*-{
     return this.<%= field.json.name %> ? @java.lang.Integer::valueOf(I)( this.<%= field.json.name %> ) : null
   }-*/;
@@ -235,7 +290,7 @@ public final class <%= struct.gwt.jso_name %>
   }-*/;
 <%
    else
-%>
+-%>
   <%= annotated_type(field, :gwt, :boundary, :public => true, :native => true) %> <%= getter_prefix(field) %><%= field.name %>() /*-{
     return this.<%= field.json.name %>;
   }-*/;
@@ -245,12 +300,11 @@ public final class <%= struct.gwt.jso_name %>
   }-*/;
 <% end
   end
-%>
+-%>
 <% if struct.top_level? %>
   protected static <%= struct.gwt.jso_name %> as<%= struct.name %>( final String json )
   {
     return com.google.gwt.core.client.JsonUtils.safeEval( json );
   }
-<% end
-%>
+<% end -%>
 }

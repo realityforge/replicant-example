@@ -14,6 +14,8 @@
 
 module Domgen
   FacetManager.facet(:application) do |facet|
+    facet.suggested_facets << :robots
+
     facet.enhance(Repository) do
 
       # return true if the model code for repository can be included in separate project as a library
@@ -29,7 +31,17 @@ module Domgen
         @service_library.nil? ? false : !!@service_library
       end
 
-      attr_writer :service_library
+      def service_library=(service_library)
+        @service_library = service_library
+        disable_deployment_facets if service_library
+      end
+
+      # return true if the application has a UI to be presented to humans.
+      def user_experience?
+        !service_library? && @user_experience.nil? ? repository.gwt? : !!@user_experience
+      end
+
+      attr_writer :user_experience
 
       # return true if the database scripts for repository is independently deployable.
       def db_deployable?
@@ -43,7 +55,37 @@ module Domgen
         !service_library? && (@code_deployable.nil? ? true : !!@code_deployable)
       end
 
-      attr_writer :code_deployable
+      def code_deployable=(code_deployable)
+        @code_deployable = code_deployable
+        disable_deployment_facets unless code_deployable
+      end
+
+      def remote_references_included?
+        @remote_refs.nil? ? any_remote_refs? : @remote_refs
+      end
+
+      def post_complete
+        @remote_refs = any_remote_refs?
+      end
+
+      private
+
+      def any_remote_refs?
+        repository.data_modules.each do |data_module|
+          data_module.entities.each do |entity|
+            entity.attributes.each do |attribute|
+              return true if attribute.remote_reference?
+            end
+          end
+        end
+        false
+      end
+
+      def disable_deployment_facets
+        repository.disable_facet(:robots) if repository.robots?
+        repository.disable_facet(:appcache) if repository.appcache?
+        repository.disable_facet(:gwt_cache_filter) if repository.gwt_cache_filter?
+      end
     end
   end
 end

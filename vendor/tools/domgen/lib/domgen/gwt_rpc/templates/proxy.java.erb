@@ -1,169 +1,100 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(service.gwt_rpc.qualified_proxy_name) %>;
 
+@javax.annotation.Generated( "Domgen" )
 @java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "unchecked", "Convert2Diamond", "PMD.UnusedPrivateField", "PMD.AddEmptyString" } )
 public class <%= service.gwt_rpc.proxy_name %>
   implements <%= service.gwt_rpc.qualified_facade_service_name %>
 {
-  private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger( <%= service.gwt_rpc.proxy_name %>.class.getName() );
-  private static final java.util.logging.Level LOG_LEVEL = java.util.logging.Level.INFO;
-<% service.methods.select{|method| method.gwt_rpc?}.each do |method|
--%>
-  private static final String <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> = "<%= service.qualified_name %>.<%= method.name %>";
-<% end %>
-
   @javax.inject.Inject
   private <%= service.gwt_rpc.qualified_async_rpc_service_name %> _service;
-  @javax.inject.Named("GLOBAL")
+<% if service.gwt_rpc.default_callback? -%>
+  @javax.inject.Named( "<%= service.gwt_rpc.default_callback_name %>" )
   @javax.inject.Inject
   private com.google.gwt.user.client.rpc.AsyncCallback _callback;
-
-<% if service.methods.any?{|m| m.parameters.any?{|p| p.struct? && p.referenced_struct.auto_bean? } || (m.return_value.struct? && m.return_value.referenced_struct.auto_bean?) } %>
+<% end -%>
+<% if service.methods.any?{|m| m.parameters.any?{|p| p.struct? && p.referenced_struct.auto_bean? } || (m.return_value.struct? && m.return_value.referenced_struct.auto_bean?) } -%>
   @javax.inject.Inject
   private <%= service.data_module.repository.auto_bean.qualified_factory_name %> _factory;
-<% end %>
-
+<% end -%>
 <% service.methods.select{|method| method.gwt_rpc?}.each do |method|
-   method_name = Domgen::Naming.camelize(method.name)
-   parameters = method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}
-%>
-  public void <%= method_name %>(<%= parameters.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{p.name}" }.join(', ') %>)
+   method_name = Reality::Naming.camelize(method.name)
+   parameters = method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?} -%>
+
+  public void <%= method_name %>(<%= parameters.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{Reality::Naming.camelize(p.name)}" }.join(', ') %>)
   {
-    <%= method_name %>(<%= (parameters.collect{|p| p.name } + ["null"]).join(', ') %>);
-  }
-  public void <%= method_name %>(<%= (parameters.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{p.name}" } + ["final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_callback_name}<#{method.return_value.gwt_rpc.non_primitive_java_type(:boundary)}> callback"]).join(', ') %>)
-  {
-    <%= method_name %>(<%= (parameters.collect{|p| p.name } + ["callback","null"]).join(', ') %>);
+    <%= method_name %>(<%= (parameters.collect{|p| Reality::Naming.camelize(p.name) } + ['null']).join(', ') %>);
   }
 
-  public void <%= method_name %>(<%= (method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{p.name}" } + ["final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_callback_name}<#{method.return_value.gwt_rpc.non_primitive_java_type(:boundary)}> callback","final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_error_callback_name} errorCallback"]).join(', ') %>)
+  public void <%= method_name %>(<%= (parameters.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{Reality::Naming.camelize(p.name)}" } + ["final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_callback_name}<#{method.return_value.gwt_rpc.non_primitive_java_type(:boundary)}> callback"]).join(', ') %>)
   {
-  <% method.parameters.select{|parameter| (parameter.enumeration? || parameter.struct?) && parameter.collection?}.each do |parameter| %>
-    <%= annotated_type(parameter, :gwt_rpc, :transport, :final => true) %> $<%= parameter.name %> = <%= parameter.nullable? ? "null == #{parameter.name} ? null : " : '' %>new java.util.<%=  parameter.collection_type == :set ? "HashSet" : "ArrayList" %><<%= parameter.gwt_rpc.java_component_type(:transport) %>>();
-    <% if parameter.nullable? %>if( null != <%= parameter.name %> ) {<% end %>
-    for( final <%= parameter.gwt_rpc.java_component_type %> entity: <%= parameter.name %> )
+    <%= method_name %>(<%= (parameters.collect{|p| Reality::Naming.camelize(p.name) } + ['callback','null']).join(', ') %>);
+  }
+
+  public void <%= method_name %>(<%= (method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect{|p| "#{annotated_type(p, :gwt_rpc, :boundary, :final => true)} #{Reality::Naming.camelize(p.name)}" } + ["final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_callback_name}<#{method.return_value.gwt_rpc.non_primitive_java_type(:boundary)}> callback","final @javax.annotation.Nullable #{service.data_module.repository.gwt.qualified_async_error_callback_name} errorCallback"]).join(', ') %>)
+  {
+<% method.parameters.select{|parameter| (parameter.enumeration? || parameter.struct?) && parameter.collection?}.each do |parameter| -%>
+    <%= annotated_type(parameter, :gwt_rpc, :transport, :final => true) %> $<%= Reality::Naming.camelize(parameter.name) %> = <%= parameter.nullable? ? "null == #{Reality::Naming.camelize(parameter.name)} ? null : " : '' %>new java.util.<%=  parameter.collection_type == :set ? 'HashSet' : 'ArrayList' %><<%= parameter.gwt_rpc.java_component_type(:transport) %>>();
+    <% if parameter.nullable? %>if( null != <%= Reality::Naming.camelize(parameter.name) %> ) {<% end %>
+    for( final <%= parameter.gwt_rpc.java_component_type %> entity: <%= Reality::Naming.camelize(parameter.name) %> )
     {
     <%
        param_value =
        if parameter.enumeration?
-         "entity.#{parameter.enumeration.numeric_values? ? "ordinal()" : "name()"}"
+         "entity.#{parameter.enumeration.numeric_values? ? 'ordinal()' : 'name()'}"
        else
          if parameter.referenced_struct.auto_bean?
-         "com.google.web.bindery.autobean.shared.AutoBeanCodex.encode( com.google.web.bindery.autobean.shared.AutoBeanUtils.getAutoBean( entity ) ).getPayload()"
+           'com.google.web.bindery.autobean.shared.AutoBeanCodex.encode( com.google.web.bindery.autobean.shared.AutoBeanUtils.getAutoBean( entity ) ).getPayload()'
          else
-         "#{parameter.referenced_struct.gwt.qualified_factory_name}.asJson( entity )"
+           "#{parameter.referenced_struct.gwt.qualified_factory_name}.asJson( entity )"
          end
        end
     %>
-    $<%= parameter.name %>.add( <%= param_value %> );
+    $<%= Reality::Naming.camelize(parameter.name) %>.add( <%= param_value %> );
     }
     <% if parameter.nullable? %>}<% end %>
-  <% end %>
-<% if method.imit? -%>
-  final org.realityforge.replicant.client.transport.ClientSession session = <%= service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext().getSession();
-  final org.realityforge.replicant.client.transport.RequestEntry request;
-  if( null != session )
-  {
-    request = session.newRequestRegistration( <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %>, <%= method.imit.graph_to_subscribe.nil? ? 'null' : "#{method.service.data_module.repository.imit.qualified_graph_enum_name}.#{Domgen::Naming.uppercase_constantize(method.service.data_module.repository.imit.graph_by_name(method.imit.graph_to_subscribe).name)}.name()" %>, <%= method.imit.bulk_load? %> );
-    <%= service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext().setRequest( request );
-    if( LOG.isLoggable( LOG_LEVEL ) )
-    {
-      LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " created request " + request.getRequestID() );
-    }
-  }
-  else
-  {
-    request = null;
-  }
 <% end -%>
 <% if method.keycloak? -%>
-  <%= method.service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getKeycloak().updateToken( 10, new java.lang.Runnable()
-  {
-    @java.lang.Override
-    public void run()
-    {
-      <%= method.service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext().setAuthenticationToken( <%= method.service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getKeycloak().getToken() );
+    updateTokenAndExecute( () -> {
 <% end -%>
-  _service.<%= method.gwt_rpc.name %>(<%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect do |parameter|
-  param_value = parameter.name
-  if parameter.collection? && (parameter.enumeration? || parameter.struct?)
-    param_value = "$#{parameter.name}"
+<% if method.imit? -%>
+    request( "<%= service.qualified_name %>.<%= method.name %>", (session, request) -> {
+<% end -%>
+    _service.<%= method.gwt_rpc.name %>(<%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.collect do |parameter|
+  param_value = Reality::Naming.camelize(parameter.name)
+  if parameter.collection? && (parameter.enumeration? || parameter.struct? || parameter.date?)
+    param_value = "$#{param_value}"
   elsif parameter.enumeration? && parameter.enumeration.numeric_values?
-    param_value = "#{parameter.name}.ordinal()"
+    param_value = "#{param_value}.ordinal()"
   elsif parameter.enumeration? && parameter.enumeration.textual_values?
-    param_value = "#{parameter.name}.name()"
+    param_value = "#{param_value}.name()"
+  elsif parameter.date?
+    param_value = "#{param_value}.toString()"
   elsif parameter.struct?
     if parameter.referenced_struct.auto_bean?
-    param_value = "com.google.web.bindery.autobean.shared.AutoBeanCodex.encode( com.google.web.bindery.autobean.shared.AutoBeanUtils.getAutoBean( #{parameter.name} ) ).getPayload()"
+      param_value = "com.google.web.bindery.autobean.shared.AutoBeanCodex.encode( com.google.web.bindery.autobean.shared.AutoBeanUtils.getAutoBean( #{parameter.name} ) ).getPayload()"
     else
-    param_value = "#{parameter.referenced_struct.gwt.qualified_factory_name}.asJson( #{parameter.name} )"
+      param_value = "#{parameter.referenced_struct.gwt.qualified_factory_name}.asJson( #{param_value} )"
     end
   end
   if parameter.nullable? && !parameter.collection?
-    param_value = "null == #{parameter.name} ? null : #{param_value}"
+    param_value = "null == #{Reality::Naming.camelize(parameter.name)} ? null : #{param_value}"
   end
   param_value
-end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.empty? ? '' : ', ' %>new com.google.gwt.user.client.rpc.AsyncCallback<<%= method.return_value.gwt_rpc.non_primitive_java_type(:transport) %>>()
+end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.environmental?}.empty? ? '' : ', ' %>new <%= service.data_module.repository.gwt_rpc.qualified_async_callback_adapter_name %><<%= method.return_value.gwt_rpc.non_primitive_java_type(:transport) %>,<%= method.return_value.gwt_rpc.non_primitive_java_type(:boundary) %>>( <%= service.gwt_rpc.default_callback? ? '_callback' : 'null' -%>, callback, errorCallback<% if service.data_module.repository.imit? -%><% if method.imit? -%>, session, request<% else -%>, null, null<% end -%><% end -%> )
     {
-    public void onFailure( final Throwable caught )
-    {
-      final Runnable runnable = new Runnable()
+      @java.lang.Override
+      <%= annotated_type(method.return_value, :gwt_rpc, :boundary, :non_primitive => true, :protected => true, :final => true) %> convert( final <%= method.return_value.gwt_rpc.non_primitive_java_type(:transport) %> result )
       {
-        @java.lang.Override
-        public void run()
-        {
-          if ( null != errorCallback )
-          {
-            errorCallback.onFailure( caught );
-          }
-          _callback.onFailure( caught );
-        }
-      };
-<% if method.imit? -%>
-      if( null != request && LOG.isLoggable( LOG_LEVEL ) )
-      {
-        LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed with exception: RequestID=" + request.getRequestID() );
-      }
-      if( null != request && request.isExpectingResults() && !request.haveResultsArrived() )
-      {
-        request.setNonNormalCompletionAction( runnable );
-        if( LOG.isLoggable( LOG_LEVEL ) )
-        {
-          LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed with exception but change set not arrived: RequestID=" + request.getRequestID() );
-        }
-      }
-      else
-<% end -%>
-      {
-        runnable.run();
-<% if method.imit? -%>
-        if ( null != session )
-        {
-          session.removeRequest( request.getRequestID() );
-          if( LOG.isLoggable( LOG_LEVEL ) )
-          {
-            LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed with exception and no change set or already arrived: RequestID=" + request.getRequestID() );
-          }
-        }
-<% end -%>
-      }
-<% if method.imit? -%>
-      if( LOG.isLoggable( LOG_LEVEL ) )
-      {
-        LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed with exception." );
-      }
-<% end -%>
-    }
-
-    public void onSuccess( final <%= method.return_value.gwt_rpc.non_primitive_java_type(:transport) %> result )
-    {
 <%
    if !method.return_value.collection?
-     result_string = "result"
+     result_string = 'result'
      if method.return_value.enumeration? && method.return_value.enumeration.numeric_values?
        result_string = "#{method.return_value.gwt_rpc.java_type}.values()[ result ]"
      elsif method.return_value.enumeration? && method.return_value.enumeration.textual_values?
        result_string = "#{method.return_value.gwt_rpc.java_type}.valueOf( result )"
+     elsif method.return_value.date?
+       result_string = "org.realityforge.gwt.datatypes.client.date.RDate.parse( result )"
      elsif method.return_value.struct?
        if method.return_value.referenced_struct.auto_bean?
        result_string = "com.google.web.bindery.autobean.shared.AutoBeanCodex.decode( _factory, #{method.return_value.referenced_struct.auto_bean.qualified_name}.class, result ).as()"
@@ -175,18 +106,18 @@ end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.env
        result_string = "null == result ? null : #{result_string}"
      end
    elsif method.return_value.enumeration? || method.return_value.struct?
-     result_string = "$result"
+     result_string = '$result'
    else
-     result_string = "result"
+     result_string = 'result'
    end
-%>
-  <% if method.return_value.collection? && (method.return_value.enumeration? || method.return_value.struct?) %>
-    <%= annotated_type(method.return_value, :gwt_rpc, :boundary, :final => true) %> $result = <% if method.return_value.nullable? %>result == null ? null : <% end %>new java.util.<%=  method.return_value.collection_type == :set ? "HashSet" : "ArrayList" %><<%= method.return_value.gwt_rpc.java_component_type %>>();
-    if ( null != result )
-    {
-      for( final <%= method.return_value.gwt_rpc.java_component_type(:transport) %> id: result )
-      {
-      <%
+-%>
+<% if method.return_value.collection? && (method.return_value.enumeration? || method.return_value.struct?) -%>
+        <%= annotated_type(method.return_value, :gwt_rpc, :boundary, :final => true) %> $result = <% if method.return_value.nullable? %>result == null ? null : <% end %>new java.util.<%=  method.return_value.collection_type == :set ? 'HashSet' : 'ArrayList' %><<%= method.return_value.gwt_rpc.java_component_type %>>();
+        if ( null != result )
+        {
+          for( final <%= method.return_value.gwt_rpc.java_component_type(:transport) %> id: result )
+          {
+<%
          param_value =
          if method.return_value.enumeration?
            method.return_value.enumeration.textual_values? ?
@@ -199,64 +130,34 @@ end.join(', ') %><%= method.parameters.select{|parameter| !parameter.gwt_rpc.env
            "#{method.return_value.referenced_struct.gwt.qualified_factory_name}.as#{method.return_value.referenced_struct.name}( id )"
            end
          end
-      %>
-      $result.add( <%= param_value %> );
-      }
-    }
-  <% end -%>
-      final Runnable runnable = new Runnable()
-      {
-        @java.lang.Override
-        public void run()
-        {
-          if ( null != callback )
-          {
-            callback.onSuccess( <%= result_string %> );
-          }
-          _callback.onSuccess( result );
-        }
-      };
-<% if method.imit? -%>
-      if( null != request && LOG.isLoggable( LOG_LEVEL ) )
-      {
-        LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed normally: RequestID=" + request.getRequestID() );
-      }
-      if ( null != request && request.isExpectingResults() && !request.haveResultsArrived() )
-      {
-        request.setNormalCompletionAction( runnable );
-        if( LOG.isLoggable( LOG_LEVEL ) )
-        {
-          LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed normally but change set not arrived: RequestID=" + request.getRequestID() );
-        }
-      }
-      else
-<% end -%>
-      {
-        runnable.run();
-<% if method.imit? -%>
-        if ( null != session )
-        {
-          session.removeRequest( request.getRequestID() );
-          if( LOG.isLoggable( LOG_LEVEL ) )
-          {
-            LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed normally and no change set or already arrived: RequestID=" + request.getRequestID() );
+-%>
+            $result.add( <%= param_value %> );
           }
         }
-        if( LOG.isLoggable( LOG_LEVEL ) )
-        {
-          LOG.log( LOG_LEVEL, <%= Domgen::Naming.uppercase_constantize(method.qualified_name.gsub(/[#\\.]/,'_')) %> + " request completed normally." );
-        }
 <% end -%>
-      }
-    }
-    });
-<% if method.keycloak? -%>
+        return <%= result_string %>;
       }
     } );
-<% end -%>
 <% if method.imit? -%>
-    <%= service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext().setRequest( null );
+    } );
+<% end -%>
+<% if method.keycloak? -%>
+    } );
 <% end -%>
   }
+<% end -%>
+<% if service.imit? -%>
 
-<% end %>}
+  private void request( @javax.annotation.Nonnull final String key, @javax.annotation.Nonnull final org.realityforge.replicant.client.transport.RequestAction action )
+  {
+    <%= service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext().request( key, null, action );
+  }
+<% end -%>
+<% if service.keycloak? -%>
+
+  private void updateTokenAndExecute( @javax.annotation.Nonnull final java.lang.Runnable action )
+  {
+    <%= service.data_module.repository.gwt_rpc.qualified_rpc_services_module_name %>.updateTokenAndExecute( action );
+  }
+<% end -%>
+}

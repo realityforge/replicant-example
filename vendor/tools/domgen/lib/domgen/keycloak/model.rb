@@ -25,6 +25,34 @@ module Domgen
 
       attr_writer :protocol
 
+      attr_writer :java_accessor_key
+
+      attr_writer :java_type
+
+      attr_writer :js_type
+
+      def java_accessor_key
+        @java_accessor_key || Reality::Naming.pascal_case(self.name.to_s.gsub(' ', '_'))
+      end
+
+      def java_type
+        @java_type || 'java.lang.String'
+      end
+
+      def js_type
+        @js_type || self.java_type
+      end
+
+      attr_writer :token_accessor_key
+
+      def token_accessor_key
+        @token_accessor_key || Reality::Naming.pascal_case(self.config['claim.name'] || self.name.to_s.gsub(' ', '_'))
+      end
+
+      def standard_claim?
+        %w(Name FamilyName GivenName MiddleName NickName Profile Picture Website Email EmailVerified Gender Birthdate Zoneinfo Locale PhoneNumber PhoneNumberVerified PreferredUsername).include?(self.token_accessor_key)
+      end
+
       def protocol
         @protocol || 'openid-connect'
       end
@@ -38,19 +66,42 @@ module Domgen
       attr_writer :consent_required
 
       def consent_required?
-        @consent_required.nil? ? true : !!@consent_required
+        @consent_required.nil? ? false : !!@consent_required
       end
 
       attr_writer :consent_text
 
       def consent_text
-        @consent_text || (consent_required? ? "${#{Domgen::Naming.camelize(name.to_s.gsub(' ', '_'))}}" : '')
+        @consent_text || (consent_required? ? "${#{Reality::Naming.camelize(name.to_s.gsub(' ', '_'))}}" : '')
       end
 
       attr_writer :config
 
       def config
         @config || {}
+      end
+    end
+
+    class RemoteClient < Domgen.ParentedElement(:keycloak_repository)
+      def initialize(keycloak_repository, name, options = {}, &block)
+        @name = name
+        super(keycloak_repository, options, &block)
+      end
+
+      attr_accessor :name
+
+      include Domgen::Java::BaseJavaGenerator
+
+      java_artifact :ee_remote_client_config, :service, :server, :keycloak, '#{self.name}KeycloakConfig'
+
+      attr_writer :jndi_config_base
+
+      def jndi_config_base
+        @jndi_config_base || "#{keycloak_repository.jndi_config_base}/remote-client/#{Reality::Naming.underscore(self.name)}"
+      end
+
+      def client_constant_prefix
+        "#{Reality::Naming.uppercase_constantize(keycloak_repository.repository.name)}_KEYCLOAK_REMOTE_CLIENT_#{Reality::Naming.uppercase_constantize(name)}"
       end
     end
 
@@ -64,20 +115,28 @@ module Domgen
 
       java_artifact :keycloak_filter, :filter, :server, :keycloak, '#{qualified_class_name}KeycloakFilter'
       java_artifact :keycloak_filter_interface, :filter, :server, :keycloak, '#{qualified_class_name}KeycloakUrlFilter'
-      java_artifact :abstract_keycloak_filter, :filter, :server, :keycloak, 'Abstract#{qualified_class_name}KeycloakUrlFilter'
+      java_artifact :abstract_keycloak_filter, :filter, :server, :keycloak, 'Abstract#{qualified_class_name}KeycloakUrlFilterImpl'
+      java_artifact :standard_keycloak_filter, :filter, :server, :keycloak, '#{qualified_class_name}KeycloakUrlFilterImpl'
       java_artifact :keycloak_config_resolver, :filter, :server, :keycloak, '#{qualified_class_name}KeycloakConfigResolver'
       java_artifact :config_service, :servlet, :server, :keycloak, '#{qualified_class_name}KeycloakConfigServlet'
       java_artifact :js_service, :servlet, :server, :keycloak, '#{qualified_class_name}KeycloakJsServlet'
+      java_artifact :js_min_service, :servlet, :server, :keycloak, '#{qualified_class_name}KeycloakMinJsServlet'
       java_artifact :token, :data_type, :client, :keycloak, '#{qualified_class_name}Token'
       java_artifact :id_token, :data_type, :client, :keycloak, '#{qualified_class_name}IDToken'
       java_artifact :abstract_application, nil, :client, :keycloak, 'AbstractKeycloak#{qualified_type_name}App'
 
       def qualified_type_name
-        "#{default_client? ? '' : Domgen::Naming.pascal_case(keycloak_repository.repository.name)}#{Domgen::Naming.pascal_case(name)}"
+        "#{default_client? ? '' : Reality::Naming.pascal_case(keycloak_repository.repository.name)}#{Reality::Naming.pascal_case(name)}"
       end
 
       def qualified_class_name
         "#{qualified_type_name}Client"
+      end
+
+      attr_writer :custom_filter
+
+      def custom_filter?
+        @custom_filter.nil? ? false : !!@custom_filter
       end
 
       attr_writer :protected_url_patterns
@@ -89,7 +148,7 @@ module Domgen
       attr_writer :jndi_config_base
 
       def jndi_config_base
-        @jndi_config_base || "#{keycloak_repository.jndi_config_base}/#{name}"
+        @jndi_config_base || "#{keycloak_repository.jndi_config_base}/client/#{name}"
       end
 
       def jndi_debug_key
@@ -101,22 +160,22 @@ module Domgen
       attr_writer :client_id
 
       def client_id
-        "{{#{client_constant_prefix}_NAME}}"
+        "{{#{Reality::Naming.uppercase_constantize(keycloak_repository.repository.name)}#{default_client? ? '' : "_#{Reality::Naming.uppercase_constantize(key)}"}_NAME}}"
       end
 
       def client_constant_prefix
-        "#{Domgen::Naming.uppercase_constantize(keycloak_repository.repository.name)}#{default_client? ? '' : "_#{Domgen::Naming.uppercase_constantize(key)}"}"
+        "#{Reality::Naming.uppercase_constantize(keycloak_repository.repository.name)}_KEYCLOAK_CLIENT#{default_client? ? '' : "_#{Reality::Naming.uppercase_constantize(key)}"}"
       end
 
       def default_client?
         repository_name = keycloak_repository.repository.name
-        Domgen::Naming.underscore(repository_name) == key.to_s
+        Reality::Naming.underscore(repository_name) == key.to_s
       end
 
       attr_writer :name
 
       def name
-        @name || Domgen::Naming.underscore(key.to_s)
+        @name || Reality::Naming.underscore(key.to_s)
       end
 
       attr_writer :root_url
@@ -128,13 +187,13 @@ module Domgen
       attr_writer :base_url
 
       def base_url
-        @base_url || "{{#{Domgen::Naming.uppercase_constantize(keycloak_repository.repository.name)}_URL}}"
+        @base_url || "{{#{Reality::Naming.uppercase_constantize(keycloak_repository.repository.name)}_URL}}"
       end
 
       attr_writer :origin
 
       def origin
-        @origin || "{{#{Domgen::Naming.uppercase_constantize(keycloak_repository.repository.name)}_ORIGIN}}"
+        @origin || "{{#{Reality::Naming.uppercase_constantize(keycloak_repository.repository.name)}_ORIGIN}}"
       end
 
       # Local url for clients capabilities
@@ -195,7 +254,7 @@ module Domgen
       attr_writer :direct_access_grants
 
       def direct_access_grants?
-        @direct_access_grants.nil? ? true : !!@direct_access_grants
+        @direct_access_grants.nil? ? false : !!@direct_access_grants
       end
 
       attr_writer :public_client
@@ -280,7 +339,7 @@ module Domgen
         @standard_claims || [:username]
       end
 
-      def pre_verify
+      def pre_complete
         standard_claims.each do |claim_type|
           self.send("add_#{claim_type}_claim") unless claim_by_name?(claim_type)
         end
@@ -324,6 +383,7 @@ module Domgen
 
       def add_full_name_claim
         claim('full name',
+              :token_accessor_key => 'Name',
               :protocol_mapper => 'oidc-full-name-mapper',
               :config =>
                 {
@@ -344,6 +404,21 @@ module Domgen
                 })
       end
 
+      def add_groups_claim
+        c = claim('groups',
+                  :config =>
+                    {
+                      'id.token.claim' => 'false',
+                      'access.token.claim' => 'true',
+                      'claim.name' => 'groups'
+                    })
+
+        c.protocol_mapper = 'oidc-group-membership-mapper'
+        c.java_type = 'java.util.ArrayList<String>'
+        c.js_type = 'com.google.gwt.core.client.JsArray'
+        c
+      end
+
       private
 
       def claim_map
@@ -357,12 +432,46 @@ module Domgen
       include Domgen::Java::BaseJavaGenerator
       include Domgen::Java::JavaClientServerApplication
 
+      java_artifact :services_module, :ioc, :client, :keycloak, '#{repository.name}KeycloakServicesModule'
+      java_artifact :gwt_token_service, :service, :client, :keycloak, '#{repository.name}KeycloakTokenService'
+      java_artifact :gwt_token_service_impl, :service, :client, :keycloak, '#{gwt_token_service_name}Impl', :sub_package => 'internal'
       java_artifact :client_definitions, nil, :shared, :keycloak, '#{repository.name}KeycloakClients'
+      java_artifact :test_module, :test, :server, :keycloak, '#{repository.name}KeycloakServicesModule', :sub_package => 'util'
+      java_artifact :test_auth_service_implementation, :test, :server, :keycloak, 'Test#{repository.keycloak.auth_service_implementation_name}', :sub_package => 'util'
+      java_artifact :integration_test_module, :test, :integration, :keycloak, '#{repository.name}KeycloakTestModule', :sub_package => 'util'
+
+      def client_ioc_package
+        repository.gwt.client_ioc_package
+      end
+
+      def auth_service_implementation_name
+        self.repository.service_by_name(self.auth_service_name).ejb.service_implementation_name
+      end
+
+      def qualified_auth_service_implementation_name
+        self.repository.service_by_name(self.auth_service_name).ejb.qualified_service_implementation_name
+      end
+
+      attr_writer :auth_service_name
+
+      def auth_service_name
+        @auth_service_name || "#{auth_service_module}.#{repository.name}AuthService"
+      end
+
+      attr_writer :auth_service_module
+
+      def auth_service_module
+        if @auth_service_module.nil?
+          @auth_service_module =
+            repository.data_module_by_name?(repository.name) ? repository.name : repository.data_modules[0].name
+        end
+        @auth_service_module
+      end
 
       attr_writer :jndi_config_base
 
       def jndi_config_base
-        @jndi_config_base || "#{Domgen::Naming.underscore(repository.name)}/keycloak"
+        @jndi_config_base || "#{Reality::Naming.underscore(repository.name)}/keycloak"
       end
 
       # Relative url for base of all keycloak configuration
@@ -372,8 +481,20 @@ module Domgen
         @base_keycloak_client_url || '.keycloak'
       end
 
+      def has_local_auth_service?
+        repository.application.code_deployable?
+      end
+
+      # Does this application generate any tokens as part of it's operation?
+      # or does it rely on other applications to generate tokens and then
+      # will accept their tokens.
+      def generates_tokens?
+        has_local_auth_service? && self.clients.any?{|c| !c.bearer_only?}
+      end
+
       def default_client
-        key = Domgen::Naming.underscore(repository.name.to_s)
+        Domgen.error('default_client called when local auth service is not enabled.') unless has_local_auth_service?
+        key = Reality::Naming.underscore(repository.name.to_s)
         client(key) unless client_by_key?(key)
         client_by_key(key)
       end
@@ -396,20 +517,82 @@ module Domgen
         client_map.values
       end
 
-      TargetManager.register_target('keycloak.client', :repository, :keycloak, :clients)
+      Domgen.target_manager.target(:client, :repository, :facet_key => :keycloak)
+
+      def remote_client_by_key?(key)
+        !!remote_client_map[key.to_s]
+      end
+
+      def remote_client_by_key(key)
+        raise "No keycloak remote_client with key #{key} defined." unless remote_client_map[key.to_s]
+        remote_client_map[key.to_s]
+      end
+
+      def remote_client(key, options = {}, &block)
+        raise "Keycloak remote_client with id #{key} already defined." if remote_client_map[key.to_s]
+        remote_client_map[key.to_s] = Domgen::Keycloak::RemoteClient.new(self, key, options, &block)
+      end
+
+      def remote_clients
+        remote_client_map.values
+      end
+
+      Domgen.target_manager.target(:remote_client, :repository, :facet_key => :keycloak)
+
+      def pre_complete
+        self.clients.each do |client|
+          client.pre_complete
+        end
+        if repository.ee?
+          repository.ee.cdi_scan_excludes << 'org.bouncycastle.**'
+          repository.ee.cdi_scan_excludes << 'org.jboss.logging.**'
+          repository.ee.cdi_scan_excludes << 'org.keycloak.**'
+          repository.ee.cdi_scan_excludes << 'org.apache.commons.codec.**'
+          repository.ee.cdi_scan_excludes << 'org.apache.commons.logging.**'
+          repository.ee.cdi_scan_excludes << 'org.apache.http.**'
+          repository.ee.add_integration_test_module(self.integration_test_module_name, self.qualified_integration_test_module_name)
+        end
+        if repository.ejb? && has_local_auth_service?
+          self.repository.service(self.auth_service_name) unless self.repository.service_by_name?(self.auth_service_name)
+          self.repository.service_by_name(self.auth_service_name).tap do |s|
+            s.ejb.bind_in_tests = false
+            s.ejb.generate_base_test = false
+            s.disable_facets_not_in(:ejb)
+            self.default_client.claims.each do |claim|
+              s.method("Get#{claim.java_accessor_key}") do |m|
+                m.returns(claim.java_type)
+              end
+            end
+          end
+        end
+      end
 
       def pre_verify
-        clients.each do |client|
-          client.pre_verify
+        if repository.gwt? && self.generates_tokens?
+          repository.gwt.add_gin_module(self.services_module_name, self.qualified_services_module_name)
+        end
+        if repository.ejb? && self.has_local_auth_service?
+          repository.ejb.add_flushable_test_module(self.test_module_name, self.qualified_test_module_name)
+          repository.ejb.add_test_class_content(<<-JAVA)
+
+  public void setupAccount( #{self.default_client.claims.collect {|claim| "@javax.annotation.Nonnull final #{claim.java_type} #{Reality::Naming.camelize(claim.java_accessor_key)}"}.join(', ') } )
+  {
+    toObject( #{self.qualified_test_auth_service_implementation_name }.class, s( #{repository.service_by_name(self.auth_service_name).ejb.qualified_service_name }.class ) ).setupAccount( #{self.default_client.claims.collect {|claim| Reality::Naming.camelize(claim.java_accessor_key)}.join(', ') } );
+  }
+          JAVA
         end
       end
 
       private
 
+      def remote_client_map
+        @remote_clients ||= {}
+      end
+
       def client_map
         unless @clients
           @clients = {}
-          default_client
+          default_client if has_local_auth_service?
         end
         @clients
       end

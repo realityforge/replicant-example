@@ -53,22 +53,24 @@ module Domgen
       end
 
       def column_type(column)
-        if column.calculation
-          sql_type = "AS #{@calculation}"
+        if column.respond_to?(:calculation) && column.calculation
+          sql_type = "AS #{column.calculation}"
           if column.persistent_calculation?
-            sql_type += " PERSISTED"
+            sql_type += ' PERSISTED'
           end
           return sql_type
         elsif :reference == column.attribute.attribute_type
           return column.attribute.referenced_entity.primary_key.sql.sql_type
+        elsif :remote_reference == column.attribute.attribute_type
+          return column.attribute.referenced_remote_entity.primary_key.sql.sql_type
         elsif column.attribute.attribute_type.to_s == 'text'
           if column.attribute.length.nil?
-            return "[VARCHAR](MAX)"
+            return '[VARCHAR](MAX)'
           else
             return "[VARCHAR](#{column.attribute.length})"
           end
         elsif column.attribute.enumeration?
-          column.attribute.enumeration.textual_values? ? "VARCHAR(#{column.attribute.length})" : "INT"
+          column.attribute.enumeration.textual_values? ? "VARCHAR(#{column.attribute.length})" : 'INT'
         else
           return quote(column.attribute.characteristic_type.sql.mssql.sql_type)
         end
@@ -130,7 +132,7 @@ module Domgen
       end
 
       def immuter_guard(entity, immutable_attributes)
-        immutable_attributes.collect { |a| "UPDATE(#{a.sql.quoted_column_name})" }.join(" OR ")
+        immutable_attributes.collect { |a| "UPDATE(#{a.sql.quoted_column_name})" }.join(' OR ')
       end
 
       def immuter_sql(entity, immutable_attributes)
@@ -190,7 +192,7 @@ module Domgen
     #{entity.data_module.repository.sql.emit_error("Failed to pass validation check #{validation.name}")}
     RETURN
   END
-#{validation.guard.nil? ? '' : "END" }
+#{validation.guard.nil? ? '' : 'END' }
 SQL
           end
         end

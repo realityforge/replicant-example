@@ -19,7 +19,7 @@ module Domgen
 
       def initialize(syncrecord_repository, key, options = {}, &block)
         @key = key
-        raise "Supplied key for datasource has non alphanumeric and non underscore characters. key = '#{key}'" unless key.to_s.gsub(/[^0-9A-Za-z_]/,'') == key.to_s
+        raise "Supplied key for datasource has non alphanumeric and non underscore characters. key = '#{key}'" unless key.to_s.gsub(/[^0-9A-Za-z_]/, '') == key.to_s
         syncrecord_repository.send(:register_data_source, self)
         super(syncrecord_repository, options, &block)
       end
@@ -42,7 +42,7 @@ module Domgen
       java_artifact :sync_record_locks, :service, :server, :syncrecord, '#{repository.name}SyncRecordLocks'
       java_artifact :control_rest_service, :rest, :server, :syncrecord, '#{repository.name}SyncControlRestService'
       java_artifact :test_module, :test, :server, :syncrecord, '#{repository.name}SyncRecordTestModule', :sub_package => 'util'
-      java_artifact :status_integration_test, :rest, :server, :syncrecord, '#{repository.name}SyncRecordStatusTest'
+      java_artifact :status_integration_test, :rest, :integration, :syncrecord, '#{repository.name}SyncRecordStatusTest'
 
       attr_writer :short_test_code
 
@@ -60,7 +60,7 @@ module Domgen
 
       def data_source_by_name(key)
         data_source = data_source_map[key.to_s]
-        Domgen.error("Unable to locate feature flag #{key}") unless data_source
+        Domgen.error("Unable to locate data source #{key}") unless data_source
         data_source
       end
 
@@ -77,28 +77,49 @@ module Domgen
       end
 
       def sync_methods
-        repository.data_modules.select{|d|d.syncrecord?}.collect do |data_module|
-          data_module.services.select{|s|s.syncrecord?}.collect do |service|
+        repository.data_modules.select { |d| d.syncrecord? }.collect do |data_module|
+          data_module.services.select { |s| s.syncrecord? }.collect do |service|
             service.syncrecord.sync_methods
           end
         end.flatten
       end
 
+      attr_writer :keycloak_client
+
+      def keycloak_client
+        @keycloak_client || (repository.application? && !repository.application.user_experience? ? repository.keycloak.default_client.key : :api)
+      end
+
       def pre_complete
         if repository.jaxrs?
           repository.jaxrs.extensions << 'iris.syncrecord.server.rest.SyncStatusService'
-          if repository.syncrecord.sync_methods?
+          if repository.syncrecord.sync_methods? || (repository.sync? && !repository.sync.standalone?)
             repository.jaxrs.extensions << repository.syncrecord.qualified_control_rest_service_name
           end
         end
-
-        if repository.ejb?
-          if repository.syncrecord.sync_methods?
-            repository.ejb.extra_test_modules << repository.syncrecord.qualified_test_module_name
-          end
+        if repository.keycloak?
+          client =
+            repository.keycloak.client_by_key?(self.keycloak_client) ?
+              repository.keycloak.client_by_key(self.keycloak_client) :
+              repository.keycloak.client(self.keycloak_client)
+          client.protected_url_patterns << "/#{repository.jaxrs? ? repository.jaxrs.path : 'api'}/sync/*"
         end
 
-        repository.jpa.application_artifact_fragments << "iris.syncrecord#{repository.pgsql? ? '.pg': ''}:sync-record-server" if repository.jpa?
+        if repository.jpa?
+          repository.jpa.application_artifact_fragments << "iris.syncrecord#{repository.pgsql? ? '.pg' : ''}:sync-record-server"
+          repository.jpa.add_test_factory(short_test_code, 'iris.syncrecord.server.test.util.SyncRecordFactory')
+        end
+      end
+
+      def pre_verify
+        if repository.ejb?
+          if repository.syncrecord.sync_methods?
+            repository.ejb.add_test_module(self.test_module_name, self.qualified_test_module_name)
+          end
+          repository.ejb.add_flushable_test_module('SyncRecordServicesModule', 'iris.syncrecord.server.test.util.SyncRecordServicesModule')
+          repository.jpa.add_test_module('SyncRecordPersistenceTestModule', 'iris.syncrecord.server.test.util.SyncRecordPersistenceTestModule')
+          repository.jpa.add_test_module('SyncRecordRepositoryModule', 'iris.syncrecord.server.test.util.SyncRecordRepositoryModule')
+        end
       end
 
       protected
@@ -109,7 +130,7 @@ module Domgen
       end
 
       def data_source_map
-        @data_sources ||= Domgen::OrderedHash.new
+        @data_sources ||= Reality::OrderedHash.new
       end
     end
 
@@ -127,7 +148,7 @@ module Domgen
       end
 
       def sync_methods
-        service.methods.select{|m|m.syncrecord? && m.syncrecord.sync?}
+        service.methods.select { |m| m.syncrecord? && m.syncrecord.sync? }
       end
 
       def multi_sync?
@@ -158,7 +179,7 @@ module Domgen
       end
 
       def lock_name
-        @lock_name || method.qualified_name.to_s.gsub('#','.')
+        @lock_name || method.qualified_name.to_s.gsub('#', '.')
       end
 
       def data_source_is_parameter?
@@ -168,7 +189,7 @@ module Domgen
       def data_source
         raise "Attempted to access data_source on #{method.qualified_name} when method is not a sync method" unless sync?
         raise "Attempted to access data_source on #{method.qualified_name} when data_source is specified by parameter" if data_source_is_parameter?
-        @data_source ||= data_source_by_name(method.qualified_name.to_s.gsub('#','.'))
+        @data_source ||= data_source_by_name(method.qualified_name.to_s.gsub('#', '.'))
       end
 
       def data_source=(data_source)
@@ -178,7 +199,7 @@ module Domgen
 
       def feature_flag
         raise "Attempted to access feature_flag on #{method.qualified_name} when method is not a sync method" unless sync?
-        @feature_flag ||= feature_flag_by_name(method.qualified_name.to_s.gsub('#','.'))
+        @feature_flag ||= feature_flag_by_name(method.qualified_name.to_s.gsub('#', '.'))
       end
 
       def feature_flag=(feature_flag)
@@ -214,14 +235,16 @@ module Domgen
 
       def data_source_by_name(data_source)
         syncrecord = method.data_module.repository.syncrecord
-        name = data_source.to_s.gsub(/[#\.]/,'_')
+        name = data_source.to_s.gsub(/[#\.]/, '_')
         syncrecord.data_source_by_name?(name) ? syncrecord.data_source_by_name(name) : syncrecord.data_source(name, :key_value => data_source)
       end
 
       def feature_flag_by_name(feature_flag)
         appconfig = method.data_module.repository.appconfig
-        name = feature_flag.to_s.gsub(/[#\.]/,'_')
-        appconfig.feature_flag_by_name?(name) ? appconfig.feature_flag_by_name(name) : appconfig.feature_flag(name, :key_value => feature_flag)
+        name = feature_flag.to_s.gsub(/[#\.]/, '_')
+        feature_flag = appconfig.system_setting_by_name?(name) ? appconfig.system_setting_by_name(name) : appconfig.feature_flag(name, :key_value => feature_flag)
+        Domgen.error("Feature flag '#{feature_flag}' referenced by #{method.qualified_name} is not a feature flag but a system setting") unless feature_flag.feature_flag?
+        feature_flag
       end
     end
   end

@@ -14,7 +14,7 @@
 
 module Domgen
 
-  class CharacteristicType < BaseElement
+  class CharacteristicType < Reality::BaseElement
     attr_reader :name
 
     def initialize(name, options, &block)
@@ -73,7 +73,7 @@ module Domgen
 
       def config_elements_map
         unless @config_elements
-          @config_elements = Domgen::OrderedHash.new
+          @config_elements = Reality::OrderedHash.new
           @config_elements[''] = Domgen::CharacteristicType
         end
         @config_elements
@@ -86,7 +86,7 @@ module Domgen
       def config_element(namespace, &block)
         unless config_element?(namespace)
           config_elements_map[namespace.to_s] =
-              ::Struct.new(Domgen::Naming.pascal_case(namespace.to_s.gsub('.', '_')), :root) do
+              ::Struct.new(Reality::Naming.pascal_case(namespace.to_s.gsub('.', '_')), :root) do
                 def options=(options)
                   options.each_pair do |k, v|
                     keys = k.to_s.split('.')
@@ -137,7 +137,7 @@ module Domgen
       end
 
       def characteristic_type_map
-        @characteristic_types ||= Domgen::OrderedHash.new
+        @characteristic_types ||= Reality::OrderedHash.new
       end
     end
   end

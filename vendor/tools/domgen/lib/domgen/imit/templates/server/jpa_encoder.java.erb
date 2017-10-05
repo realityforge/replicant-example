@@ -7,7 +7,7 @@ package <%= to_package(repository.imit.qualified_jpa_encoder_name) %>;
 @javax.annotation.Generated( "Domgen" )
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
 @java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc" } )
-public class <%= repository.imit.jpa_encoder_name %>
+public final class <%= repository.imit.jpa_encoder_name %>
 {
   private <%= repository.imit.jpa_encoder_name %>()
   {
@@ -34,7 +34,7 @@ repository.data_modules.select { |data_module| data_module.imit? }.each do |data
     {
       final java.util.HashMap<String, java.io.Serializable> attributeValues = new java.util.HashMap<>();
 <% entity.attributes.select{|a| a.imit?}.each do |attribute|
-    a = attribute.reference? ? attribute.referenced_entity.primary_key : attribute
+    a = attribute.reference? ? attribute.referenced_entity.primary_key : attribute.remote_reference? ? attribute.referenced_remote_entity.primary_key : attribute
     type_suffix = 'Object'
     type_suffix = 'Int' if a.integer? && !attribute.nullable?
     type_suffix = 'Long' if a.long? && !attribute.nullable?
@@ -82,9 +82,9 @@ repository.data_modules.select { |data_module| data_module.imit? }.each do |data
 <% end -%>
       final org.realityforge.replicant.server.EntityMessage entityMessage =
         new org.realityforge.replicant.server.EntityMessage( $<%= entity.primary_key.name %>,
-                                                             <%= repository.imit.qualified_message_constants_name %>.<%= Domgen::Naming.uppercase_constantize(entity.data_module.name.to_s) %>_<%= Domgen::Naming.uppercase_constantize(entity.name.to_s) %>,
+                                                             <%= repository.imit.qualified_message_constants_name %>.<%= Reality::Naming.uppercase_constantize(entity.data_module.name.to_s) %>_<%= Reality::Naming.uppercase_constantize(entity.name.to_s) %>,
                                                              0,
-                                                             new java.util.HashMap<String, java.io.Serializable>(),
+                                                             new java.util.HashMap<>(),
                                                              attributeValues,
                                                              null );
       changeSet.merge( new org.realityforge.replicant.server.Change( entityMessage, graph.ordinal(), null != subChannelColumn ? (java.io.Serializable) resultSet.getObject( subChannelColumn ) : null ) );
@@ -101,7 +101,7 @@ end
 
   public static java.util.Map<String, java.io.Serializable> encode<%= entity.name %>( final <%= entity.jpa.qualified_name %> entity )
   {
-    final java.util.Map<String, java.io.Serializable> attributes = new java.util.HashMap<String, java.io.Serializable>();
+    final java.util.Map<String, java.io.Serializable> attributes = new java.util.HashMap<>();
     encode<%= entity.name %>( entity, attributes );
     return attributes;
   }
@@ -113,8 +113,8 @@ end
    other = entity.data_module.entity_by_name(entity.extends) -%>
     encode<%= other.name %>( entity, attributes );
 <% end -%>
-<% entity.declared_attributes.select{|attribute| attribute.imit? && attribute.imit.client_side? && !attribute.abstract? }.each do |attribute|
-    value_suffix = (attribute.reference? ? ".#{getter_for(attribute.referenced_entity.primary_key)}": "")
+<% entity.declared_attributes.select{|attribute| attribute.imit? && attribute.imit.client_side? && !attribute.abstract?  && !attribute.remote_reference? }.each do |attribute|
+    value_suffix = (attribute.reference? ? ".#{getter_for(attribute.referenced_entity.primary_key)}": attribute.remote_reference? ? ".#{getter_for(attribute.referenced_remote_entity.primary_key)}" : '')
     value_converter =
         if attribute.imit.transport_characteristic_type_key == :datetime
           "( ( null == $#{attribute.name} ) ? null : $#{attribute.name}.getTime() )"
@@ -136,6 +136,9 @@ end
 -%>
     final <%= nullable_annotate(attribute, attribute.jpa.java_type, false) %> $<%= attribute.name %> = entity.<%= getter_for(attribute) %>;
     attributes.put( "<%= attribute.name %>", <%= "#{value_converter}" %> );
+<% end -%>
+<% entity.declared_attributes.select{|attribute| attribute.imit? && attribute.imit.client_side? && !attribute.abstract? && attribute.remote_reference? }.each do |attribute| -%>
+    attributes.put( "<%= attribute.name %>", entity.get<%= attribute.referencing_link_name %>() );
 <% end -%>
   }
 <% end -%>

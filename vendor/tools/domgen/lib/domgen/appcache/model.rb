@@ -19,6 +19,16 @@ module Domgen
       include Domgen::Java::JavaClientServerApplication
 
       java_artifact :manifest_servlet, :servlet, :server, :appcache, '#{repository.name}ManifestServlet'
+
+      def property_providers
+        @property_providers ||= %w(org.realityforge.gwt.appcache.server.propertyprovider.UserAgentPropertyProvider)
+      end
+
+      def pre_verify
+        if repository.application? && !repository.application.user_experience?
+          raise 'Appcache facet enabled but repository.application.user_experience? = false'
+        end
+      end
     end
   end
 end

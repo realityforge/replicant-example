@@ -12,8 +12,8 @@
 # limitations under the License.
 #
 
-module Domgen
-  class Build
+module Domgen #nodoc
+  class Build #nodoc
     def self.define_load_task(filename = nil, &block)
       base_directory = File.dirname(Buildr.application.buildfile.to_s)
       candidate_file = File.expand_path("#{base_directory}/architecture.rb")
@@ -82,103 +82,11 @@ module Domgen
       @target_dir = target_dir
       yield self if block_given?
       define
-      load_templates(generator_keys)
-      if buildr_project.nil?
-        task('clean') do
-          rm_rf target_dir
-        end
-      else
-        buildr_project.clean { rm_rf target_dir }
-        file(File.expand_path(target_dir) => [task_name])
-
-        # Is there java source generated in project?
-        if templates.any?{|template| template.output_path =~ /^main\/java\/.*/}
-          main_java_dir = "#{target_dir}/main/java"
-          file(main_java_dir => [task_name]) do
-            mkdir_p main_java_dir
-          end
-          buildr_project.compile.using :javac
-          buildr_project.compile.from main_java_dir
-          # Need to force this as it may have already been cached and thus will not recalculate
-          buildr_project.iml.main_generated_source_directories << main_java_dir if buildr_project.iml?
-        end
-
-        # Is there resources generated in project?
-        if templates.any?{|template| template.output_path =~ /^main\/resources\/.*/}
-          main_resources_dir = "#{target_dir}/main/resources"
-          file(main_resources_dir => [task_name]) do
-            mkdir_p main_resources_dir
-          end
-          buildr_project.resources.enhance([task_name])
-          buildr_project.resources.filter.into buildr_project.path_to(:target, :main, :resources) unless buildr_project.resources.target
-          buildr_project.resources do |t|
-            t.enhance do
-              if File.exist?(main_resources_dir)
-                FileUtils.mkdir_p buildr_project.resources.target.to_s
-                FileUtils.cp_r "#{main_resources_dir}/.", buildr_project.resources.target.to_s
-              end
-            end
-          end
-          buildr_project.iml.main_generated_resource_directories << main_resources_dir if buildr_project.iml?
-        end
-
-        # Is there assets generated in project?
-        if templates.any? { |template| template.output_path =~ /^main\/webapp\/.*/ }
-          webapp_dir = File.expand_path("#{target_dir}/main/webapp")
-          buildr_project.assets.enhance([task_name])
-          buildr_project.assets.paths << file(webapp_dir => [task_name]) do
-            mkdir_p webapp_dir
-          end
-        end
-
-        # Is there test java source generated in project?
-        if templates.any? { |template| template.output_path =~ /^test\/java\/.*/ }
-          test_java_dir = "#{target_dir}/test/java"
-          file(test_java_dir => [task_name]) do
-            mkdir_p test_java_dir
-          end
-          buildr_project.test.compile.from test_java_dir
-          # Need to force this as it may have already been cached and thus will not recalculate
-          buildr_project.iml.test_generated_source_directories << test_java_dir if buildr_project.iml?
-        end
-
-        # Is there resources generated in project?
-        if templates.any? { |template| template.output_path =~ /^test\/resources\/.*/ }
-          test_resources_dir = "#{target_dir}/test/resources"
-          file(test_resources_dir => [task_name]) do
-            mkdir_p test_resources_dir
-          end
-          buildr_project.test.resources.enhance([task_name])
-          buildr_project.test.resources.filter.into buildr_project.path_to(:target, :test, :resources) unless buildr_project.test.resources.target
-          buildr_project.test.resources do |t|
-            t.enhance do
-              if File.exist?(test_resources_dir)
-                FileUtils.mkdir_p buildr_project.test.resources.target.to_s
-                FileUtils.cp_r "#{test_resources_dir}/.", buildr_project.test.resources.target.to_s
-              end
-            end
-          end
-          buildr_project.iml.test_generated_resource_directories << test_resources_dir if buildr_project.iml?
-        end
-      end
-    end
-
-    def templates
-      @template_map.values
+      @templates = Domgen.generator.load_templates_from_template_sets(generator_keys)
+      Reality::Generators::Buildr.configure_buildr_project(buildr_project, task_name, @templates, target_dir)
     end
 
     private
-
-    def load_templates(names, processed_template_sets = [])
-      names.select { |name| !processed_template_sets.include?(name) }.each do |name|
-        template_set = Domgen.template_set_by_name(name)
-        processed_template_sets << name
-        load_templates(template_set.required_template_sets, processed_template_sets)
-        template_set.templates.each do |template|
-          @template_map[template.name] = template
-        end
-      end
-    end
 
     def verbose?
       !!@verbose
@@ -192,52 +100,36 @@ module Domgen
       desc self.description || "Generates the #{key} artifacts."
       namespace self.namespace_key do
         t = task self.key => ["#{self.namespace_key}:load"] do
-          old_level = Domgen::Logger.level
           begin
-            unprocessed_files = FileList["#{self.target_dir}/**/{*.*,*}"].uniq
-
             repository = nil
             if self.repository_key
               repository = Domgen.repository_by_name(self.repository_key)
-              if Domgen.repositorys.size == 1
+              if Domgen.repositories.size == 1
                 Domgen.warn("Domgen task #{full_task_name} specifies a repository_key parameter but it can be be derived as there is only a single repository. The parameter should be removed.")
               end
             elsif self.repository_key.nil?
-              repositorys = Domgen.repositorys
-              if repositorys.size == 1
-                repository = repositorys[0]
+              repositories = Domgen.repositories
+              if repositories.size == 1
+                repository = repositories[0]
               else
-                Domgen.error("Domgen task #{full_task_name} does not specify a repository_key parameter and it can not be derived. Candidate repositories include #{repositorys.collect{|r|r.name}.inspect}")
+                Domgen.error("Domgen task #{full_task_name} does not specify a repository_key parameter and it can not be derived. Candidate repositories include #{repositories.collect { |r| r.name }.inspect}")
               end
             end
 
-            Domgen::Logger.level = verbose? ? ::Logger::DEBUG : ::Logger::WARN
-            Logger.info "Generator started: Generating #{self.generator_keys.inspect}"
-            Domgen::Generator.generate(repository,
-                                       self.target_dir,
-                                       self.templates,
-                                       self.filter,
-                                       unprocessed_files)
-            unprocessed_files.sort.reverse.each do |file|
-              if File.directory?(file)
-                if (Dir.entries(file) - ['.', '..']).empty?
-                  Logger.debug "Removing #{file} as no longer generated by domgen"
-                  FileUtils.rmdir file
-                end
-              else
-                Logger.debug "Removing #{file} as no longer generated by domgen"
-                FileUtils.rm_f file
-              end
+            Reality::Logging.set_levels(verbose? ? ::Logger::DEBUG : ::Logger::WARN,
+                                        Domgen::Logger,
+                                        Reality::Generators::Logger,
+                                        Reality::Facets::Logger) do
+              Domgen.info "Generator started: Generating #{self.generator_keys.inspect}"
+              Domgen.generator.generate(:repository, repository, self.target_dir, @templates, self.filter)
             end
-          rescue Domgen::Generator::GeneratorError => e
+          rescue Reality::Generators::GeneratorError => e
             puts e.message
             if e.cause
               puts e.cause.class.name.to_s
               puts e.cause.backtrace.join("\n")
             end
             raise e.message
-          ensure
-            Domgen::Logger.level = old_level
           end
         end
         @task_name = t.name
@@ -274,19 +166,21 @@ module Domgen
 
         desc self.description
         task :load => [:preload, self.filename] do
-          old_level = Domgen::Logger.level
           begin
-            Domgen::Logger.level = verbose? ? ::Logger::DEBUG : ::Logger::WARN
             Domgen.current_filename = self.filename
-            require self.filename
+            Reality::Logging.set_levels(verbose? ? ::Logger::DEBUG : ::Logger::WARN,
+                                        Domgen::Logger,
+                                        Reality::Generators::Logger,
+                                        Reality::Facets::Logger) do
+              require self.filename
+            end
           rescue Exception => e
-            print "An error occurred loading respository\n"
+            print "An error occurred loading repository\n"
             puts $!
             puts $@
             raise e
           ensure
             Domgen.current_filename = nil
-            Domgen::Logger.level = old_level
           end
           task("#{self.namespace_key}:postload").invoke
         end

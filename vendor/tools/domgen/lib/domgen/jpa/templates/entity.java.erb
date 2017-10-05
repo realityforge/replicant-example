@@ -1,23 +1,24 @@
 /* DO NOT EDIT: File is auto-generated */
 package <%= to_package(entity.jpa.qualified_name) %>;
 
-<%= description_javadoc_for(entity, "") %>@javax.annotation.Generated( "Domgen" )
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
-@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.UnusedPrivateField" } )
+@javax.annotation.Generated( "Domgen" )
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings( { "EI_EXPOSE_REP", "EI_EXPOSE_REP2", "BC_VACUOUS_INSTANCEOF" } )
+@java.lang.SuppressWarnings( { "UnusedDeclaration", "JavaDoc", "PMD.UnusedPrivateField", "deprecated" } )
 <%
-   jpa_queries = entity.queries.select {|q| !q.jpa.native? }
+   jpa_queries = entity.queries.select {|q| q.jpa? && !q.jpa.native? }
    if !jpa_queries.empty? %>@javax.persistence.NamedQueries( value = {
 <%= jpa_queries.collect do |q|
-  "  @javax.persistence.NamedQuery( name = #{entity.jpa.name}.#{Domgen::Naming.uppercase_constantize(q.name)}, query = \"#{q.jpa.query_string.gsub('"',"\\\"")}\", hints = {#{q.jpa.actual_hints.collect{|k,v| "@javax.persistence.QueryHint(name = \"#{k}\", value = \"#{v}\")"}.join(", ")}} )"
+  "  @javax.persistence.NamedQuery( name = #{entity.jpa.name}.#{Reality::Naming.uppercase_constantize(q.name)}, query = \"#{q.jpa.query_string.gsub('"',"\\\"")}\", hints = {#{q.jpa.actual_hints.collect{|k,v| "@javax.persistence.QueryHint(name = \"#{k}\", value = \"#{v}\")"}.join(', ')}} )"
   end.join(",\n") %>
 } )<% end %>
 <%
-   native_queries = entity.queries.select {|q| q.jpa.native? }
+   native_queries = entity.queries.select {|q| q.jpa? && q.jpa.native? }
    if !native_queries.empty? %>@javax.persistence.NamedNativeQueries( value = {
 <%= native_queries.collect { |q|
   result = ''
   result = ", resultClass = #{entity.jpa.name}.class" if q.jpa.native? && :select == q.query_type && q.result_entity?
-  "  @javax.persistence.NamedNativeQuery( name = #{entity.jpa.name}.#{Domgen::Naming.uppercase_constantize(q.name)}, query = \"#{q.jpa.query_string.gsub('"',"\\\"")}\"#{result}, hints = {#{q.jpa.actual_hints.collect{|k,v| "@javax.persistence.QueryHint(name = \"#{k}\", value = \"#{v}\")"}.join(", ")}} )"
+  result = ", resultSetMapping = \"#{q.qualified_name}\"" if q.jpa.native? && :select == q.query_type && q.result_struct?
+  "  @javax.persistence.NamedNativeQuery( name = #{entity.jpa.name}.#{Reality::Naming.uppercase_constantize(q.name)}, query = \"#{q.jpa.query_string.gsub('"',"\\\"")}\"#{result}, hints = {#{q.jpa.actual_hints.collect{|k,v| "@javax.persistence.QueryHint(name = \"#{k}\", value = \"#{v}\")"}.join(', ')}} )"
   }.join(",\n")
         %>
 } )<% end -%>
@@ -36,7 +37,7 @@ package <%= to_package(entity.jpa.qualified_name) %>;
   }.join(",\n                          ")
 %>},
                           indexes = {<%= entity.sql.indexes.collect{|index|
-        "@javax.persistence.Index(name =\"#{index.index_name}\", columnList = \"#{index.attribute_names.collect{|a| "#{entity.attribute_by_name(a).sql.column_name} ASC"}.join(", ")}\", unique = #{index.unique?} /* cluster = #{index.cluster?}, gist = #{index.gist?}, filter = \"#{index.filter}\", includeColumnList = \"#{index.include_attribute_names.collect{|a| "#{entity.attribute_by_name(a).sql.column_name} ASC"}.join(", ")}\",  */)"
+        "@javax.persistence.Index(name =\"#{index.index_name}\", columnList = \"#{index.attribute_names.collect{|a| "#{entity.attribute_by_name(a).sql.column_name} ASC"}.join(', ')}\", unique = #{index.unique?} /* cluster = #{index.cluster?}, gist = #{index.gist?}, filter = \"#{index.filter}\", includeColumnList = \"#{index.include_attribute_names.collect{|a| "#{ entity.attribute_by_name( a).sql.column_name} ASC"}.join(', ')}\",  */)"
         }.join(",\n                   ")
 %>})
 <% else -%>
@@ -46,9 +47,9 @@ package <%= to_package(entity.jpa.qualified_name) %>;
 @org.eclipse.persistence.annotations.ReadOnly
 <% end -%>
 <% if entity.jpa.entity_listeners.size > 0 %>
-@javax.persistence.EntityListeners( { <%= entity.jpa.entity_listeners.collect{|l| "#{l}.class"}.join(", ") %> } )
+@javax.persistence.EntityListeners( { <%= entity.jpa.entity_listeners.collect{|l| "#{l}.class"}.join( ', ' ) %> } )
 <% end -%>
-@javax.persistence.Cacheable( <%= entity.jpa.cacheable? ? "true" : "false" %> )
+@javax.persistence.Cacheable( <%= entity.jpa.cacheable? ? 'true' : 'false' %> )
 <% if entity.data_module.repository.ee.version != '6' %>@javax.enterprise.inject.Vetoed
 <% end -%>
 <% entity.xor_constraints.select {|c| jpa_validation_in_jpa?(c) }.each do |c| %>
@@ -63,35 +64,46 @@ package <%= to_package(entity.jpa.qualified_name) %>;
 @<%= entity.jpa.name %>.<%= validation_name(c.name) %><% end -%>
 <% entity.cycle_constraints.select {|c| jpa_validation_in_jpa?(c) }.each do |c| %>
 @<%= entity.jpa.name %>.<%= validation_name(c.name) %><% end %>
-public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
+public <%= entity.abstract? ? 'abstract ' : '' %>class <%= entity.jpa.name %>
 <%= entity.extends ?
   "    extends #{entity.data_module.entity_by_name(entity.extends).jpa.qualified_name}\n" :
-  "    implements java.io.Serializable" %>
+  '' -%>
+<%= (!entity.extends || entity.jpa.interfaces.size > 0) ? '  implements ' : '' -%><%= ((entity.extends ? [] : %w(java.io.Serializable)) + entity.jpa.interfaces).join(", ") %>
 {
 <% entity.declared_attributes.select { |a| !a.abstract? && a.jpa? && a.jpa.persistent? && a.text? && a.has_non_max_length? }.each do |attribute| -%>
-  public static final int <%= Domgen::Naming.uppercase_constantize(attribute.name) -%>_MAX_SIZE = <%= attribute.length -%>;
+  public static final int <%= Reality::Naming.uppercase_constantize(attribute.name) -%>_MAX_SIZE = <%= attribute.length -%>;
 <% end -%>
-
   private static final long serialVersionUID = 1;
 
-<% if !entity.extends -%>
+<% if entity.declared_attributes.any? { |a| a.remote_reference? } -%>
   @javax.persistence.Transient
-  private boolean _loaded;
-  @javax.persistence.Transient
-  private boolean _removed;
+  private transient org.realityforge.replicant.client.EntitySystem _$entitySystem;
 <% end -%>
-<% entity.queries.each do |query| %><%= description_javadoc_for(query) %>  public static final String <%= Domgen::Naming.uppercase_constantize(query.name) %> = "<%= query.qualified_name %>";
+<% unless entity.extends -%>
+  @javax.persistence.Transient
+  private transient boolean _loaded;
+  @javax.persistence.Transient
+  private transient boolean _removed;
+<% end -%>
+<% entity.queries.select{|q| q.jpa?}.each do |query| %>  public static final String <%= Reality::Naming.uppercase_constantize(query.name) %> = "<%= query.qualified_name %>";
 <%
   end
-   entity.declared_attributes.select { |a| !a.abstract? && a.jpa? && a.jpa.persistent? }.each do |attribute| %>
-<%= j_jpa_field_attributes(attribute) -%>  private <%= attribute.jpa.java_type %> <%= attribute.jpa.field_name %>;
+  entity.declared_attributes.select { |a| !a.abstract? && a.jpa? && a.jpa.persistent? }.each do |attribute|
+    type = attribute.remote_reference? ? attribute.referenced_remote_entity.primary_key.jpa.non_primitive_java_type : attribute.jpa.java_type
+    field_name = attribute.remote_reference? ? attribute.jpa.field_name(:transport) : attribute.jpa.field_name
+%>
+<%= j_jpa_field_attributes(attribute) -%>  private <%= type %> <%= field_name %>;
 <% if !attribute.immutable? && entity.jpa.track_changes? -%>
   @javax.persistence.Transient
-  private <%= attribute.jpa.java_type %> <%= attribute.jpa.field_name %>Original;
+  private transient <%= type %> <%= field_name %>Original;
 <% if attribute.jpa.fetch_type == :lazy -%>
   @javax.persistence.Transient
-  private boolean <%= attribute.jpa.field_name %>Recorded;
+  private transient boolean <%= field_name %>Recorded;
 <% end -%>
+<% end -%>
+<% if attribute.remote_reference? -%>
+  @javax.persistence.Transient
+  private transient <%= attribute.jpa.java_type %> <%= attribute.jpa.field_name %>;
 <% end -%>
 <% end %>
 <% entity.referencing_attributes.
@@ -103,13 +115,13 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
 <%= j_equals_method(entity) %>
 <%= j_to_string_methods(entity) -%>
 
-<% if !entity.extends -%>
+<% unless entity.extends -%>
   protected final boolean loaded()
   {
     return _loaded;
   }
 
-  protected final boolean removed()
+  public final boolean removed()
   {
     return _removed;
   }
@@ -132,8 +144,10 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
 <% else -%>
     _loaded = true;
 <% end -%>
-<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :eager }.each do |attribute| -%>
-    <%= attribute.jpa.field_name %>Original = <%= attribute.jpa.field_name %>;
+<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :eager }.each do |attribute|
+  field_name = attribute.remote_reference? ? attribute.jpa.field_name(:transport) : attribute.jpa.field_name
+  -%>
+    <%= field_name %>Original = <%= field_name %>;
 <% end -%>
   }
 
@@ -144,22 +158,26 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
 <% if entity.extends -%>
       super.unmodified() &&
 <% end -%>
-<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :eager }.each do |attribute| -%>
+<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :eager }.each do |attribute|
+  field_name = attribute.remote_reference? ? attribute.jpa.field_name(:transport) : attribute.jpa.field_name
+  -%>
 <% if attribute.nullable? -%>
-      ((<%= attribute.jpa.field_name %>Original == null &&  <%= attribute.jpa.field_name %> == null) || (<%= attribute.jpa.field_name %>Original != null && <%= attribute.jpa.field_name %>Original.equals( <%= attribute.jpa.field_name %> ) ) ) &&
+      ((<%= field_name %>Original == null &&  <%= field_name %> == null) || (<%= field_name %>Original != null && <%= field_name %>Original.equals( <%= field_name %> ) ) ) &&
 <% elsif attribute.text? || attribute.date? || attribute.datetime? || attribute.geometry? -%>
-      <%= attribute.jpa.field_name %>Original.equals( <%= attribute.jpa.field_name %> ) &&
+      <%= field_name %>Original.equals( <%= field_name %> ) &&
 <% else -%>
-      <%= attribute.jpa.field_name %>Original == <%= attribute.jpa.field_name %> &&
+      <%= field_name %>Original == <%= field_name %> &&
 <% end -%>
 <% end -%>
-<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :lazy }.each do |attribute| -%>
+<% entity.declared_attributes.select { |a| !a.immutable? && !a.abstract? && a.jpa? && a.jpa.persistent? && a.jpa.fetch_type == :lazy }.each do |attribute|
+  field_name = attribute.remote_reference? ? attribute.jpa.field_name(:transport) : attribute.jpa.field_name
+-%>
 <% if attribute.nullable? -%>
-      (!<%= attribute.jpa.field_name %>Recorded || ((<%= attribute.jpa.field_name %>Original == null &&  <%= attribute.jpa.field_name %> == null) || (<%= attribute.jpa.field_name %>Original != null && <%= attribute.jpa.field_name %>Original.equals( <%= attribute.jpa.field_name %> ) ) ) ) &&
+      (!<%= field_name %>Recorded || ((<%= field_name %>Original == null &&  <%= field_name %> == null) || (<%= field_name %>Original != null && <%= field_name %>Original.equals( <%= field_name %> ) ) ) ) &&
 <% elsif attribute.text? || attribute.date? || attribute.datetime? || attribute.geometry? -%>
-      (!<%= attribute.jpa.field_name %>Recorded || <%= attribute.jpa.field_name %>Original.equals( <%= attribute.jpa.field_name %> ) ) &&
+      (!<%= field_name %>Recorded || <%= field_name %>Original.equals( <%= field_name %> ) ) &&
 <% else -%>
-      (!<%= attribute.jpa.field_name %>Recorded || <%= attribute.jpa.field_name %>Original == <%= attribute.jpa.field_name %> ) &&
+      (!<%= field_name %>Recorded || <%= field_name %>Original == <%= field_name %> ) &&
 <% end -%>
 <% end -%>
       true;
@@ -185,15 +203,36 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
   if attributes_to_delink_in_remove.size > 0
 %>
 
+  <% if entity.sync? && entity.sync.transaction_time? -%>
+  /**
+   * This method should not be called directly. It is called from the constructor of #{attribute.entity.jpa.qualified_name}.
+   * @deprecated
+   */
+  @java.lang.Deprecated
+  public<% else -%>private<% end -%> void delinkDuringPreRemove()
+  {
+<% attributes_to_delink_in_remove.each do |attribute| -%>
+    if ( null != <%= attribute.jpa.field_name %> )
+    {
+      <%= attribute.jpa.field_name %>.remove<%= attribute.inverse.name %>( this );
+    }
+<% end -%>
+  }
+
   @javax.persistence.PreRemove
   protected void preRemove()
   {
-<% attributes_to_delink_in_remove.each do |attribute| -%>
-      if ( null != <%= attribute.jpa.field_name %> )
-      {
-        <%= attribute.jpa.field_name %>.remove<%= attribute.inverse.name %>( this );
-      }
-<% end -%>
+    delinkDuringPreRemove();
+  }
+<% elsif entity.sync? && entity.sync.transaction_time? -%>
+
+  /**
+   * This method should not be called directly. It is called from the constructor of #{attribute.entity.jpa.qualified_name}.
+   * @deprecated
+   */
+  @java.lang.Deprecated
+  public void delinkDuringPreRemove()
+  {
   }
 <% end -%>
 <%
@@ -201,7 +240,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
         attributes = c.attribute_names.collect {|attribute_name| entity.attribute_by_name(attribute_name)}
 -%>
 <%= validation_prefix(c.name, entity) %>
-        if( !(( <%= attributes.collect {|a| "object.#{getter_for(a)} == null"}.join(" && ") %> ) || (<%= attributes.collect {|a| "object.#{getter_for(a)} != null"}.join(" && ") %>) ) )
+        if( !(( <%= attributes.collect {|a| "object.#{getter_for(a)} == null"}.join(' && ') %> ) || (<%= attributes.collect {|a| "object.#{getter_for(a)} != null"}.join(' && ') %>) ) )
         {
           return false;
         }
@@ -227,7 +266,7 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
         attributes = c.attribute_names.collect {|attribute_name| entity.attribute_by_name(attribute_name)}
 -%>
 <%= validation_prefix(c.name, entity) %>
-        if( (<% attributes.each do |selected| -%>(<%= "null != object.#{getter_for(selected)}" %> && (<%= attributes.collect {|a| a == selected ? nil : "null != object.#{getter_for(a)}"}.compact.join(" || ") %>)) || <% end -%> false) )
+        if( (<% attributes.each do |selected| -%>(<%= "null != object.#{getter_for(selected)}" %> && (<%= attributes.collect {|a| a == selected ? nil : "null != object.#{getter_for(a)}"}.compact.join(' || ') %>)) || <% end -%> false) )
         {
           return false;
         }
@@ -295,10 +334,32 @@ public <%= entity.abstract? ? "abstract " : "" %>class <%= entity.jpa.name %>
         base_attribute = entity.attribute_by_name(c.attribute_name)
 -%>
 <%= validation_prefix(c.name, entity) %>
-        if( !(null == object.<%= getter_for(base_attribute) %> || (<%= dependent_attributes.collect {|a| "object.#{getter_for(a)} != null"}.join(" && ") %>) ) )
+        if( !(null == object.<%= getter_for(base_attribute) %> || (<%= dependent_attributes.collect {|a| "object.#{getter_for(a)} != null"}.join(' && ') %>) ) )
         {
           return false;
         }
 <%= validation_suffix() %>
 <% end -%>
+<% if  entity.declared_attributes.any? { |a| a.remote_reference? }-%>
+
+  @java.lang.SuppressWarnings( "unchecked" )
+  @javax.annotation.Nonnull
+  private org.realityforge.replicant.client.EntitySystem getEntitySystem()
+  {
+    if( null == _$entitySystem )
+    {
+      final javax.enterprise.inject.spi.BeanManager beanManager = javax.enterprise.inject.spi.CDI.current().getBeanManager();
+      final javax.enterprise.inject.spi.Bean<org.realityforge.replicant.client.EntitySystem> bean = (javax.enterprise.inject.spi.Bean<org.realityforge.replicant.client.EntitySystem>) beanManager.getBeans( org.realityforge.replicant.client.EntitySystem.class ).iterator().next();
+      final javax.enterprise.context.spi.CreationalContext<org.realityforge.replicant.client.EntitySystem> context = beanManager.createCreationalContext( bean );
+      _$entitySystem = (org.realityforge.replicant.client.EntitySystem) beanManager.getReference( bean, org.realityforge.replicant.client.EntitySystem.class, context );
+    }
+    return _$entitySystem;
+  }
+<% end -%>
+
+  @javax.annotation.Nonnull
+  public <%= entity.jpa.name %> self()
+  {
+    return this;
+  }
 }

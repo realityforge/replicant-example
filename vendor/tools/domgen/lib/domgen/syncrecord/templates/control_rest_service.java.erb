@@ -11,31 +11,46 @@ public class <%= repository.syncrecord.control_rest_service_name %>
 {
 <% repository.syncrecord.sync_methods.collect{|m| m.service}.uniq.each do |service| -%>
   @javax.inject.Inject
-  private <%= service.ejb.generate_boundary? ? service.ejb.qualified_boundary_interface_name : service.ejb.qualified_service_name %> _<%= Domgen::Naming.camelize(service.qualified_name.gsub('.','')) %>;
+  private <%= service.ejb.generate_boundary? ? service.ejb.qualified_boundary_interface_name : service.ejb.qualified_service_name %> _<%= Reality::Naming.camelize(service.qualified_name.gsub('.','')) %>;
 <% end -%>
+<% if repository.sync? && !repository.sync.standalone? && repository.sync.sync_out_of_master? -%>
+  @javax.inject.Inject
+  private <%= repository.data_module_by_name(repository.sync.master_data_module).service_by_name(:SynchronizationService).ejb.qualified_service_name %> $_masterToCoreSynchronizationService;
+<% end -%>
+
   @javax.ws.rs.GET
   public javax.json.JsonArray syncAll( @javax.ws.rs.QueryParam( "fields" ) @javax.ws.rs.DefaultValue( DEFAULT_FIELDS ) @javax.annotation.Nonnull final org.realityforge.rest.field_filter.FieldFilter filter )
     throws Exception
   {
     return javax.json.Json.createArrayBuilder().
 <% repository.syncrecord.sync_methods.each do |method| -%>
-      add( <%= Domgen::Naming.camelize(method.qualified_name.gsub(/[#\.]/,'')) %>( filter ) ).
+      add( <%= Reality::Naming.camelize(method.qualified_name.gsub(/[#\.]/,'')) %>( filter ) ).
 <% end -%>
       build();
   }
 <% repository.syncrecord.sync_methods.each do |method|
   datasource =
     method.parameters.empty? ?
-    "#{method.service.data_module.repository.syncrecord.qualified_datasources_name}.#{Domgen::Naming.uppercase_constantize(method.syncrecord.data_source.key)}" :
-    "#{Domgen::Naming.camelize(method.parameters[0].name)}"
+    "#{method.service.data_module.repository.syncrecord.qualified_datasources_name}.#{Reality::Naming.uppercase_constantize(method.syncrecord.data_source.key)}" :
+    "#{Reality::Naming.camelize(method.parameters[0].name)}"
 
 -%>
   @javax.ws.rs.GET
   @javax.ws.rs.Path( <%= datasource %> )
-  public javax.json.JsonObject <%= Domgen::Naming.camelize(method.qualified_name.gsub(/[#\.]/,'')) %>( @javax.ws.rs.QueryParam( "fields" ) @javax.ws.rs.DefaultValue( DEFAULT_FIELDS ) @javax.annotation.Nonnull final org.realityforge.rest.field_filter.FieldFilter filter )
+  public javax.json.JsonObject <%= Reality::Naming.camelize(method.qualified_name.gsub(/[#\.]/,'')) %>( @javax.ws.rs.QueryParam( "fields" ) @javax.ws.rs.DefaultValue( DEFAULT_FIELDS ) @javax.annotation.Nonnull final org.realityforge.rest.field_filter.FieldFilter filter )
     throws Exception
   {
-    return emitSynchronizationStatus( _<%= Domgen::Naming.camelize(method.service.qualified_name.gsub('.','')) %>.<%= Domgen::Naming.camelize(method.name) %>(), filter );
+    return emitSynchronizationStatus( _<%= Reality::Naming.camelize(method.service.qualified_name.gsub('.','')) %>.<%= Reality::Naming.camelize(method.name) %>(), filter );
+  }
+<% end -%>
+<% if repository.sync? && !repository.sync.standalone? && repository.sync.sync_out_of_master? -%>
+
+  @javax.ws.rs.GET
+  @javax.ws.rs.Path( "/master/{dataSourceCode}" )
+  public javax.json.JsonObject masterToCore( @javax.ws.rs.QueryParam( "fields" ) @javax.ws.rs.DefaultValue( DEFAULT_FIELDS ) @javax.annotation.Nonnull final org.realityforge.rest.field_filter.FieldFilter filter, @javax.ws.rs.PathParam( "dataSourceCode" ) final String dataSourceCode )
+    throws Exception
+  {
+    return emitSynchronizationStatus( $_masterToCoreSynchronizationService.synchronizeDataSource( dataSourceCode ), filter );
   }
 <% end -%>
 }

@@ -6,61 +6,37 @@ package <%= to_package(repository.ejb.qualified_abstract_service_test_name) %>;
 public abstract class <%= repository.ejb.abstract_service_test_name %>
   extends <%= repository.jpa? ? repository.jpa.qualified_base_entity_test_name : 'org.realityforge.guiceyloops.server.AbstractServerTest' %>
 {
-  @javax.annotation.Nullable
-  protected com.google.inject.Module new<%= repository.name %>ServicesModule()
-  {
-    return new <%= repository.ejb.qualified_services_module_name %>( this );
-  }
-
   @java.lang.Override
   protected com.google.inject.Module[] getModules()
   {
     final java.util.ArrayList<com.google.inject.Module> modules = new java.util.ArrayList<>();
     java.util.Collections.addAll( modules, super.getModules() );
-<% repository.ejb.extra_test_modules.each do |test_module| -%>
-    modules.add( new <%= test_module %>() );
+<% repository.ejb.test_modules.keys.each do |name| -%>
+    addModule( modules, new<%= name %>() );
 <% end -%>
-    addModule( modules, new<%= repository.name %>ServicesModule() );
-<% if repository.ejb.include_server_test_module? -%>
-    addModule( modules, new<%= repository.name %>ServerModule() );
-<% end -%>
-<% if repository.syncrecord? -%>
-    addModule( modules, newSyncRecordServicesModule() );
-<% end -%>
-<% if repository.mail? -%>
-    addModule( modules, newMailServicesModule() );
+<% repository.ejb.flushable_test_modules.keys.each do |name| -%>
+    addModule( modules, new<%= name %>() );
 <% end -%>
     return modules.toArray( new com.google.inject.Module[ modules.size() ] );
   }
-<% if repository.ejb.include_server_test_module? -%>
+<% repository.ejb.test_modules.each_pair do |name, classname| -%>
 
   @javax.annotation.Nullable
-  protected com.google.inject.Module new<%= repository.name %>ServerModule()
+  protected com.google.inject.Module new<%= name %>()
   {
-    return new <%= repository.ejb.qualified_server_test_module_name %>();
+    return new <%= classname %>();
   }
 <% end -%>
-<% if repository.syncrecord? -%>
+<% repository.ejb.flushable_test_modules.each_pair do |name, classname| -%>
 
   @javax.annotation.Nullable
-  protected com.google.inject.Module newSyncRecordServicesModule()
+  protected com.google.inject.Module new<%= name %>()
   {
-    return new iris.syncrecord.server.test.util.SyncRecordServicesModule( this );
+    return new <%= classname %>( this );
   }
 <% end -%>
-<% if repository.mail? -%>
-
-  @java.lang.Override
-  protected com.google.inject.Module getMailTestModule()
-  {
-    return new <%= repository.mail.qualified_test_module_name %>();
-  }
-
-  @javax.annotation.Nullable
-  protected com.google.inject.Module newMailServicesModule()
-  {
-    return new iris.mail.server.test.util.MailServicesModule( this );
-  }
+<% repository.ejb.test_class_contents.each do |content| -%>
+<%= content -%>
 <% end -%>
 <% unless repository.jpa? -%>
 

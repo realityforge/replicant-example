@@ -16,20 +16,21 @@ require 'erb'
 require 'fileutils'
 require 'logger'
 
-require 'domgen/version'
-require 'domgen/orderedhash'
-require 'domgen/naming'
+require 'reality/core'
+require 'reality/facets'
+require 'reality/generators'
+require 'reality/naming'
+require 'reality/orderedhash'
+require 'reality/mash'
 
 # Core components
 require 'domgen/core'
-require 'domgen/facets'
 require 'domgen/typedb'
 require 'domgen/features'
 require 'domgen/model'
+require 'domgen/facets'
 require 'domgen/model_checks'
 require 'domgen/template'
-require 'domgen/render_context'
-require 'domgen/generator'
 require 'domgen/filters'
 
  # Integration utilities
@@ -89,7 +90,6 @@ require 'domgen/jms/generator'
 require 'domgen/active_record/generator'
 
 # Docbook
-require 'domgen/xml/templates/xml'
 require 'domgen/xml/generator'
 
 # Rake Tasks
@@ -105,6 +105,7 @@ require 'domgen/ejb/generator'
 # JWS
 require 'domgen/jws/model'
 require 'domgen/jws/wsimport_template'
+require 'domgen/jws/helper'
 require 'domgen/jws/generator'
 
 # JMX
@@ -119,6 +120,10 @@ require 'domgen/jaxrs/generator'
 # EE
 require 'domgen/ee/model'
 require 'domgen/ee/generator'
+
+# CE (Client edition ... stuff shared between gwt and ee client side applications)
+require 'domgen/ce/model'
+require 'domgen/ce/generator'
 
 # GWT
 require 'domgen/gwt/model'
@@ -135,6 +140,7 @@ require 'domgen/restygwt/generator'
 
 # Imit
 require 'domgen/imit/model'
+require 'domgen/imit/helper'
 require 'domgen/imit/generator'
 
 # AutoBean
@@ -147,6 +153,7 @@ require 'domgen/audit/generator'
 
 # Database level synchronization
 require 'domgen/sync/model'
+require 'domgen/sync/helper'
 require 'domgen/sync/generator'
 
 # Some caching for gwt apps
@@ -174,3 +181,19 @@ require 'domgen/mail/model'
 require 'domgen/mail/generator'
 
 require 'domgen/application/model'
+
+require 'domgen/robots/model'
+require 'domgen/robots/generator'
+
+require 'domgen/iris_audit/model'
+require 'domgen/iris_audit/generator'
+
+require 'domgen/berk/model'
+require 'domgen/berk/generator'
+
+require 'domgen/redfish/model'
+require 'domgen/redfish/generator'
+
+require 'domgen/graphql/helper'
+require 'domgen/graphql/model'
+require 'domgen/graphql/generator'

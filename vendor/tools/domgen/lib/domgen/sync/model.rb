@@ -13,13 +13,19 @@
 #
 
 module Domgen
-  class Sync
+  module Sync
     VALID_MASTER_FACETS = [:application, :sql, :mssql, :pgsql, :ee, :ejb, :java, :jpa, :sync, :syncrecord, :appconfig]
     VALID_SYNC_TEMP_FACETS = [:application, :sql, :mssql, :pgsql, :sync, :syncrecord, :appconfig]
   end
 
   FacetManager.facet(:sync => [:syncrecord, :sql]) do |facet|
     facet.enhance(Repository) do
+      include Domgen::Java::BaseJavaGenerator
+      include Domgen::Java::JavaClientServerApplication
+
+      java_artifact :test_module, :test, :server, :sync, '#{repository.name}SyncServerModule', :sub_package => 'util'
+      java_artifact :remote_sync_service, :service, :client, :sync, 'Remote#{repository.name}SyncService'
+      java_artifact :remote_sync_service_impl, :service, :client, :sync, 'AbstractRemote#{repository.name}SyncServiceImpl'
 
       def transaction_time=(transaction_time)
         @transaction_time = transaction_time
@@ -27,6 +33,15 @@ module Domgen
 
       def transaction_time?
         @transaction_time.nil? ? false : !!@transaction_time
+      end
+
+      def standalone=(standalone)
+        @standalone = standalone
+      end
+
+      # Return false if the Data => SyncTemp && SyncTemp => Master stages occurs in a separate process
+      def standalone?
+        @standalone.nil? ? true : !!@standalone
       end
 
       attr_writer :mapping_source_attribute
@@ -58,6 +73,7 @@ module Domgen
           repository.data_module(self.master_data_module)
         end
         master_data_module = repository.data_module_by_name(self.master_data_module)
+        master_data_module.sync.master_sync_persistent_unit = nil unless self.standalone?
 
         unless repository.data_module_by_name?(self.sync_temp_data_module)
           repository.data_module(self.sync_temp_data_module)
@@ -152,7 +168,7 @@ module Domgen
               s.method(:"Remove#{entity.data_module.name}#{entity.name}") do |m|
                 m.integer(:MappingID)
                 m.parameter(:ID, entity.primary_key.jpa.java_type(:boundary), :nullable => true)
-                m.returns(:boolean, :description => 'Return true on removalfrom non-master, false if not required')
+                m.returns(:boolean, :description => 'Return true on remove from non-master, false if not required')
               end
               s.method(:"Mark#{entity.data_module.name}#{entity.name}RemovalsPreSync") do |m|
                 m.text(:MappingSourceCode)
@@ -182,6 +198,10 @@ module Domgen
           end unless master_data_module.service_by_name?(:SynchronizationContext)
         end
       end
+
+      def pre_verify
+        repository.ejb.add_flushable_test_module(self.test_module_name, self.qualified_test_module_name) if repository.ejb? && self.standalone?
+      end
     end
 
     facet.enhance(DataModule) do
@@ -192,7 +212,6 @@ module Domgen
       def transaction_time?
         @transaction_time.nil? ? data_module.repository.sync.transaction_time? : !!@transaction_time
       end
-
 
       include Domgen::Java::BaseJavaGenerator
       include Domgen::Java::EEClientServerJavaPackage
@@ -208,19 +227,31 @@ module Domgen
       java_artifact :abstract_sync_temp_population_impl, :service, :server, :sync, 'AbstractSyncTempPopulationService#{data_module.repository.ejb.implementation_suffix}'
       java_artifact :master_sync_service_test, :service, :server, :sync, 'AbstractMasterSyncService#{data_module.repository.ejb.implementation_suffix}Test'
 
+      def master_sync_persistent_unit
+        raise 'master_sync_persistent_unit invoked when not master_data_module' unless master_data_module?
+        return nil if @master_sync_persistent_unit_nil
+        @master_sync_persistent_unit || data_module.repository.jpa.include_default_unit? ? data_module.repository.name : nil
+      end
+
+      def master_sync_persistent_unit=(master_sync_persistent_unit)
+        raise 'master_sync_persistent_unit= invoked when not master_data_module' unless master_data_module?
+        @master_sync_persistent_unit_nil = master_sync_persistent_unit.nil?
+        @master_sync_persistent_unit = master_sync_persistent_unit
+      end
+
       def entities_to_synchronize
         raise 'entities_to_synchronize invoked when not master_data_module' unless master_data_module?
-        data_module.repository.data_modules.select { |d| d.sync? }.collect do |dm|
-          dm.entities.select { |e| e.concrete? && e.sync? && e.sync.synchronize? }
+        data_module.repository.data_modules.select {|d| d.sync?}.collect do |dm|
+          dm.entities.select {|e| e.concrete? && e.sync? && e.sync.synchronize?}
         end.flatten
       end
 
       def master_data_module?
-        data_module.repository.sync.master_data_module == data_module.name
+        data_module.repository.sync.master_data_module.to_s == data_module.name.to_s
       end
 
       def sync_temp_data_module?
-        data_module.repository.sync.sync_temp_data_module == data_module.name
+        data_module.repository.sync.sync_temp_data_module.to_s == data_module.name.to_s
       end
 
       def entity_prefix=(entity_prefix)
@@ -233,6 +264,17 @@ module Domgen
         raise "Attempted to invoke entity_prefix on #{data_module.name}, but not valid as it is the master data_module" if master_data_module?
         raise "Attempted to invoke entity_prefix on #{data_module.name}, but not valid as it is the sync_temp data_module" if sync_temp_data_module?
         @entity_prefix || ''
+      end
+    end
+
+    facet.enhance(Service) do
+      include Domgen::Java::BaseJavaGenerator
+
+      java_artifact :test_service, :test, :server, :sync, 'TestSyncTempPopulationServiceImpl', :sub_package => 'util'
+
+      def sync_temp_population_service?
+        service.data_module.name.to_s == service.data_module.repository.sync.master_data_module.to_s &&
+          service.name.to_s == 'SyncTempPopulationService'
       end
     end
 
@@ -295,11 +337,15 @@ module Domgen
       end
 
       def references_requiring_manual_sync
-        entity.referencing_attributes.select { |a| (!a.sync? || a.sync.manual_sync?) && a.referenced_entity.sql? }
+        entity.referencing_attributes.select {|a| (!a.sync? || a.sync.manual_sync?) && a.referenced_entity.sql?}
+      end
+
+      def managed_references_requiring_manual_sync
+        entity.referencing_attributes.select {|a| a.sync? && !a.sync.manual_sync? && a.entity.sync.core?}
       end
 
       def references_not_requiring_manual_sync
-        entity.referencing_attributes.select { |a| !a.set_once? && !a.immutable? && a.sync? && a.entity.sync.core? && !a.sync.manual_sync? && a.referenced_entity.sql? }
+        entity.referencing_attributes.select {|a| !a.set_once? && !a.immutable? && a.sync? && a.entity.sync.core? && !a.sync.manual_sync? && a.referenced_entity.sql?}
       end
 
       attr_writer :recursive
@@ -307,7 +353,7 @@ module Domgen
       # Is the entity recursive?
       # i.e. Do the sync operations need to repeat until 0 actions
       def recursive?
-        @recursive.nil? ? (entity.sync.attributes_to_synchronize.any? { |a| a.reference? && a.referenced_entity.name == entity.sync.master_entity.name }) : !!@recursive
+        @recursive.nil? ? (entity.sync.attributes_to_synchronize.any? {|a| a.reference? && a.referenced_entity.name == entity.sync.master_entity.name}) : !!@recursive
       end
 
       def sync_temp_entity=(sync_temp_entity)
@@ -353,7 +399,7 @@ module Domgen
       end
 
       def attributes_to_update
-        attributes_to_synchronize.select { |a| !a.immutable? }
+        attributes_to_synchronize.select {|a| !a.immutable?}
       end
 
       def update_via_sync?
@@ -362,7 +408,10 @@ module Domgen
             !a.primary_key? &&
             !a.immutable? &&
             ![:MasterSynchronized, :CreatedAt, :DeletedAt].include?(a.name) &&
-            !(a.reference? && a.referenced_entity.sync? && a.referenced_entity.sync.synchronize?)
+            (
+            !a.reference? ||
+              a.referenced_entity.sync? && a.referenced_entity.sync.synchronize?
+            )
         end.size > 0
       end
 
@@ -417,7 +466,7 @@ module Domgen
             e.string(:MappingID, 50, :description => 'The ID of entity in originating system')
           end
 
-          self.entity.attributes.select { |a| !a.inherited? }.each do |a|
+          self.entity.attributes.select {|a| !a.inherited?}.each do |a|
             next if a.primary_key?
             next if [:CreatedAt, :DeletedAt].include?(a.name)
             next unless a.sync?
@@ -443,6 +492,8 @@ module Domgen
               options[:length] = a.length
               options[:min_length] = a.min_length
               options[:allow_blank] = a.allow_blank?
+            elsif a.remote_reference?
+              options[:referenced_remote_entity] = a.referenced_remote_entity
             end
             options[:abstract] = a.abstract?
 
@@ -481,7 +532,7 @@ module Domgen
             e.sql.index([:MappingSource, :MappingID], :include_attribute_names => [:ID], :filter => "#{e.sql.dialect.quote(:DeletedAt)} IS NULL")
           end
 
-          self.entity.attributes.select { |a| !a.inherited? || a.primary_key? }.each do |a|
+          self.entity.attributes.select {|a| !a.inherited? || a.primary_key?}.each do |a|
             next unless a.sync?
 
             # For self referential, non-transaction time entities, we have to set sql.on_delete
@@ -518,6 +569,9 @@ module Domgen
               options[:length] = a.length
               options[:min_length] = a.min_length
               options[:allow_blank] = a.allow_blank?
+            end
+            if a.remote_reference?
+              options[:referenced_remote_entity] = a.referenced_remote_entity
             end
             options[:collection_type] = a.collection_type
             options[:nullable] = a.nullable? || a.primary_key?
@@ -594,9 +648,9 @@ module Domgen
             e.jpa.test_create_default(e.root_entity.name => 'null', :MasterSynchronized => 'false', :MappingKey => 'mappingID')
             e.jpa.test_create_default(e.root_entity.name => 'null', :MasterSynchronized => 'false')
             e.jpa.test_create_default(:CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
-            e.jpa.test_update_default({e.root_entity.name => nil, :MasterSynchronized => 'false', :MappingSource => nil, :MappingKey => nil, :MappingID => nil, :CreatedAt => nil, :DeletedAt => nil}, :force_refresh => true)
-            e.jpa.test_update_default({e.root_entity.name => nil, :MasterSynchronized => 'false', :MappingSource => nil, :MappingKey => nil, :MappingID => nil}, :force_refresh => true)
-            e.jpa.test_update_default({:CreatedAt => nil, :DeletedAt => nil}, :force_refresh => true)
+            e.jpa.test_update_default({ e.root_entity.name => nil, :MasterSynchronized => 'false', :MappingSource => nil, :MappingKey => nil, :MappingID => nil, :CreatedAt => nil, :DeletedAt => nil }, :force_refresh => true)
+            e.jpa.test_update_default({ e.root_entity.name => nil, :MasterSynchronized => 'false', :MappingSource => nil, :MappingKey => nil, :MappingID => nil }, :force_refresh => true)
+            e.jpa.test_update_default({ :CreatedAt => nil, :DeletedAt => nil }, :force_refresh => true)
             delete_defaults = {}
             e.attributes.each do |a|
               delete_defaults[a.name] = nil unless a.generated_value? || a.immutable? || !a.jpa?
@@ -612,6 +666,12 @@ module Domgen
             if entity.sync.transaction_time?
               entity.jpa.create_default(:CreatedAt => 'new java.util.Date()', :DeletedAt => 'null')
               entity.jpa.update_default(:DeletedAt => nil)
+              if entity.graphql? && entity.dao.graphql?
+                entity.attribute_by_name(:CreatedAt).graphql.initial_value = 'new java.util.Date()'
+                entity.attribute_by_name(:DeletedAt).graphql.initial_value = 'null'
+                entity.attribute_by_name(:CreatedAt).graphql.updateable = false
+                entity.attribute_by_name(:DeletedAt).graphql.updateable = false
+              end
               entity.jpa.update_defaults.each do |defaults|
                 entity.jpa.update_default(defaults.values.merge(:DeletedAt => nil)) do |new_default|
                   new_default.factory_method_name = defaults.factory_method_name
@@ -619,7 +679,7 @@ module Domgen
                 entity.jpa.remove_update_default(defaults)
               end
               if entity.imit?
-                attributes = entity.attributes.select { |a| %w(CreatedAt DeletedAt).include?(a.name.to_s) && a.imit? }.collect { |a| a.name.to_s }
+                attributes = entity.attributes.select {|a| %w(CreatedAt DeletedAt).include?(a.name.to_s) && a.imit?}.collect {|a| a.name.to_s}
                 if attributes.size > 0
                   defaults = {}
                   defaults[:CreatedAt] = 'new java.util.Date()' if attributes.include?('CreatedAt')

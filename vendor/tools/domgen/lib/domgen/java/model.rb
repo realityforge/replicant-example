@@ -92,6 +92,8 @@ module Domgen
         check_modality(modality)
         if (:boundary == modality || :transport == modality) && characteristic.reference?
           return primitive_java_type(characteristic.referenced_entity.primary_key, group_type, modality)
+        elsif (:boundary == modality || :transport == modality) && characteristic.remote_reference?
+          return primitive_java_type(characteristic.referenced_remote_entity.primary_key, group_type, modality)
         elsif :transport == modality && characteristic.enumeration? && characteristic.enumeration.numeric_values?
           return Domgen::TypeDB.characteristic_type_by_name(:integer).java.primitive_type
         else
@@ -114,10 +116,11 @@ module Domgen
         characteristic_type = characteristic.characteristic_type
         return true if characteristic_type && characteristic.characteristic_type.java.primitive_type?
 
-        return false unless characteristic.reference?
+        return false unless characteristic.reference? || characteristic.remote_reference?
         return false if :default == modality
 
-        return primitive?(characteristic.referenced_entity.primary_key, group_type, modality, options)
+        return primitive?(characteristic.referenced_entity.primary_key, group_type, modality, options) if characteristic.reference?
+        return primitive?(characteristic.referenced_remote_entity.primary_key, group_type, modality, options)
       end
 
       def java_component_type(characteristic, group_type, modality = :default)
@@ -129,6 +132,12 @@ module Domgen
             return characteristic.referenced_entity.send(characteristic_group.entity_key).qualified_name
           else #if :boundary == modality || :transport == modality
             return characteristic.referenced_entity.primary_key.send(characteristic_group.entity_key).non_primitive_java_type(modality)
+          end
+        elsif characteristic.remote_reference?
+          if :default == modality
+            return characteristic.referenced_remote_entity.send(characteristic_group.entity_key).qualified_name
+          else #if :boundary == modality || :transport == modality
+            return characteristic.referenced_remote_entity.primary_key.send(characteristic_group.entity_key).non_primitive_java_type(modality)
           end
         elsif characteristic.enumeration?
           if :default == modality || :boundary == modality
@@ -148,9 +157,17 @@ module Domgen
           end
         elsif characteristic.geometry?
           return Domgen::TypeDB.characteristic_type_by_name(characteristic.geometry.geometry_type).java.object_type
-        elsif characteristic.date? && group_type == :gwt
-          # TODO: Fix Hackity hack
-          return characteristic.characteristic_type.java.gwt.object_type
+        elsif characteristic.date?
+          if :default == modality || :boundary == modality
+            # TODO: Fix Hackity hack
+            if group_type == :gwt
+              return characteristic.characteristic_type.java.gwt.object_type
+            else
+              return characteristic.characteristic_type.java.object_type
+            end
+          else #if :transport == modality
+            return Domgen::TypeDB.characteristic_type_by_name(:text).java.object_type
+          end
         else
           characteristic_type = characteristic.characteristic_type
           if characteristic_type
@@ -167,7 +184,7 @@ module Domgen
 
         if characteristic.reference?
           if :default == modality
-            raise "Unable to create fixture data for reference in default modality"
+            raise 'Unable to create fixture data for reference in default modality'
           else #if :boundary == modality || :transport == modality
             other = characteristic.referenced_entity.primary_key.facet(characteristic_group.entity_key)
             return java_fixture_value(other, group_type, modality)
@@ -179,14 +196,14 @@ module Domgen
             if characteristic.enumeration.textual_values?
               return "\"#{characteristic.enumeration.values[0].name}\""
             else
-              return "0"
+              return '0'
             end
           end
         elsif characteristic.struct?
           if :default == modality || :boundary == modality
-            return "new #{characteristic.referenced_struct.send(characteristic_group.struct_key).qualified_name}(#{characteristic.referenced_struct.fields.collect { |p| java_fixture_value(p) }.join(", ")})"
+            return "new #{characteristic.referenced_struct.send(characteristic_group.struct_key).qualified_name}(#{characteristic.referenced_struct.fields.collect { |p| java_fixture_value(p) }.join(', ')})"
           else #if :transport == modality
-            raise "Unable to determine fixture type for transport struct type"
+            raise 'Unable to determine fixture type for transport struct type'
           end
         elsif characteristic.geometry?
           return Domgen::TypeDB.characteristic_type_by_name(characteristic.geometry.geometry_type).java.fixture_value
@@ -242,9 +259,13 @@ module Domgen
       end
 
       def transport_characteristic_type_key(characteristic)
-        return characteristic.reference? ?
-          characteristic.referenced_entity.primary_key.characteristic_type_key :
+        if characteristic.reference?
+          characteristic.referenced_entity.primary_key.characteristic_type_key
+        elsif characteristic.remote_reference?
+          characteristic.referenced_remote_entity.primary_key.characteristic_type_key
+        else
           characteristic.characteristic_type_key
+        end
       end
 
       protected
@@ -257,7 +278,7 @@ module Domgen
         "java.util.Set<#{component_type}>"
       end
 
-      GroupType = ::Struct.new("GroupType", :entity_key, :enumeration_key, :struct_key)
+      GroupType = ::Struct.new('GroupType', :entity_key, :enumeration_key, :struct_key)
 
       GROUP_TYPE_MAP = {
         :ee => GroupType.new(:jpa, :ee, :ee),
@@ -282,7 +303,7 @@ module Domgen
 
     module JavaCharacteristic
       def name(modality = :default)
-        return characteristic.referencing_link_name if characteristic.reference? && (:boundary == modality || :transport == modality)
+        return characteristic.referencing_link_name if (characteristic.remote_reference? || characteristic.reference?) && (:boundary == modality || :transport == modality)
         return characteristic.name
       end
 
@@ -317,7 +338,7 @@ module Domgen
       protected
 
       def characteristic
-        raise "characteristic unimplemented"
+        raise 'characteristic unimplemented'
       end
     end
 
@@ -385,8 +406,7 @@ module Domgen
           raise "Sub-packages #{sub_packages.inspect} expected to be an array" unless sub_packages.is_a?(Array)
 
           key = scope.nil? ? :"#{package_key}_package" : "#{scope}_#{package_key}_package"
-          facet_key = options[:facet_key]
-          idefine_getter(key, Proc.new { self.resolve_package(key, parent_facet(facet_key)) })
+          idefine_getter(key, Proc.new { self.resolve_package(key, parent_facet) })
           idefine_setter(key)
           sub_packages.each do |sub_package|
             sub_package_ruby_name = sub_package.split('.').reverse.join('_')
@@ -398,13 +418,13 @@ module Domgen
         def standard_java_packages(scopes)
           scopes = scopes.is_a?(Array) ? scopes : [scopes]
           scopes.each do |scope|
-            java_package :data_type, :scope => scope
-            java_package :entity, :scope => scope
-            java_package :service, :scope => scope, :sub_packages => ['internal']
-            java_package :rest, :scope => scope, :sub_packages => ['internal']
-            java_package :filter, :scope => scope, :sub_packages => ['internal']
-            java_package :servlet, :scope => scope, :sub_packages => ['internal']
-            java_package :test, :scope => scope, :sub_packages => ['util']
+            java_package :data_type, :scope => scope, :sub_packages => %w(internal)
+            java_package :entity, :scope => scope, :sub_packages => %w(internal dao dao.internal)
+            java_package :service, :scope => scope, :sub_packages => %w(internal)
+            java_package :rest, :scope => scope, :sub_packages => %w(internal)
+            java_package :filter, :scope => scope, :sub_packages => %w(internal)
+            java_package :servlet, :scope => scope, :sub_packages => %w(internal)
+            java_package :test, :scope => scope, :sub_packages => %w(util)
           end
         end
       end
@@ -414,16 +434,16 @@ module Domgen
       end
 
       def facet_key
-        raise "facet_key unimplemented"
+        raise 'facet_key unimplemented'
       end
 
-      def parent_facet(facet_key = nil)
+      def parent_facet
         return nil unless parent.respond_to?(:parent, true)
-        parent.send(:parent).facet(facet_key || self.facet_key)
+        parent.send(:parent).facet(self.facet_key)
       end
 
       def package_key
-        Domgen::Naming.underscore(data_module.name)
+        Reality::Naming.underscore(data_module.name)
       end
     end
 
@@ -453,6 +473,10 @@ module Domgen
     module ClientServerJavaPackage
       include BaseJavaPackage
 
+      java_package :message, :scope => :integration
+      java_package :api, :scope => :integration
+      java_package :rest, :scope => :integration
+      java_package :test, :scope => :integration, :sub_packages => ['util']
       standard_java_packages([:shared, :client, :server])
     end
 
@@ -500,7 +524,8 @@ module Domgen
             scopes = scopes.is_a?(Array) ? scopes : [scopes]
             scopes.each do |scope|
               java_package :data_type, :scope => scope, :sub_packages => ['internal']
-              java_package :entity, :scope => scope
+              java_package :entity, :scope => scope, :sub_packages => ['internal']
+              java_package :event, :scope => scope
               java_package :service, :scope => scope, :sub_packages => ['internal']
               java_package :rest, :scope => scope, :sub_packages => ['internal']
               java_package :filter, :scope => scope, :sub_packages => ['internal']
@@ -546,6 +571,11 @@ module Domgen
       context_package(:shared)
       context_package(:client)
       context_package(:server)
+      context_package(:integration)
+      java_package :message, :scope => :integration
+      java_package :api, :scope => :integration
+      java_package :rest, :scope => :integration
+      java_package :test, :scope => :integration, :sub_packages => ['util']
       standard_java_packages([:shared, :client, :server])
     end
   end
@@ -555,7 +585,7 @@ module Domgen
       attr_writer :base_package
 
       def base_package
-        @base_package || Domgen::Naming.underscore(repository.name)
+        @base_package || Reality::Naming.underscore(repository.name)
       end
     end
 

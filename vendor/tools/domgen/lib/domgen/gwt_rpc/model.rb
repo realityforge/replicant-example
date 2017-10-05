@@ -21,7 +21,7 @@ module Domgen
       attr_writer :module_name
 
       def module_name
-        @module_name || Domgen::Naming.underscore(repository.name)
+        @module_name || Reality::Naming.underscore(repository.name)
       end
 
       attr_writer :base_api_url
@@ -36,11 +36,15 @@ module Domgen
         @api_url || "#{self.base_api_url}/#{repository.gwt.module_name}"
       end
 
+      java_artifact :async_callback_adapter, :service, :client, :gwt_rpc, '#{repository.name}AsyncCallbackAdapter'
       java_artifact :rpc_request_builder, :ioc, :client, :gwt_rpc, '#{repository.name}RpcRequestBuilder'
       java_artifact :keycloak_rpc_request_builder, :ioc, :client, :gwt_rpc, '#{repository.name}KeycloakRpcRequestBuilder'
       java_artifact :rpc_services_module, :ioc, :client, :gwt_rpc, '#{repository.name}GwtRpcServicesModule'
       java_artifact :mock_services_module, :test, :client, :gwt_rpc, '#{repository.name}MockGwtServicesModule', :sub_package => 'util'
       java_artifact :services_module, :ioc, :client, :gwt_rpc, '#{repository.name}GwtServicesModule'
+
+      java_artifact :code_server_config, :service, :server, :gwt_rpc, '#{repository.name}CodeServerConfig'
+      java_artifact :code_server_config_resources, :service, :server, :gwt_rpc, '#{repository.name}CodeServerConfigResources'
 
       def client_ioc_package
         repository.gwt.client_ioc_package
@@ -63,11 +67,11 @@ module Domgen
       attr_writer :keycloak_client
 
       def keycloak_client
-        @keycloak_client || :api
+        @keycloak_client || (repository.application? && !repository.application.user_experience? ? repository.keycloak.default_client.key : :api)
       end
 
       def pre_verify
-        if secure_services? && repository.keycloak?
+        if secure_services? && repository.keycloak? && repository.keycloak.has_local_auth_service?
           client =
             repository.keycloak.client_by_key?(self.keycloak_client) ?
               repository.keycloak.client_by_key(self.keycloak_client) :
@@ -75,6 +79,8 @@ module Domgen
           client.bearer_only = true
           client.protected_url_patterns << "/#{base_api_url}/*"
         end
+        repository.gwt.add_test_module(repository.gwt_rpc.mock_services_module_name, repository.gwt_rpc.qualified_mock_services_module_name)
+        repository.gwt.add_gin_module(repository.gwt_rpc.rpc_services_module_name, repository.gwt_rpc.qualified_rpc_services_module_name)
       end
 
       protected
@@ -96,7 +102,7 @@ module Domgen
       attr_writer :api_url
 
       def api_url
-        @api_url || (data_module.name == data_module.repository.name) ? data_module.repository.gwt_rpc.api_url : "#{data_module.repository.gwt_rpc.api_url}/#{Domgen::Naming.underscore(data_module.name)}"
+        @api_url || (data_module.name == data_module.repository.name) ? data_module.repository.gwt_rpc.api_url : "#{data_module.repository.gwt_rpc.api_url}/#{Reality::Naming.underscore(data_module.name)}"
       end
 
       protected
@@ -143,6 +149,18 @@ module Domgen
         @xsrf_protected.nil? ? false : @xsrf_protected
       end
 
+      attr_writer :default_callback_name
+
+      def default_callback_name
+        @default_callback_name.nil? ? 'GLOBAL' : @default_callback_name
+      end
+
+      attr_writer :default_callback
+
+      def default_callback?
+        @default_callback.nil? ? true : @default_callback
+      end
+
       attr_writer :facade_service_name
 
       def facade_service_name
@@ -161,7 +179,7 @@ module Domgen
 
     facet.enhance(Method) do
       def name
-        Domgen::Naming.camelize(method.name)
+        Reality::Naming.camelize(method.name)
       end
 
       attr_writer :cancelable

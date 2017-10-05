@@ -1,0 +1,210 @@
+/* DO NOT EDIT: File is auto-generated */
+package <%= to_package(repository.imit.qualified_gwt_data_loader_service_name) %>;
+
+@java.lang.SuppressWarnings( { "unchecked", "PMD.UnusedPrivateField", "PMD.UnusedLocalVariable", "PMD.FieldDeclarationsShouldBeAtStartOfClass", "PMD.SingularField" } )
+public class <%= repository.imit.gwt_data_loader_service_name %>
+  extends org.realityforge.replicant.client.gwt.<%= repository.imit.poll_replicate_mode? ? 'GwtWebPoller' : 'Gwt' %>DataLoaderService
+  implements <%= repository.imit.qualified_gwt_data_loader_service_interface_name %>
+{
+<% if repository.keycloak? -%>
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings( "DE_MIGHT_IGNORE" )
+  protected class ReplicantRequestFactory
+    extends org.realityforge.replicant.client.gwt.GwtWebPollerDataLoaderService.ReplicantRequestFactory
+  {
+    @javax.annotation.Nonnull
+    @java.lang.Override
+    public org.realityforge.gwt.webpoller.client.Request newRequest( @javax.annotation.Nonnull final org.realityforge.gwt.webpoller.client.RequestContext requestContext )
+      throws Exception
+    {
+      final org.realityforge.gwt.webpoller.client.CancelableRequestWrapper request = new org.realityforge.gwt.webpoller.client.CancelableRequestWrapper();
+      updateTokenAndExecute( () ->
+        {
+          try { request.setRequest( super.newRequest( requestContext ) ); } catch ( final Exception ignored ) {}
+        }
+      );
+      return request;
+    }
+  }
+
+<% end -%>
+  @javax.annotation.Nonnull
+  private final <%= repository.imit.qualified_gwt_client_session_context_name %> _context;
+  @javax.annotation.Nonnull
+  private final <%= repository.imit.qualified_client_router_interface_name %> _router;
+  private final <%= repository.imit.qualified_change_mapper_name %> _changeMapper = new <%= repository.imit.qualified_change_mapper_name %>( <%= repository.data_modules.select{|data_module| data_module.imit? }.collect { |data_module| "new #{data_module.imit.qualified_mapper_name}( getRepository(), getChangeBroker(), getSubscriptionManager() )" }.join(', ') %> );
+
+  @javax.inject.Inject
+  public <%= repository.imit.gwt_data_loader_service_name %>( @javax.annotation.Nonnull final org.realityforge.replicant.client.EntitySystem entitySystem, @javax.annotation.Nonnull final org.realityforge.replicant.client.transport.CacheService cacheService, @javax.annotation.Nonnull final <%= repository.imit.qualified_gwt_client_session_context_name %> context, @javax.annotation.Nonnull final <%= repository.imit.qualified_client_router_interface_name %> router )
+  {
+    super( <%= repository.gwt_rpc.qualified_rpc_services_module_name %>.getSessionContext(), entitySystem, cacheService );
+    _context  = context;
+    _router = router;
+  }
+
+  @javax.annotation.Nonnull
+  protected String getEndpointOffset()
+  {
+    return "<%= repository.jaxrs? ? repository.jaxrs.path : 'api' -%>";
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected org.realityforge.replicant.client.ChangeMapper getChangeMapper()
+  {
+    return _changeMapper;
+  }
+
+<% if repository.keycloak? -%>
+  protected final void updateTokenAndExecute( @javax.annotation.Nonnull final java.lang.Runnable runnable )
+  {
+    <%= repository.gwt_rpc.qualified_rpc_services_module_name %>.updateTokenAndExecute( runnable );
+  }
+
+  @java.lang.Override
+  protected void doConnect( @javax.annotation.Nullable final java.lang.Runnable runnable )
+  {
+    updateTokenAndExecute( () -> super.doConnect( runnable ) );
+  }
+
+  @java.lang.Override
+  protected void doDisconnect( @javax.annotation.Nullable final Runnable runnable )
+  {
+    updateTokenAndExecute( () -> super.doDisconnect( runnable ) );
+  }
+
+  @java.lang.Override
+  protected void performSubscribe( final int channel,
+                                   @javax.annotation.Nullable final java.io.Serializable subChannelID,
+                                   @javax.annotation.Nullable final Object filterParameter,
+                                   @javax.annotation.Nullable final String cacheKey,
+                                   @javax.annotation.Nullable final String eTag,
+                                   @javax.annotation.Nonnull final java.lang.Runnable onSuccess,
+                                   @javax.annotation.Nullable final java.lang.Runnable onCacheValid,
+                                   @javax.annotation.Nonnull final java.util.function.Consumer<Throwable> onError )
+  {
+    updateTokenAndExecute( () -> super.performSubscribe( channel, subChannelID, filterParameter, cacheKey, eTag, onSuccess, onCacheValid, onError ) );
+  }
+
+  @java.lang.Override
+  protected void performUnsubscribe( final int channel, @javax.annotation.Nullable final java.io.Serializable subChannelID, @javax.annotation.Nonnull final java.lang.Runnable onSuccess, @javax.annotation.Nonnull final java.util.function.Consumer<java.lang.Throwable> onError )
+  {
+    updateTokenAndExecute( () -> super.performUnsubscribe( channel, subChannelID, onSuccess, onError ) );
+  }
+<% end -%>
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public org.realityforge.replicant.client.transport.ClientSession ensureSession()
+    throws <%= repository.exception_by_name(repository.imit.invalid_session_exception).imit.qualified_name %>
+  {
+    final org.realityforge.replicant.client.transport.ClientSession session = getSession();
+    if ( null == session )
+    {
+      throw new <%= repository.exception_by_name(repository.imit.invalid_session_exception).imit.qualified_name %>( "Missing session." );
+    }
+    return session;
+  }
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  public Class<java.lang.Enum> getGraphType()
+  {
+    return (Class<java.lang.Enum>) (Class) <%= repository.imit.qualified_graph_enum_name %>.class;
+  }
+
+  @java.lang.SuppressWarnings( { "ConstantConditions", "unchecked" } )
+  @java.lang.Override
+  protected boolean doesEntityMatchFilter( @javax.annotation.Nonnull final org.realityforge.replicant.client.ChannelDescriptor descriptor,
+                                           @javax.annotation.Nullable final Object rawFilter,
+                                           @javax.annotation.Nonnull final Class<?> entityType,
+                                           @javax.annotation.Nonnull final Object entityID )
+  {
+    <% repository.imit.graphs.select{|g| g.filtered?}.each do |graph| -%>
+if ( <%= repository.imit.qualified_graph_enum_name %>.<%= Reality::Naming.uppercase_constantize(graph.name) %> == descriptor.getGraph() )
+    {
+      final <%= Domgen::Java.java_type(graph.filter_parameter, :gwt, :default) %> filter = (<%= graph.filter_parameter.struct? ? graph.filter_parameter.referenced_struct.gwt.qualified_jso_name : Domgen::Java.java_type(graph.filter_parameter, :imit, :default) %>) rawFilter;
+      assert null != filter;
+      final Object entity = getRepository().getByID( entityType, entityID );
+<% if graph.instance_root? || (graph.filtered? && graph.routing_keys.size > 0) -%>
+      final java.util.Map<java.lang.String, java.io.Serializable> route = _router.route( entity );
+<% end -%>
+<%
+  extra_interest_filter = ''
+  if graph.instance_root?
+    entity = repository.entity_by_name(graph.instance_root)
+    var_name = Reality::Naming.camelize("#{entity.name}#{entity.primary_key.name}")
+    extra_interest_filter = ", #{var_name}"
+-%>
+      @javax.annotation.Nonnull
+      final <%= entity.primary_key.imit.non_primitive_java_type %> <%= var_name %> = (<%= entity.primary_key.imit.non_primitive_java_type %>) route.get( <%= repository.imit.qualified_client_router_interface_name %>.<%= Reality::Naming.uppercase_constantize(graph.name) %>_KEY );
+      assert null != <%= var_name %>;
+<% end -%>
+<%
+  if graph.filtered?
+    graph.routing_keys.each do |routing_key|
+      var_name = Reality::Naming.camelize(routing_key.name)
+      nullable = !graph.instance_root? || !(routing_key.imit_attribute.attribute.entity.qualified_name == graph.instance_root)
+      param_type = routing_key.target_attribute.imit.non_primitive_java_type
+      param_type = "java.util.List<#{param_type}>" if routing_key.multivalued?
+      extra_interest_filter << ", #{var_name}"
+-%>
+      <%= nullability_annotation(nullable) %>
+      final <%= param_type %> <%= var_name %> = (<%= param_type %>) route.get( <%= repository.imit.qualified_client_router_interface_name %>.<%= Reality::Naming.uppercase_constantize(graph.name) %>_<%= Reality::Naming.uppercase_constantize(routing_key.name) %>_KEY );
+<% if !nullable -%>
+      assert null != <%= var_name %>;
+<% end -%>
+<%
+    end
+  end
+-%>
+      return _context.does<%= graph.name %>MatchEntity( filter, entity<%= extra_interest_filter %> );
+    }
+    else <% end -%>
+
+    {
+      throw new java.lang.IllegalStateException();
+    }
+  }
+
+  @java.lang.Override
+  protected int updateSubscriptionForFilteredEntities( @javax.annotation.Nonnull final org.realityforge.replicant.client.ChannelSubscriptionEntry entry, @javax.annotation.Nullable final Object filter )
+  {
+    <% repository.imit.graphs.select{|g| g.filtered? }.each do |graph|
+-%>if( entry.getDescriptor().getGraph() == <%= repository.imit.qualified_graph_enum_name %>.<%= Reality::Naming.uppercase_constantize(graph.name) %> )
+    {
+      int removedEntities = 0;
+<% graph.included_entities.reverse.each do |entity| -%>
+      {
+        final java.util.Map<Object, org.realityforge.replicant.client.EntitySubscriptionEntry> map = entry.getEntities().get( <%= repository.entity_by_name(entity).imit.qualified_name %>.class );
+        if( null != map )
+        {
+          removedEntities += updateSubscriptionForFilteredEntities( entry, filter, map.values() );
+        }
+      }
+<% end -%>
+      return removedEntities;
+    }
+    else <% end
+-%>
+
+    {
+      throw new IllegalStateException();
+    }
+  }
+
+  @java.lang.Override
+  protected <%= repository.imit.qualified_repository_debugger_name %> getEntityRepositoryDebugger()
+  {
+    return new <%= repository.imit.qualified_repository_debugger_name %>();
+  }
+
+<% if repository.keycloak? -%>
+
+  @javax.annotation.Nonnull
+  @java.lang.Override
+  protected org.realityforge.gwt.webpoller.client.RequestFactory newRequestFactory()
+  {
+    return new ReplicantRequestFactory();
+  }
+<% end -%>
+}
