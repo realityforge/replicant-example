@@ -19,8 +19,8 @@ desc 'A simple application demonstrating the use of the replicant library'
 define 'replicant-example' do
   project.group = 'org.realityforge.replicant.example'
 
-  compile.options.source = '1.7'
-  compile.options.target = '1.7'
+  compile.options.source = '1.8'
+  compile.options.target = '1.8'
   compile.options.lint = 'all'
 
   # Expanded "imit" template_set to avoid bringing in test classes
