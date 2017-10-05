@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
@@ -97,7 +98,7 @@ public class RosterUI
 
   private final ApplicationController _controller;
 
-  public RosterUI( final ApplicationController controller )
+  RosterUI( final ApplicationController controller )
   {
     _controller = controller;
     initWidget( UI_BINDER.createAndBindUi( this ) );
@@ -316,7 +317,7 @@ public class RosterUI
   }
 
   @Override
-  public void entityAdded( final EntityChangeEvent event )
+  public void entityAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityAdded(" + event + ")" );
     final Object entity = event.getObject();
@@ -345,7 +346,7 @@ public class RosterUI
   }
 
   @Override
-  public void entityRemoved( final EntityChangeEvent event )
+  public void entityRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
@@ -370,7 +371,7 @@ public class RosterUI
   }
 
   @Override
-  public void attributeChanged( final EntityChangeEvent event )
+  public void attributeChanged( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "attributeChanged(" + event + ")" );
     final Object entity = event.getObject();
@@ -417,14 +418,7 @@ public class RosterUI
     final HorizontalPanel panel = new HorizontalPanel();
     panel.add( new Label( position.getName() ) );
     final Button delete = new Button( "X" );
-    delete.addClickHandler( new ClickHandler()
-    {
-      @Override
-      public void onClick( final ClickEvent event )
-      {
-        doDeletePosition( position );
-      }
-    } );
+    delete.addClickHandler( event -> doDeletePosition( position ) );
     panel.add( delete );
     return panel;
   }
@@ -440,7 +434,7 @@ public class RosterUI
   }
 
   @Override
-  public void relatedAdded( final EntityChangeEvent event )
+  public void relatedAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedAdded(" + event + ")" );
     final Object value = event.getValue();
@@ -472,7 +466,7 @@ public class RosterUI
   }
 
   @Override
-  public void relatedRemoved( final EntityChangeEvent event )
+  public void relatedRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
     final Object value = event.getValue();
@@ -512,14 +506,7 @@ public class RosterUI
     final DateTimeFormat dtf = DateTimeFormat.getFormat( PredefinedFormat.DATE_TIME_SHORT );
     panel.add( new Label( dtf.format( shift.getStartAt() ) + " - " + shift.getName() ) );
     final Button delete = new Button( "X" );
-    delete.addClickHandler( new ClickHandler()
-    {
-      @Override
-      public void onClick( final ClickEvent event )
-      {
-        _controller.doDeleteShift( shift );
-      }
-    } );
+    delete.addClickHandler( event -> _controller.doDeleteShift( shift ) );
     panel.add( delete );
     return panel;
   }
