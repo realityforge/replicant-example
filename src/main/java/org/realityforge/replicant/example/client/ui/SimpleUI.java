@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
@@ -80,7 +81,7 @@ public class SimpleUI
   }
 
   @Override
-  public void entityAdded( final EntityChangeEvent event )
+  public void entityAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityAdded(" + event + ")" );
     final Object entity = event.getObject();
@@ -110,7 +111,7 @@ public class SimpleUI
   }
 
   @Override
-  public void entityRemoved( final EntityChangeEvent event )
+  public void entityRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "entityRemoved(" + event + ")" );
     final Object entity = event.getObject();
@@ -133,7 +134,7 @@ public class SimpleUI
   }
 
   @Override
-  public void attributeChanged( final EntityChangeEvent event )
+  public void attributeChanged( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "attributeChanged(" + event + ")" );
     final Object entity = event.getObject();
@@ -167,7 +168,7 @@ public class SimpleUI
   }
 
   @Override
-  public void relatedAdded( final EntityChangeEvent event )
+  public void relatedAdded( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedAdded(" + event + ")" );
     final Object value = event.getValue();
@@ -248,7 +249,7 @@ public class SimpleUI
   }
 
   @Override
-  public void relatedRemoved( final EntityChangeEvent event )
+  public void relatedRemoved( @Nonnull final EntityChangeEvent event )
   {
     LOG.log( LOG_LEVEL, "relatedRemoved(" + event + ")" );
     final Object value = event.getValue();
