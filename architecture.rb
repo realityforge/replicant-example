@@ -5,7 +5,7 @@ Domgen.repository(:Tyrell) do |repository|
 
   repository.java.base_package = 'org.realityforge.tyrell'
 
-  repository.ee.web_xml_fragments << 'src/main/etc/web.fragment.xml'
+  repository.ee.web_xml_fragments << 'server/src/main/etc/web.fragment.xml'
 
   repository.imit.graph(:MetaData, :cacheable => true)
   repository.imit.graph(:ShiftList, :require_type_graphs => [:MetaData])
@@ -13,6 +13,11 @@ Domgen.repository(:Tyrell) do |repository|
   repository.imit.graph(:People, :require_type_graphs => [:MetaData])
   repository.imit.graph(:Person, :require_type_graphs => [:MetaData])
   repository.imit.graph(:PersonDetails, :require_type_graphs => [:MetaData])
+
+  repository.gwt.include_standard_ux_test_module = false
+  repository.gwt.include_standard_test_module = false
+  repository.imit.include_standard_integration_test_module = false
+  repository.ejb.include_server_test_module = false
 
   repository.data_module(:Tyrell) do |data_module|
     data_module.struct(:RosterSubscriptionDTO) do |s|

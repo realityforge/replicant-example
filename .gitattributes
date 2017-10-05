@@ -6,8 +6,6 @@
 *.md text
 *.rake text
 *.rb text
-*.sh text
-*.sh text eol=lf
 *.txt text
 *.xml text
 *.yaml text

@@ -1,14 +1,15 @@
+# DO NOT EDIT: File is auto-generated
+**/generated
 *.iml
 /*.ids
 /*.ipr
 /*.iws
-/*/generated
-/Gemfile.lock
-/_buildr.rb
+/.ideaDataSources
 /artifacts
+/config/application.yml
 /config/database.yml
-/config/local.sh
-/generated
+/dataSources
 /reports
 /target
 /tmp
+/volumes
