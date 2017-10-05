@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.realityforge.tyrell.client.ioc.AbstractTyrellGinjector;
+import org.realityforge.tyrell.client.ioc.TyrellEntrypointModule;
 import org.realityforge.tyrell.client.ioc.TyrellGinjector;
 
 public class TyrellApp
@@ -14,6 +15,12 @@ public class TyrellApp
   private static final Logger LOG = Logger.getLogger( TyrellApp.class.getName() );
 
   private TyrellGinjector _injector;
+
+  TyrellApp()
+  {
+    super();
+    TyrellEntrypointModule.setApp( this );
+  }
 
   @Nullable
   @Override
