@@ -2,7 +2,7 @@
   "vendor/tools/buildr_plus": {
     "url": "https://github.com/realityforge/buildr_plus.git",
     "branch": "master",
-    "revision": "a6ceed77dac1c689800a8abc5e7d9dbd6bdb88d5"
+    "revision": "a9ab3d3fe41bdf11ab82db4e6a564f7f29a67ae3"
   },
   "vendor/tools/dbt": {
     "url": "https://github.com/realityforge/dbt.git",
