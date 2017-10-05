@@ -1,0 +1,12 @@
+{
+  "vendor/tools/dbt": {
+    "url": "https://github.com/realityforge/dbt.git",
+    "branch": "master",
+    "revision": "554139d3ea275bd54949b9504090c77e4d39ba65"
+  },
+  "vendor/tools/domgen": {
+    "url": "https://github.com/realityforge/domgen.git",
+    "branch": "master",
+    "revision": "85ed5caac911ecc240fb124511447d8c4317446c"
+  }
+}

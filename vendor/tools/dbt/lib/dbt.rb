@@ -14,11 +14,13 @@
 require 'rexml/document'
 require 'erb'
 require 'yaml'
+require 'rubygems'
 
-require 'dbt/orderedhash'
+require 'reality/base_element'
+require 'reality/orderedhash'
 
+require 'dbt/version'
 require 'dbt/dbtc'
-require 'dbt/base'
 require 'dbt/util'
 require 'dbt/config'
 require 'dbt/filter_container'

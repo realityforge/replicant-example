@@ -59,19 +59,51 @@ class Dbt #nodoc
       filters = []
       if import_assert_filters?
         filters << Proc.new do |sql|
+          sql = sql.gsub(/ASSERT_DATABASE_VERSION\((.*)\)/, <<SQL)
+GO
+BEGIN
+  DECLARE @DbVersion VARCHAR(MAX)
+  SET @DbVersion = ''
+  SELECT @DbVersion = COALESCE(CONVERT(VARCHAR(MAX),value),'')
+    FROM [@@SOURCE@@].sys.fn_listextendedproperty('DatabaseSchemaVersion', default, default, default, default, default, default)
+  IF (@DbVersion IS NULL OR @DbVersion = '\\1')
+  BEGIN
+    DECLARE @Message VARCHAR(MAX)
+    SET @Message = CONCAT('Expected DatabaseSchemaVersion in @@SOURCE@@ database not to be \\1. Actual Value: ', @DbVersion)
+    RAISERROR (@Message, 16, 1) WITH SETERROR
+  END
+END
+GO
+BEGIN
+  DECLARE @DbVersion VARCHAR(MAX)
+  SET @DbVersion = ''
+  SELECT @DbVersion = COALESCE(CONVERT(VARCHAR(MAX),value),'')
+    FROM [@@TARGET@@].sys.fn_listextendedproperty('DatabaseSchemaVersion', default, default, default, default, default, default)
+  IF (@DbVersion IS NULL OR @DbVersion != '\\1')
+  BEGIN
+    DECLARE @Message VARCHAR(MAX)
+    SET @Message = CONCAT('Expected DatabaseSchemaVersion in @@TARGET@@ database to be \\1. Actual Value: ', @DbVersion)
+    RAISERROR (@Message, 16, 1) WITH SETERROR
+  END
+END
+GO
+SQL
           sql = sql.gsub(/ASSERT_UNCHANGED_ROW_COUNT\(\)/, <<SQL)
-IF (SELECT COUNT(*) FROM @@TARGET@@.@@TABLE@@) != (SELECT COUNT(*) FROM @@SOURCE@@.@@TABLE@@)
+GO
+IF (SELECT COUNT(*) FROM [@@TARGET@@].@@TABLE@@) != (SELECT COUNT(*) FROM [@@SOURCE@@].@@TABLE@@)
 BEGIN
   RAISERROR ('Actual row count for @@TABLE@@ does not match expected rowcount', 16, 1) WITH SETERROR
 END
 SQL
           sql = sql.gsub(/ASSERT_ROW_COUNT\((.*)\)/, <<SQL)
-IF (SELECT COUNT(*) FROM @@TARGET@@.@@TABLE@@) != (\\1)
+GO
+IF (SELECT COUNT(*) FROM [@@TARGET@@].@@TABLE@@) != (\\1)
 BEGIN
   RAISERROR ('Actual row count for @@TABLE@@ does not match expected rowcount', 16, 1) WITH SETERROR
 END
 SQL
           sql = sql.gsub(/ASSERT\((.+)\)/, <<SQL)
+GO
 IF NOT (\\1)
 BEGIN
   RAISERROR ('Failed to assert \\1', 16, 1) WITH SETERROR
