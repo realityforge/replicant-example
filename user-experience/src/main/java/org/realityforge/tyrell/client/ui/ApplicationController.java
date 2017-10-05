@@ -80,6 +80,7 @@ public class ApplicationController
 
   public void connect()
   {
+    _frontendContext.connect();
   }
 
   public EntityChangeBroker getBroker()

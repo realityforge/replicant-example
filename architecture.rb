@@ -1,5 +1,5 @@
 Domgen.repository(:Tyrell) do |repository|
-  repository.enable_facets([:jpa, :pgsql, :ejb, :jaxrs, :imit, :gwt_cache_filter])
+  repository.enable_facets([:jpa, :mssql, :ejb, :jaxrs, :imit, :gwt_cache_filter])
 
   repository.gwt_rpc.module_name = 'example'
 
