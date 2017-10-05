@@ -24,7 +24,7 @@ public class LoginUI
 
   private final ApplicationController _controller;
 
-  public LoginUI( final ApplicationController controller )
+  LoginUI( final ApplicationController controller )
   {
     _controller = controller;
     initWidget( UI_BINDER.createAndBindUi( this ) );
