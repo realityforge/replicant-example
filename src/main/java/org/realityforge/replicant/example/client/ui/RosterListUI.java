@@ -40,13 +40,13 @@ public class RosterListUI
 
   private final ApplicationController _controller;
 
-  public RosterListUI( final ApplicationController controller )
+  RosterListUI( final ApplicationController controller )
   {
     _controller = controller;
     initWidget( UI_BINDER.createAndBindUi( this ) );
   }
 
-  public void setRosters( final List<Roster> rosters )
+  void setRosters( final List<Roster> rosters )
   {
     final int selectedIndex = _rosterList.getSelectedIndex();
     final String selectedValue = ( -1 != selectedIndex ) ? _rosterList.getValue( selectedIndex ) : null;
@@ -85,7 +85,7 @@ public class RosterListUI
     super.onAttach();
   }
 
-  void resetState()
+  private void resetState()
   {
     _rosterName.setEnabled( true );
     _rosterName.setValue( "" );
