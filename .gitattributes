@@ -2,6 +2,7 @@
 * -text
 *.html text
 *.java text
+*.json text
 *.md text
 *.rake text
 *.rb text
