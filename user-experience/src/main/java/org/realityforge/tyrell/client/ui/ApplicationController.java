@@ -1,5 +1,6 @@
 package org.realityforge.tyrell.client.ui;
 
+import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -21,6 +22,7 @@ import org.realityforge.tyrell.client.entity.Shift;
 import org.realityforge.tyrell.client.entity.dao.PersonRepository;
 import org.realityforge.tyrell.client.entity.dao.RosterRepository;
 import org.realityforge.tyrell.client.entity.dao.RosterTypeRepository;
+import org.realityforge.tyrell.client.event.MetaDataSubscribeCompletedEvent;
 import org.realityforge.tyrell.client.net.FrontendContext;
 import org.realityforge.tyrell.client.service.RosterService;
 
@@ -52,7 +54,8 @@ public class ApplicationController
                                 @Nonnull final RosterService rosterService,
                                 @Nonnull final FrontendContext frontendContext,
                                 @Nonnull final EntityRepository repository,
-                                @Nonnull final EntityChangeBroker broker )
+                                @Nonnull final EntityChangeBroker broker,
+                                @Nonnull final EventBus eventBus )
   {
     _rosterTypeRepository = rosterTypeRepository;
     _rosterRepository = rosterRepository;
@@ -66,6 +69,7 @@ public class ApplicationController
     _mainPanel = new SimplePanel();
     gotoLoginActivity();
     broker.addChangeListener( this );
+    eventBus.addHandler( MetaDataSubscribeCompletedEvent.TYPE, e -> goToRosterListActivity() );
   }
 
   protected RosterType getRosterType()
