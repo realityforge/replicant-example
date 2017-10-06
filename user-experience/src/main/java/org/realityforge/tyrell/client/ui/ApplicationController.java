@@ -86,6 +86,7 @@ public class ApplicationController
 
   public void connect()
   {
+    AppData.viewService.connect();
     _frontendContext.connect();
   }
 

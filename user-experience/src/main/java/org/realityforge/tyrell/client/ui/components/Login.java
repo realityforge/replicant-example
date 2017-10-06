@@ -22,7 +22,6 @@ public class Login
   @EventHandler( MouseEventHandler.class )
   void doLogin()
   {
-    AppData.viewService.connect();
     AppData.controller.connect();
   }
 
