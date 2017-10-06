@@ -29,7 +29,6 @@ import org.realityforge.tyrell.client.ui.components.Login_;
 import react4j.core.React;
 import react4j.widget.ReactWidget;
 
-@SuppressWarnings( "ALL" )
 public class ApplicationController
   implements IsWidget, EntityChangeListener
 {
@@ -223,27 +222,27 @@ public class ApplicationController
     _rosterService.removeRoster( roster, r -> goToRosterListActivity() );
   }
 
-  public void setRosterName( final Roster roster, final String name )
+  void setRosterName( final Roster roster, final String name )
   {
     _rosterService.setRosterName( roster, name );
   }
 
-  public void setShiftName( final Shift shift, final String name )
+  void setShiftName( final Shift shift, final String name )
   {
     _rosterService.setShiftName( shift, name );
   }
 
-  public void createShift( final Roster roster, final String name, final RDate shiftOn )
+  void createShift( final Roster roster, final String name, final RDate shiftOn )
   {
     _rosterService.createShift( roster, name, shiftOn );
   }
 
-  public void createPosition( final Shift shift, final String name )
+  void createPosition( final Shift shift, final String name )
   {
     _rosterService.createPosition( shift, name );
   }
 
-  public void setPositionName( final Position position, final String name )
+  void setPositionName( final Position position, final String name )
   {
     _rosterService.setPositionName( position, name );
   }
