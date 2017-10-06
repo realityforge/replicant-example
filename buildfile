@@ -22,6 +22,7 @@ BuildrPlus::Roles.role(:user_experience) do
                :react4j_dom,
                :react4j_arez,
                :react4j_processor,
+               :react4j_widget,
                :arez_annotations,
                :arez_core,
                :arez_processor,

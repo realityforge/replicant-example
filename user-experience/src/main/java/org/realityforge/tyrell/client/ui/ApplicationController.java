@@ -25,6 +25,9 @@ import org.realityforge.tyrell.client.entity.dao.RosterTypeRepository;
 import org.realityforge.tyrell.client.event.MetaDataSubscribeCompletedEvent;
 import org.realityforge.tyrell.client.net.FrontendContext;
 import org.realityforge.tyrell.client.service.RosterService;
+import org.realityforge.tyrell.client.ui.components.Login_;
+import react4j.core.React;
+import react4j.widget.ReactWidget;
 
 @SuppressWarnings( "ALL" )
 public class ApplicationController
@@ -39,7 +42,7 @@ public class ApplicationController
   private final EntityChangeBroker _broker;
   private final FrontendContext _frontendContext;
   private final RosterService _rosterService;
-  private final LoginUI _loginUI;
+  private final ReactWidget _loginUI;
   private final RosterListUI _rosterListUI;
   private final RosterUI _rosterUI;
   private final SimplePanel _mainPanel;
@@ -63,7 +66,7 @@ public class ApplicationController
     _rosterService = rosterService;
     _frontendContext = frontendContext;
     _broker = broker;
-    _loginUI = new LoginUI( this );
+    _loginUI = new ReactWidget( React.createElement( Login_.TYPE ) );
     _rosterListUI = new RosterListUI( this );
     _rosterUI = new RosterUI( this );
     _mainPanel = new SimplePanel();
