@@ -2,6 +2,7 @@ require 'buildr_plus'
 BuildrPlus::FeatureManager.activate_features([:timerstatus, :replicant])
 BuildrPlus::FeatureManager.deactivate_features([:appcache])
 BuildrPlus::Idea.peer_projects = ENV['PEER_PROJECTS'] ? ENV['PEER_PROJECTS'].split(',') : %w(replicant)
+BuildrPlus::Gwt.enable_gwt_js_exports = true
 require 'buildr_plus/projects/java_multimodule'
 
 PACKAGED_DEPS = []
