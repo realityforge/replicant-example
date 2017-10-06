@@ -14,7 +14,6 @@ import org.realityforge.gwt.datatypes.client.date.RDate;
 import org.realityforge.replicant.client.EntityChangeBroker;
 import org.realityforge.replicant.client.EntityChangeEvent;
 import org.realityforge.replicant.client.EntityChangeListener;
-import org.realityforge.replicant.client.EntityRepository;
 import org.realityforge.tyrell.client.entity.Position;
 import org.realityforge.tyrell.client.entity.Roster;
 import org.realityforge.tyrell.client.entity.RosterType;
@@ -56,7 +55,6 @@ public class ApplicationController
                                 @Nonnull final PersonRepository personRepository,
                                 @Nonnull final RosterService rosterService,
                                 @Nonnull final FrontendContext frontendContext,
-                                @Nonnull final EntityRepository repository,
                                 @Nonnull final EntityChangeBroker broker,
                                 @Nonnull final EventBus eventBus )
   {
@@ -76,7 +74,7 @@ public class ApplicationController
     eventBus.addHandler( MetaDataSubscribeCompletedEvent.TYPE, e -> goToRosterListActivity() );
   }
 
-  protected RosterType getRosterType()
+  RosterType getRosterType()
   {
     return _rosterTypeRepository.getByID( 1 );
   }
