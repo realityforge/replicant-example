@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='tyrell'>
+  <inherits name="react4j.arez.ReactArez"/>
+  <inherits name="org.realityforge.tyrell.modules.TyrellModelSupport"/>
+  <inherits name="org.realityforge.tyrell.modules.TyrellEntrypointSupport"/>
+  <inherits name="org.realityforge.gwt.gin.GinExtensions"/>
+  <inherits name="react4j.widget.ReactWidget"/>
+
+  <source path='client'/>
+  <source path='shared'/>
+</module>

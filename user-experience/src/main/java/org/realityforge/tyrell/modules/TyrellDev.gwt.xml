@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='tyrell'>
+  <inherits name="org.realityforge.tyrell.Tyrell"/>
+  <inherits name="react4j.arez.ReactArezDev"/>
+  <inherits name="react4j.core.ReactDev"/>
+  <inherits name="org.realityforge.tyrell.modules.TyrellDevSupport"/>
+</module>
