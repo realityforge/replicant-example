@@ -23,6 +23,7 @@ import org.realityforge.tyrell.client.entity.dao.PersonRepository;
 import org.realityforge.tyrell.client.entity.dao.RosterRepository;
 import org.realityforge.tyrell.client.entity.dao.RosterTypeRepository;
 import org.realityforge.tyrell.client.event.MetaDataSubscribeCompletedEvent;
+import org.realityforge.tyrell.client.model.AppData;
 import org.realityforge.tyrell.client.net.FrontendContext;
 import org.realityforge.tyrell.client.service.RosterService;
 import org.realityforge.tyrell.client.ui.components.Login_;
@@ -59,6 +60,7 @@ public class ApplicationController
                                 @Nonnull final EntityChangeBroker broker,
                                 @Nonnull final EventBus eventBus )
   {
+    AppData.controller = this;
     _rosterTypeRepository = rosterTypeRepository;
     _rosterRepository = rosterRepository;
     _personRepository = personRepository;
@@ -255,7 +257,7 @@ public class ApplicationController
   void disconnect()
   {
     _frontendContext.disconnect();
-    _loginUI.resetState();
+    AppData.viewService.disconnect();
     gotoLoginActivity();
   }
 
