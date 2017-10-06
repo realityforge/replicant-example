@@ -1,2 +1,17 @@
 artifacts:
   timerstatus: iris.timerstatus:timerstatus:jar:1-063ade3
+
+  react4j_annotations: org.realityforge.react:react4j-annotations:jar:gwt:0.01
+  react4j_core: org.realityforge.react:react4j-core:jar:gwt:0.01
+  react4j_dom: org.realityforge.react:react4j-dom:jar:gwt:0.01
+  react4j_arez: org.realityforge.react:react4j-arez:jar:gwt:0.01
+  react4j_processor: org.realityforge.react:react4j-processor:jar:0.01
+
+  arez_annotations: org.realityforge.arez:arez-annotations:jar:gwt:0.07
+  arez_core: org.realityforge.arez:arez-core:jar:gwt:0.07
+  arez_processor: org.realityforge.arez:arez-processor:jar:0.07
+  arez_extras: org.realityforge.arez:arez-extras:jar:gwt:0.07
+  arez_browser_extras: org.realityforge.arez:arez-browser-extras:jar:gwt:0.07
+
+  javapoet: com.squareup:javapoet:jar:1.7.0
+  guava: com.google.guava:guava:jar:21.0
