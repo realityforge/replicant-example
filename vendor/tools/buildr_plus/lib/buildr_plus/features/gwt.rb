@@ -32,7 +32,7 @@ BuildrPlus::FeatureManager.feature(:gwt => [:jackson, :javascript]) do |f|
       end
     end
 
-    def define_gwt_task(project, suffix = '', options = {})
+    def deps_for_gwt_compile(project)
       # Unfortunately buildr does not gracefully handle resource directories not being present
       # when project processed so we collect extra dependencies by looking at the generated directories
       extra_deps = project.iml.main_generated_resource_directories.flatten.compact.collect do |a|
@@ -41,7 +41,11 @@ BuildrPlus::FeatureManager.feature(:gwt => [:jackson, :javascript]) do |f|
         a.is_a?(String) ? file(a) : a
       end
 
-      dependencies = project.compile.dependencies + [project.compile.target] + extra_deps
+      project.compile.dependencies + [project.compile.target] + extra_deps
+    end
+
+    def define_gwt_task(project, suffix = '', options = {})
+      dependencies = deps_for_gwt_compile(project)
       if ENV['GWT'].nil? || ENV['GWT'] == project.name
         project.gwt(project.determine_top_level_gwt_modules(suffix),
                     {
@@ -72,11 +76,36 @@ BuildrPlus::FeatureManager.feature(:gwt => [:jackson, :javascript]) do |f|
 
   f.enhance(:ProjectExtension) do
     first_time do
-      require 'buildr_plus/patches/gwt_patched'
+      require 'buildr/gwt'
     end
 
     def top_level_gwt_modules
       @top_level_gwt_modules ||= []
+    end
+
+    #
+    # Used when you want to co-evolve two gwt libraries, one of which is in a different
+    # project. If this was not available then you would be forced to restart superdev mode
+    # each time the dependency was updated which can be painful.
+    #
+    # Add something like this into user-experience to achieve it.
+    #
+    # expand_dependency(Buildr.artifacts(BuildrPlus::Libs.replicant_gwt_client).select{|a|a.group == 'org.realityforge.replicant'})
+    #
+    def expand_dependency(artifacts)
+      artifacts = Buildr.artifacts([artifacts])
+      artifacts.each do |artifact|
+        key = artifact.group + '_' + artifact.id
+        target_directory = _(:generated, 'deps', key)
+        t = task(target_directory => [artifact]) do
+          rm_rf target_directory
+          unzip(target_directory => artifact).target.invoke
+        end
+        project.iml.main_generated_source_directories << target_directory
+        project.compile.from(target_directory)
+        project.compile.dependencies.delete(artifact)
+        task(':domgen:all').enhance([t.name])
+      end
     end
 
     # Determine any top level modules.
