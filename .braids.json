@@ -7,7 +7,7 @@
   "vendor/tools/dbt": {
     "url": "https://github.com/realityforge/dbt.git",
     "branch": "master",
-    "revision": "554139d3ea275bd54949b9504090c77e4d39ba65"
+    "revision": "1caae42f9a5fc19372d4a2f2b5c2ed6fffa15fc6"
   },
   "vendor/tools/domgen": {
     "url": "https://github.com/realityforge/domgen.git",
