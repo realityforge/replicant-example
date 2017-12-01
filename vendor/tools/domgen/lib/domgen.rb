@@ -49,10 +49,6 @@ require 'domgen/xml/helper'
 require 'domgen/java/model'
 require 'domgen/java/helper'
 
-# Ruby
-require 'domgen/ruby/model'
-require 'domgen/ruby/helper'
-
 # SQL
 require 'domgen/sql/model'
 require 'domgen/sql/helper'
@@ -85,9 +81,6 @@ require 'domgen/jpa/generator'
 # JMS
 require 'domgen/jms/model'
 require 'domgen/jms/generator'
-
-# ActiveRecord
-require 'domgen/active_record/generator'
 
 # Docbook
 require 'domgen/xml/generator'
@@ -133,19 +126,10 @@ require 'domgen/gwt/generator'
 require 'domgen/gwt_rpc/model'
 require 'domgen/gwt_rpc/generator'
 
-# RestyGWT
-require 'domgen/restygwt/model'
-require 'domgen/restygwt/helper'
-require 'domgen/restygwt/generator'
-
 # Imit
 require 'domgen/imit/model'
 require 'domgen/imit/helper'
 require 'domgen/imit/generator'
-
-# AutoBean
-require 'domgen/auto_bean/model'
-require 'domgen/auto_bean/generator'
 
 # Database level auditing
 require 'domgen/audit/model'
